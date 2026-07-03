@@ -19,11 +19,18 @@ struct RecipientSelector: View {
                     .foregroundStyle(.secondary)
             }
 
-            ForEach(identities) { identity in
-                Toggle(isOn: isSelected(identity)) {
-                    IdentityLabel(identity: identity)
+            if !identities.isEmpty {
+                Grid(horizontalSpacing: 10, verticalSpacing: 8) {
+                    ForEach(identities) { identity in
+                        GridRow {
+                            Toggle(identity.displayName, isOn: isSelected(identity))
+                                .labelsHidden()
+                                .toggleStyle(.checkbox)
+                            IdentityLabel(identity: identity)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
                 }
-                .toggleStyle(.checkbox)
             }
 
             ForEach(extraRecipients) { recipient in

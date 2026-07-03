@@ -34,13 +34,32 @@ final class AppModel {
     var identities: [AgeIdentity] = []
 
     // Compose state, kept here so it survives panel switches and can be populated
-    // by incoming system Services (see ServiceProvider).
+    // by incoming system Services (see ServiceProvider) and by the Keys panel.
     var encryptInput = ""
     var decryptInput = ""
     var queuedEncryptFiles: [URL] = []
     var queuedDecryptFiles: [URL] = []
+    /// Identities selected as recipients on the Encrypt panel.
+    var encryptRecipientIDs: Set<UUID> = []
+    /// Ad-hoc recipients pasted on the Encrypt panel.
+    var encryptExtraRecipients: [AgeRecipient] = []
+    /// Identities to try on the Decrypt panel.
+    var decryptIdentityIDs: Set<UUID> = []
     /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
     var autoCheckRequested = false
+
+    /// Prefill the Encrypt panel to encrypt to a single recipient.
+    func composeEncrypt(to identity: AgeIdentity) {
+        encryptRecipientIDs = [identity.id]
+        encryptExtraRecipients = []
+        selection = .encrypt
+    }
+
+    /// Prefill the Decrypt panel to try a single identity.
+    func composeDecrypt(with identity: AgeIdentity) {
+        decryptIdentityIDs = [identity.id]
+        selection = .decrypt
+    }
 
     private let store = IdentityStore()
 
@@ -111,6 +130,8 @@ final class AppModel {
 
     func delete(_ identity: AgeIdentity) {
         identities.removeAll { $0.id == identity.id }
+        encryptRecipientIDs.remove(identity.id)
+        decryptIdentityIDs.remove(identity.id)
         store.delete(identity)
     }
 }

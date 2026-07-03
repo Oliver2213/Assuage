@@ -23,22 +23,16 @@ struct GenerateKeySheet: View {
     @State private var isErrorPresented = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("Generate age Keypair")
                 .font(.title2.bold())
 
-            Picker("Key type", selection: $keyType) {
-                ForEach(KeyType.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-
-            Text(explanation)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
             Form {
+                Picker("Key type", selection: $keyType) {
+                    ForEach(KeyType.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.menu)
+
                 TextField("Label", text: $label, prompt: Text("Optional, e.g. “My Laptop”"))
 
                 if keyType == .secureEnclave {
@@ -50,7 +44,13 @@ struct GenerateKeySheet: View {
                 }
             }
             .formStyle(.grouped)
-            .frame(height: keyType == .secureEnclave ? 100 : 60)
+            .scrollDisabled(true)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Text(explanation)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if keyType == .secureEnclave && !model.secureEnclaveAvailable {
                 Label("This Mac doesn’t have a Secure Enclave.", systemImage: "exclamationmark.triangle.fill")
@@ -67,7 +67,7 @@ struct GenerateKeySheet: View {
             }
         }
         .padding(20)
-        .frame(width: 440)
+        .frame(width: 460)
         .alert("Couldn’t generate key", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -78,9 +78,9 @@ struct GenerateKeySheet: View {
     private var explanation: LocalizedStringKey {
         switch keyType {
         case .x25519:
-            return "A standard age key. The private key is held by the app for this session — **export it to keep it**. Works with any age tool."
+            return "A standard age key, stored in your keychain. It can be exported and used with any age tool, on any machine."
         case .secureEnclave:
-            return "The private key is generated inside this Mac’s **Secure Enclave** and can never be exported. Compatible with age-plugin-se."
+            return "The key is sealed by this Mac’s **Secure Enclave**: you still hold the key and can export it for backup, but since it’s encrypted by the enclave it only works on the Mac that generated it. Compatible with age-plugin-se."
         }
     }
 

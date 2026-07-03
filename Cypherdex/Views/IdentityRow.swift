@@ -2,10 +2,13 @@ import SwiftUI
 import AppKit
 import CypherdexCore
 
-/// A detailed row for one identity, with export / copy / delete actions.
+/// A detailed row for one identity, with visible actions, a matching context
+/// menu, and shortcuts to compose an encrypt/decrypt with this key.
 struct IdentityRow: View {
+    @Environment(AppModel.self) private var model
     let identity: AgeIdentity
-    let onDelete: () -> Void
+    /// Ask the parent to confirm and perform deletion.
+    let onRequestDelete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -38,17 +41,11 @@ struct IdentityRow: View {
             }
 
             HStack(spacing: 8) {
-                Button("Copy Recipient", systemImage: "doc.on.doc") {
-                    copyToPasteboard(identity.recipient.encoding)
-                }
-                Button("Export Public Key…", systemImage: "square.and.arrow.up") {
-                    SavePanel.save(text: identity.publicKeyFile(), suggestedName: "\(fileBase).pub")
-                }
-                Button("Export Identity…", systemImage: "key") {
-                    SavePanel.save(text: identity.ageFormatted(), suggestedName: "\(fileBase).txt")
-                }
+                Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
+                Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
+                Button("Export Identity…", systemImage: "key") { exportIdentity() }
                 Spacer()
-                Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+                Button("Delete", systemImage: "trash", role: .destructive, action: onRequestDelete)
                     .labelStyle(.iconOnly)
                     .foregroundStyle(.red)
             }
@@ -57,14 +54,39 @@ struct IdentityRow: View {
             .padding(.top, 4)
         }
         .padding(.vertical, 6)
+        .contentShape(.rect)
+        .contextMenu {
+            Button("Encrypt to This Recipient", systemImage: "lock") {
+                model.composeEncrypt(to: identity)
+            }
+            Button("Decrypt with This Identity", systemImage: "lock.open") {
+                model.composeDecrypt(with: identity)
+            }
+            Divider()
+            Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
+            Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
+            Button("Export Identity…", systemImage: "key") { exportIdentity() }
+            Divider()
+            Button("Delete…", systemImage: "trash", role: .destructive, action: onRequestDelete)
+        }
     }
+
+    // MARK: Actions
 
     private var fileBase: String {
         identity.displayName.replacingOccurrences(of: " ", with: "-")
     }
 
-    private func copyToPasteboard(_ string: String) {
+    private func copyRecipient() {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
+        NSPasteboard.general.setString(identity.recipient.encoding, forType: .string)
+    }
+
+    private func exportPublicKey() {
+        SavePanel.save(text: identity.publicKeyFile(), suggestedName: "\(fileBase).pub")
+    }
+
+    private func exportIdentity() {
+        SavePanel.save(text: identity.ageFormatted(), suggestedName: "\(fileBase).txt")
     }
 }

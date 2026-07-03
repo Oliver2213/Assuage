@@ -8,8 +8,6 @@ struct EncryptView: View {
     @Environment(CryptoEngine.self) private var engine
 
     @State private var armored = true
-    @State private var selectedIdentityIDs: Set<UUID> = []
-    @State private var extraRecipients: [AgeRecipient] = []
 
     @State private var outputText: String?
     @State private var outputData: Data?
@@ -20,7 +18,8 @@ struct EncryptView: View {
     @State private var showFileImporter = false
 
     private var recipients: [AgeRecipient] {
-        model.identities.filter { selectedIdentityIDs.contains($0.id) }.map(\.recipient) + extraRecipients
+        model.identities.filter { model.encryptRecipientIDs.contains($0.id) }.map(\.recipient)
+            + model.encryptExtraRecipients
     }
 
     var body: some View {
@@ -33,8 +32,8 @@ struct EncryptView: View {
                 GroupBox("Recipients") {
                     RecipientSelector(
                         identities: model.identities,
-                        selectedIdentityIDs: $selectedIdentityIDs,
-                        extraRecipients: $extraRecipients
+                        selectedIdentityIDs: $model.encryptRecipientIDs,
+                        extraRecipients: $model.encryptExtraRecipients
                     )
                     .padding(4)
                 }
@@ -76,19 +75,10 @@ struct EncryptView: View {
 
     private func messageBox(_ text: Binding<String>) -> some View {
         GroupBox("Message") {
-            TextEditor(text: text)
+            TextField("Secret message…", text: text, axis: .vertical)
+                .textFieldStyle(.plain)
                 .font(.body.monospaced())
-                .frame(minHeight: 120)
-                .scrollContentBackground(.hidden)
-                .overlay(alignment: .topLeading) {
-                    if text.wrappedValue.isEmpty {
-                        Text("Secret message…")
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 8)
-                            .allowsHitTesting(false)
-                    }
-                }
+                .lineLimit(5...)
         }
     }
 
@@ -113,7 +103,6 @@ struct EncryptView: View {
                 FileWell(prompt: "Drop files to encrypt", systemImage: "arrow.down.doc") { urls in
                     files.wrappedValue.append(contentsOf: urls)
                 }
-                .frame(height: 76)
 
                 if let fileStatus {
                     Label(fileStatus, systemImage: "checkmark.circle.fill")
@@ -128,13 +117,10 @@ struct EncryptView: View {
     private func armoredOutput(_ text: String) -> some View {
         GroupBox("Encrypted — armored text") {
             VStack(alignment: .leading, spacing: 8) {
-                ScrollView {
-                    Text(text)
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(height: 150)
+                Text(text)
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 HStack {
                     Button("Copy", systemImage: "doc.on.doc") { copyToPasteboard(text) }
                     Button("Save…", systemImage: "square.and.arrow.down") {
