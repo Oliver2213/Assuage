@@ -1,6 +1,4 @@
 import SwiftUI
-import AppKit
-import UniformTypeIdentifiers
 import CypherdexCore
 
 struct EncryptView: View {
@@ -8,14 +6,10 @@ struct EncryptView: View {
     @Environment(CryptoEngine.self) private var engine
 
     @State private var armored = true
-
-    @State private var outputText: String?
-    @State private var outputData: Data?
+    @State private var output: CryptoOutput?
     @State private var fileStatus: String?
-
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
-    @State private var showFileImporter = false
 
     private var recipients: [AgeRecipient] {
         model.identities.filter { model.encryptRecipientIDs.contains($0.id) }.map(\.recipient)
@@ -26,9 +20,10 @@ struct EncryptView: View {
         @Bindable var model = model
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                InfoBanner("**Encrypt anything.** Type or paste a message, choose one or more recipients, and encrypt. Or select text/files anywhere and use **Services ▸ Encrypt with Cypherdex** (also in Finder’s right-click menu).")
+                InfoBanner("**Encrypt anything.** Type or paste a message, choose one or more recipients, and encrypt. Drop files onto the well to encrypt them in place. Also available from **Services** and Finder’s right-click menu.")
 
-                messageBox($model.encryptInput)
+                MultilineTextField(title: "Message", placeholder: "Secret message…", text: $model.encryptInput)
+
                 GroupBox("Recipients") {
                     RecipientSelector(
                         identities: model.identities,
@@ -41,7 +36,7 @@ struct EncryptView: View {
                 Toggle("ASCII-armor the output (safe to paste as text)", isOn: $armored)
 
                 HStack(spacing: 12) {
-                    Button("Encrypt Message", systemImage: "lock") { encryptMessage() }
+                    Button("Encrypt Message", systemImage: "lock", action: encryptMessage)
                         .buttonStyle(.borderedProminent)
                         .disabled(model.encryptInput.isEmpty || recipients.isEmpty || engine.isRunning)
                     if engine.isRunning {
@@ -50,13 +45,28 @@ struct EncryptView: View {
                     Spacer()
                 }
 
-                if let outputText {
-                    armoredOutput(outputText)
-                } else if let outputData {
-                    binaryOutput(outputData)
+                if let output {
+                    CipherOutputView(
+                        title: "Encrypted",
+                        output: output,
+                        binarySaveName: "message.age",
+                        allowsTextSave: true,
+                        textSaveName: "message.age",
+                        font: .caption.monospaced()
+                    )
                 }
 
-                filesBox($model.queuedEncryptFiles)
+                QueuedFilesSection(
+                    caption: "Encrypts each file to a new **.age** file next to the original.",
+                    files: $model.queuedEncryptFiles,
+                    runVerb: "Encrypt",
+                    runIcon: "lock",
+                    dropPrompt: "Drop files to encrypt",
+                    dropIcon: "arrow.down.doc",
+                    isRunEnabled: !recipients.isEmpty && !engine.isRunning,
+                    onRun: encryptQueuedFiles,
+                    status: fileStatus
+                )
             }
             .padding(20)
         }
@@ -66,102 +76,19 @@ struct EncryptView: View {
         } message: {
             Text(errorMessage)
         }
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
-            if case .success(let urls) = result { model.queuedEncryptFiles.append(contentsOf: urls) }
-        }
-    }
-
-    // MARK: Sections
-
-    private func messageBox(_ text: Binding<String>) -> some View {
-        GroupBox("Message") {
-            TextField("Secret message…", text: text, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.body.monospaced())
-                .lineLimit(5...)
-        }
-    }
-
-    private func filesBox(_ files: Binding<[URL]>) -> some View {
-        GroupBox("Files") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Encrypts each file to a new **.age** file next to the original.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                QueuedFilesList(files: files)
-
-                HStack {
-                    Button("Add Files…", systemImage: "plus") { showFileImporter = true }
-                    Button("Encrypt \(files.wrappedValue.count) File\(files.wrappedValue.count == 1 ? "" : "s")", systemImage: "lock") {
-                        encryptQueuedFiles()
-                    }
-                    .disabled(files.wrappedValue.isEmpty || recipients.isEmpty || engine.isRunning)
-                    Spacer()
-                }
-
-                FileWell(prompt: "Drop files to encrypt", systemImage: "arrow.down.doc") { urls in
-                    files.wrappedValue.append(contentsOf: urls)
-                }
-
-                if let fileStatus {
-                    Label(fileStatus, systemImage: "checkmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.green)
-                }
-            }
-            .padding(4)
-        }
-    }
-
-    private func armoredOutput(_ text: String) -> some View {
-        GroupBox("Encrypted — armored text") {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(text)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                HStack {
-                    Button("Copy", systemImage: "doc.on.doc") { copyToPasteboard(text) }
-                    Button("Save…", systemImage: "square.and.arrow.down") {
-                        SavePanel.save(text: text, suggestedName: "message.age")
-                    }
-                    Spacer()
-                }
-            }
-            .padding(4)
-        }
-    }
-
-    private func binaryOutput(_ data: Data) -> some View {
-        GroupBox("Encrypted — \(ByteFormatting.size(Int64(data.count)))") {
-            HStack {
-                Text("Binary age file.").foregroundStyle(.secondary)
-                Spacer()
-                Button("Save…", systemImage: "square.and.arrow.down") {
-                    SavePanel.save(data, suggestedName: "message.age")
-                }
-            }
-            .padding(4)
-        }
     }
 
     // MARK: Actions
 
     private func encryptMessage() {
-        outputText = nil
-        outputData = nil
+        output = nil
         let recipients = self.recipients
         let armored = self.armored
         let text = model.encryptInput
         Task {
             do {
                 let data = try await engine.encrypt(Data(text.utf8), to: recipients, armored: armored)
-                if armored {
-                    outputText = String(decoding: data, as: UTF8.self)
-                } else {
-                    outputData = data
-                }
+                output = armored ? .text(String(decoding: data, as: UTF8.self)) : .binary(data)
             } catch {
                 present(error)
             }
@@ -190,10 +117,5 @@ struct EncryptView: View {
     private func present(_ error: any Error) {
         errorMessage = error.localizedDescription
         isErrorPresented = true
-    }
-
-    private func copyToPasteboard(_ string: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
     }
 }

@@ -1,20 +1,15 @@
 import SwiftUI
-import AppKit
-import UniformTypeIdentifiers
 import CypherdexCore
 
 struct DecryptView: View {
     @Environment(AppModel.self) private var model
     @Environment(CryptoEngine.self) private var engine
 
-    @State private var outputText: String?
-    @State private var outputData: Data?
+    @State private var output: CryptoOutput?
     @State private var statusMessage: String?
     @State private var statusIsGood = true
-
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
-    @State private var showFileImporter = false
 
     private var identities: [AgeIdentity] {
         model.identities.filter { model.decryptIdentityIDs.contains($0.id) }
@@ -26,14 +21,31 @@ struct DecryptView: View {
             VStack(alignment: .leading, spacing: 16) {
                 InfoBanner("**Decrypt with your identities.** Paste armored age text or queue files. **Check** tells you whether one of your keys can open something without decrypting it. Works from **Services** and Finder too.")
 
-                cipherBox($model.decryptInput)
-                identitiesBox
+                MultilineTextField(
+                    title: "Encrypted text",
+                    placeholder: "-----BEGIN AGE ENCRYPTED FILE-----…",
+                    text: $model.decryptInput,
+                    font: .caption.monospaced()
+                )
+
+                GroupBox("Try these identities") {
+                    if model.identities.isEmpty {
+                        Text("No identities yet — generate or import one in the Keys tab.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(4)
+                    } else {
+                        IdentityCheckGrid(identities: model.identities, selection: $model.decryptIdentityIDs, showsPresence: true)
+                            .padding(4)
+                    }
+                }
 
                 HStack(spacing: 12) {
-                    Button("Decrypt", systemImage: "lock.open") { decryptText() }
+                    Button("Decrypt", systemImage: "lock.open", action: decryptText)
                         .buttonStyle(.borderedProminent)
                         .disabled(model.decryptInput.isEmpty || identities.isEmpty || engine.isRunning)
-                    Button("Check", systemImage: "questionmark.circle") { checkText() }
+                    Button("Check", systemImage: "questionmark.circle", action: checkText)
                         .disabled(model.decryptInput.isEmpty || identities.isEmpty || engine.isRunning)
                     if engine.isRunning {
                         ProgressStrip(progress: engine.progress).frame(maxWidth: 260)
@@ -47,13 +59,20 @@ struct DecryptView: View {
                         .foregroundStyle(statusIsGood ? .green : .orange)
                 }
 
-                if let outputText {
-                    textOutput(outputText)
-                } else if let outputData {
-                    binaryOutput(outputData)
+                if let output {
+                    CipherOutputView(title: "Decrypted", output: output, binarySaveName: "decrypted")
                 }
 
-                filesBox($model.queuedDecryptFiles)
+                QueuedFilesSection(
+                    caption: "Writes each decrypted file next to the encrypted one.",
+                    files: $model.queuedDecryptFiles,
+                    runVerb: "Decrypt",
+                    runIcon: "lock.open",
+                    dropPrompt: "Drop files to decrypt",
+                    dropIcon: "arrow.up.doc",
+                    isRunEnabled: !identities.isEmpty && !engine.isRunning,
+                    onRun: decryptQueuedFiles
+                )
             }
             .padding(20)
         }
@@ -70,114 +89,12 @@ struct DecryptView: View {
         } message: {
             Text(errorMessage)
         }
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
-            if case .success(let urls) = result { model.queuedDecryptFiles.append(contentsOf: urls) }
-        }
-    }
-
-    // MARK: Sections
-
-    private func cipherBox(_ text: Binding<String>) -> some View {
-        GroupBox("Encrypted text") {
-            TextField("-----BEGIN AGE ENCRYPTED FILE-----…", text: text, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.caption.monospaced())
-                .lineLimit(5...)
-        }
-    }
-
-    private var identitiesBox: some View {
-        GroupBox("Try these identities") {
-            if model.identities.isEmpty {
-                Text("No identities yet — generate or import one in the Keys tab.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(4)
-            } else {
-                Grid(horizontalSpacing: 10, verticalSpacing: 8) {
-                    ForEach(model.identities) { identity in
-                        GridRow {
-                            Toggle(identity.displayName, isOn: isSelected(identity))
-                                .labelsHidden()
-                                .toggleStyle(.checkbox)
-                            HStack(spacing: 6) {
-                                IdentityLabel(identity: identity)
-                                if identity.requiresPresence {
-                                    Image(systemName: "touchid")
-                                        .foregroundStyle(.secondary)
-                                        .help("Using this key prompts for Touch ID or your passcode.")
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                }
-                .padding(4)
-            }
-        }
-    }
-
-    private func filesBox(_ files: Binding<[URL]>) -> some View {
-        GroupBox("Files") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Writes each decrypted file next to the encrypted one.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                QueuedFilesList(files: files)
-
-                HStack {
-                    Button("Add Files…", systemImage: "plus") { showFileImporter = true }
-                    Button("Decrypt \(files.wrappedValue.count) File\(files.wrappedValue.count == 1 ? "" : "s")", systemImage: "lock.open") {
-                        decryptQueuedFiles()
-                    }
-                    .disabled(files.wrappedValue.isEmpty || identities.isEmpty || engine.isRunning)
-                    Spacer()
-                }
-
-                FileWell(prompt: "Drop files to decrypt", systemImage: "arrow.up.doc") { urls in
-                    files.wrappedValue.append(contentsOf: urls)
-                }
-            }
-            .padding(4)
-        }
-    }
-
-    private func textOutput(_ text: String) -> some View {
-        GroupBox("Decrypted text") {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(text)
-                    .font(.body.monospaced())
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                HStack {
-                    Button("Copy", systemImage: "doc.on.doc") { copyToPasteboard(text) }
-                    Spacer()
-                }
-            }
-            .padding(4)
-        }
-    }
-
-    private func binaryOutput(_ data: Data) -> some View {
-        GroupBox("Decrypted — \(ByteFormatting.size(Int64(data.count)))") {
-            HStack {
-                Text("The plaintext isn’t valid text.").foregroundStyle(.secondary)
-                Spacer()
-                Button("Save…", systemImage: "square.and.arrow.down") {
-                    SavePanel.save(data, suggestedName: "decrypted")
-                }
-            }
-            .padding(4)
-        }
     }
 
     // MARK: Actions
 
     private func decryptText() {
-        outputText = nil
-        outputData = nil
+        output = nil
         statusMessage = nil
         let identities = self.identities
         let data = Data(model.decryptInput.utf8)
@@ -185,9 +102,9 @@ struct DecryptView: View {
             do {
                 let plaintext = try await engine.decrypt(data, with: identities)
                 if let text = String(data: plaintext, encoding: .utf8) {
-                    outputText = text
+                    output = .text(text)
                 } else {
-                    outputData = plaintext
+                    output = .binary(plaintext)
                 }
             } catch {
                 present(error)
@@ -196,8 +113,7 @@ struct DecryptView: View {
     }
 
     private func checkText() {
-        outputText = nil
-        outputData = nil
+        output = nil
         let can = Cipher.canDecrypt(Data(model.decryptInput.utf8), with: identities)
         statusIsGood = can
         statusMessage = can
@@ -240,18 +156,6 @@ struct DecryptView: View {
         return url.deletingPathExtension().appendingPathExtension(url.pathExtension + ".decrypted")
     }
 
-    // MARK: Helpers
-
-    private func isSelected(_ identity: AgeIdentity) -> Binding<Bool> {
-        Binding(
-            get: { model.decryptIdentityIDs.contains(identity.id) },
-            set: { isOn in
-                if isOn { model.decryptIdentityIDs.insert(identity.id) }
-                else { model.decryptIdentityIDs.remove(identity.id) }
-            }
-        )
-    }
-
     private func selectAll() {
         model.decryptIdentityIDs = Set(model.identities.map(\.id))
     }
@@ -259,10 +163,5 @@ struct DecryptView: View {
     private func present(_ error: any Error) {
         errorMessage = error.localizedDescription
         isErrorPresented = true
-    }
-
-    private func copyToPasteboard(_ string: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
     }
 }
