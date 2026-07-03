@@ -1,24 +1,31 @@
-//
-//  ContentView.swift
-//  Cypherdex
-//
-//  Created by Blake Oliver on 7/3/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(AppModel.self) private var model
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        @Bindable var model = model
+        NavigationSplitView {
+            List(selection: $model.selection) {
+                ForEach(AppModel.Panel.allCases) { panel in
+                    Label(panel.title, systemImage: panel.systemImage)
+                        .tag(panel)
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
+            .navigationTitle("Cypherdex")
+        } detail: {
+            switch model.selection ?? .encrypt {
+            case .encrypt: EncryptView()
+            case .decrypt: DecryptView()
+            case .keys: KeysView()
+            }
         }
-        .padding()
     }
 }
 
 #Preview {
     ContentView()
+        .environment(AppModel())
+        .environment(CryptoEngine())
 }
