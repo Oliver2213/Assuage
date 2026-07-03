@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct CypherdexApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var model = AppModel()
     @State private var engine = CryptoEngine()
 

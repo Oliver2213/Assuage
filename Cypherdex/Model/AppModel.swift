@@ -33,13 +33,47 @@ final class AppModel {
     var selection: Panel? = .encrypt
     var identities: [AgeIdentity] = []
 
+    // Compose state, kept here so it survives panel switches and can be populated
+    // by incoming system Services (see ServiceProvider).
+    var encryptInput = ""
+    var decryptInput = ""
+    var queuedEncryptFiles: [URL] = []
+    var queuedDecryptFiles: [URL] = []
+    /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
+    var autoCheckRequested = false
+
+    private let store = IdentityStore()
+
+    init() {
+        identities = store.loadAll()
+    }
+
+    /// Route an incoming system Service request into the right panel.
+    func handle(_ request: ServiceRequest) {
+        switch request.action {
+        case .encrypt:
+            if let text = request.text, !text.isEmpty { encryptInput = text }
+            queuedEncryptFiles.append(contentsOf: request.files)
+            selection = .encrypt
+        case .decrypt:
+            if let text = request.text, !text.isEmpty { decryptInput = text }
+            queuedDecryptFiles.append(contentsOf: request.files)
+            selection = .decrypt
+        case .check:
+            if let text = request.text, !text.isEmpty { decryptInput = text }
+            queuedDecryptFiles.append(contentsOf: request.files)
+            autoCheckRequested = true
+            selection = .decrypt
+        }
+    }
+
     /// Whether this Mac can create Secure Enclave keys.
     var secureEnclaveAvailable: Bool { SecureEnclaveKeys.isAvailable }
 
     @discardableResult
     func generateX25519(label: String) -> AgeIdentity {
         let identity = AgeIdentity.generateX25519(label: label)
-        identities.append(identity)
+        add(identity)
         return identity
     }
 
@@ -49,8 +83,13 @@ final class AppModel {
         accessControl: SecureEnclaveAccessControl
     ) throws -> AgeIdentity {
         let identity = try AgeIdentity.generateSecureEnclave(label: label, accessControl: accessControl)
-        identities.append(identity)
+        add(identity)
         return identity
+    }
+
+    private func add(_ identity: AgeIdentity) {
+        identities.append(identity)
+        store.save(identity)
     }
 
     func importIdentityFile(at url: URL) throws {
@@ -64,7 +103,7 @@ final class AppModel {
                 label: url.deletingPathExtension().lastPathComponent,
                 storedAt: url
             )
-            identities.append(identity)
+            add(identity)
             imported += 1
         }
         if imported == 0 { throw CypherdexError.unrecognizedIdentity(url.lastPathComponent) }
@@ -72,5 +111,6 @@ final class AppModel {
 
     func delete(_ identity: AgeIdentity) {
         identities.removeAll { $0.id == identity.id }
+        store.delete(identity)
     }
 }

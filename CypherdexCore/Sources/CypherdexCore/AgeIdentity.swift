@@ -6,7 +6,7 @@ import AgeKit
 /// *Where* the secret lives is encoded in the case itself, so an identity can
 /// never claim a location it doesn't actually have (no nullable "secret" field
 /// paired with a separate "source" flag that could disagree).
-public enum IdentityMaterial: Sendable, Hashable {
+public enum IdentityMaterial: Sendable, Hashable, Codable {
     /// A native age X25519 secret key (`AGE-SECRET-KEY-1…`), which is exportable.
     /// `storedAt` is `nil` when the key exists only in memory (freshly generated,
     /// not yet written to disk).
@@ -21,7 +21,7 @@ public enum IdentityMaterial: Sendable, Hashable {
 /// An age identity (private key) the app can decrypt with, plus the metadata age
 /// records when generating one: when it was created, a human description, and
 /// where its secret lives.
-public struct AgeIdentity: Sendable, Identifiable, Hashable {
+public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
     public let id: UUID
     /// A human-facing description shown in the UI and written as a comment on export.
     public var label: String

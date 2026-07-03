@@ -28,7 +28,7 @@ struct KeysView: View {
                             IdentityRow(identity: identity) { model.delete(identity) }
                         }
                     } footer: {
-                        Text("Keys live in memory for this session. Export any you want to keep — Keychain persistence is coming.")
+                        Text("Keys are stored in this Mac’s keychain and never leave the device. Secure Enclave private keys stay in the enclave.")
                             .font(.caption)
                     }
                 }

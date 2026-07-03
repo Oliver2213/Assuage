@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppModel.self) private var model
+    @State private var bus = ServiceBus.shared
 
     var body: some View {
         @Bindable var model = model
@@ -21,6 +22,17 @@ struct ContentView: View {
             case .keys: KeysView()
             }
         }
+        .onChange(of: bus.request) { _, request in
+            deliver(request)
+        }
+        .onAppear { deliver(bus.request) }
+    }
+
+    /// Route a queued Service request into the model, then clear it.
+    private func deliver(_ request: ServiceRequest?) {
+        guard let request else { return }
+        model.handle(request)
+        bus.request = nil
     }
 }
 

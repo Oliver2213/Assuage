@@ -7,7 +7,6 @@ struct DecryptView: View {
     @Environment(AppModel.self) private var model
     @Environment(CryptoEngine.self) private var engine
 
-    @State private var ciphertext = ""
     @State private var selectedIdentityIDs: Set<UUID> = []
 
     @State private var outputText: String?
@@ -24,34 +23,20 @@ struct DecryptView: View {
     }
 
     var body: some View {
+        @Bindable var model = model
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                InfoBanner("**Decrypt with your identities.** Paste armored age text or drop an encrypted file. **Check** tells you whether one of your keys can open a file without decrypting it.")
+                InfoBanner("**Decrypt with your identities.** Paste armored age text or queue files. **Check** tells you whether one of your keys can open something without decrypting it. Works from **Services** and Finder too.")
 
-                GroupBox("Encrypted text") {
-                    TextEditor(text: $ciphertext)
-                        .font(.caption.monospaced())
-                        .frame(minHeight: 120)
-                        .scrollContentBackground(.hidden)
-                        .overlay(alignment: .topLeading) {
-                            if ciphertext.isEmpty {
-                                Text("-----BEGIN AGE ENCRYPTED FILE-----…")
-                                    .foregroundStyle(.tertiary)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 8)
-                                    .allowsHitTesting(false)
-                            }
-                        }
-                }
-
+                cipherBox($model.decryptInput)
                 identitiesBox
 
                 HStack(spacing: 12) {
                     Button("Decrypt", systemImage: "lock.open") { decryptText() }
                         .buttonStyle(.borderedProminent)
-                        .disabled(ciphertext.isEmpty || identities.isEmpty || engine.isRunning)
+                        .disabled(model.decryptInput.isEmpty || identities.isEmpty || engine.isRunning)
                     Button("Check", systemImage: "questionmark.circle") { checkText() }
-                        .disabled(ciphertext.isEmpty || identities.isEmpty || engine.isRunning)
+                        .disabled(model.decryptInput.isEmpty || identities.isEmpty || engine.isRunning)
                     if engine.isRunning {
                         ProgressStrip(progress: engine.progress).frame(maxWidth: 260)
                     }
@@ -70,23 +55,47 @@ struct DecryptView: View {
                     binaryOutput(outputData)
                 }
 
-                filesBox
+                filesBox($model.queuedDecryptFiles)
             }
             .padding(20)
         }
         .navigationTitle("Decrypt")
-        .onAppear { if selectedIdentityIDs.isEmpty { selectAll() } }
+        .onAppear {
+            if selectedIdentityIDs.isEmpty { selectAll() }
+            runAutoCheckIfNeeded()
+        }
+        .onChange(of: model.autoCheckRequested) { _, requested in
+            if requested { runAutoCheckIfNeeded() }
+        }
         .alert("Couldn’t decrypt", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.item]) { result in
-            if case .success(let url) = result { decryptFile(url) }
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
+            if case .success(let urls) = result { model.queuedDecryptFiles.append(contentsOf: urls) }
         }
     }
 
     // MARK: Sections
+
+    private func cipherBox(_ text: Binding<String>) -> some View {
+        GroupBox("Encrypted text") {
+            TextEditor(text: text)
+                .font(.caption.monospaced())
+                .frame(minHeight: 120)
+                .scrollContentBackground(.hidden)
+                .overlay(alignment: .topLeading) {
+                    if text.wrappedValue.isEmpty {
+                        Text("-----BEGIN AGE ENCRYPTED FILE-----…")
+                            .foregroundStyle(.tertiary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 8)
+                            .allowsHitTesting(false)
+                    }
+                }
+        }
+    }
 
     private var identitiesBox: some View {
         GroupBox("Try these identities") {
@@ -115,21 +124,28 @@ struct DecryptView: View {
         }
     }
 
-    private var filesBox: some View {
+    private func filesBox(_ files: Binding<[URL]>) -> some View {
         GroupBox("Files") {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Writes the decrypted file next to the encrypted one.")
+                Text("Writes each decrypted file next to the encrypted one.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                QueuedFilesList(files: files)
+
                 HStack {
-                    Button("Decrypt File…", systemImage: "doc.badge.gearshape") { showFileImporter = true }
-                        .disabled(identities.isEmpty || engine.isRunning)
+                    Button("Add Files…", systemImage: "plus") { showFileImporter = true }
+                    Button("Decrypt \(files.wrappedValue.count) File\(files.wrappedValue.count == 1 ? "" : "s")", systemImage: "lock.open") {
+                        decryptQueuedFiles()
+                    }
+                    .disabled(files.wrappedValue.isEmpty || identities.isEmpty || engine.isRunning)
                     Spacer()
                 }
+
                 FileWell(prompt: "Drop files to decrypt", systemImage: "arrow.up.doc") { urls in
-                    urls.forEach(decryptFile)
+                    files.wrappedValue.append(contentsOf: urls)
                 }
-                .frame(height: 84)
+                .frame(height: 76)
             }
             .padding(4)
         }
@@ -174,7 +190,7 @@ struct DecryptView: View {
         outputData = nil
         statusMessage = nil
         let identities = self.identities
-        let data = Data(ciphertext.utf8)
+        let data = Data(model.decryptInput.utf8)
         Task {
             do {
                 let plaintext = try await engine.decrypt(data, with: identities)
@@ -192,34 +208,46 @@ struct DecryptView: View {
     private func checkText() {
         outputText = nil
         outputData = nil
-        let can = Cipher.canDecrypt(Data(ciphertext.utf8), with: identities)
+        let can = Cipher.canDecrypt(Data(model.decryptInput.utf8), with: identities)
         statusIsGood = can
         statusMessage = can
             ? "One of your selected identities can decrypt this."
             : "None of your selected identities can decrypt this."
     }
 
-    private func decryptFile(_ url: URL) {
-        guard !identities.isEmpty else { return }
-        let destination = decryptedDestination(for: url)
+    private func decryptQueuedFiles() {
         let identities = self.identities
+        let files = model.queuedDecryptFiles
+        guard !identities.isEmpty, !files.isEmpty else { return }
         Task {
-            do {
-                try await engine.decryptFile(at: url, to: destination, identities: identities)
-                statusIsGood = true
-                statusMessage = "Decrypted \(url.lastPathComponent) → \(destination.lastPathComponent)"
-            } catch {
-                present(error)
+            var succeeded = 0
+            for url in files {
+                do {
+                    try await engine.decryptFile(at: url, to: decryptedDestination(for: url), identities: identities)
+                    succeeded += 1
+                } catch {
+                    present(error)
+                }
             }
+            statusIsGood = succeeded == files.count
+            statusMessage = "Decrypted \(succeeded) of \(files.count) file\(files.count == 1 ? "" : "s")."
+            model.queuedDecryptFiles.removeAll()
         }
+    }
+
+    private func runAutoCheckIfNeeded() {
+        guard model.autoCheckRequested else { return }
+        model.autoCheckRequested = false
+        if selectedIdentityIDs.isEmpty { selectAll() }
+        guard !model.decryptInput.isEmpty, !identities.isEmpty else { return }
+        checkText()
     }
 
     private func decryptedDestination(for url: URL) -> URL {
         if url.pathExtension.lowercased() == "age" {
             return url.deletingPathExtension()
         }
-        return url.deletingPathExtension()
-            .appendingPathExtension(url.pathExtension + ".decrypted")
+        return url.deletingPathExtension().appendingPathExtension(url.pathExtension + ".decrypted")
     }
 
     // MARK: Helpers
