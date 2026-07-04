@@ -33,6 +33,31 @@ struct IdentityTests {
         }
     }
 
+    @Test("Importable-key parsing keeps valid keys and skips everything else")
+    func importableKeys() {
+        let a = AgeIdentity.generateX25519()
+        let b = AgeIdentity.generateX25519()
+        guard case .x25519(let secretA, _) = a.material,
+              case .x25519(let secretB, _) = b.material else {
+            Issue.record("expected x25519 material"); return
+        }
+        let text = """
+        # Cypherdex age identity
+        # created: 2026-01-01
+        \(secretA)
+
+        # another key
+        \(secretB)
+        ssh-ed25519 AAAA-not-an-age-key
+        garbage
+        """
+
+        let keys = AgeIdentity.importableKeys(from: text)
+        #expect(keys.count == 2)
+        #expect(keys.map(\.recipient) == [a.recipient, b.recipient])
+        #expect(AgeIdentity.importableKeys(from: "no keys here\n# comment").isEmpty)
+    }
+
     @Test("Recipient parsing accepts age1 and rejects nonsense")
     func recipientParsing() throws {
         let identity = AgeIdentity.generateX25519()

@@ -1,14 +1,11 @@
 import SwiftUI
-import UniformTypeIdentifiers
 import CypherdexCore
 
 struct KeysView: View {
     @Environment(AppModel.self) private var model
 
     @State private var showGenerate = false
-    @State private var showImporter = false
-    @State private var errorMessage = ""
-    @State private var isErrorPresented = false
+    @State private var showImport = false
     @State private var identityToDelete: AgeIdentity?
     @State private var isDeleteConfirmationPresented = false
 
@@ -42,31 +39,14 @@ struct KeysView: View {
         .navigationTitle("Keys")
         .toolbar {
             ToolbarItemGroup {
-                Button("Import Identity…", systemImage: "square.and.arrow.down") { showImporter = true }
+                Button("Import Identity…", systemImage: "square.and.arrow.down") { showImport = true }
                 Button("Generate…", systemImage: "plus") { showGenerate = true }
             }
         }
         .sheet(isPresented: $showGenerate) { GenerateKeySheet() }
-        .fileImporter(
-            isPresented: $showImporter,
-            allowedContentTypes: [.plainText, .text, .item],
-            allowsMultipleSelection: false
-        ) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            do {
-                try model.importIdentityFile(at: url)
-            } catch {
-                errorMessage = error.localizedDescription
-                isErrorPresented = true
-            }
-        }
+        .sheet(isPresented: $showImport) { ImportKeysSheet() }
         .onReceive(NotificationCenter.default.publisher(for: .generateKeypairRequested)) { _ in
             showGenerate = true
-        }
-        .alert("Couldn’t import identity", isPresented: $isErrorPresented) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
         }
         .confirmationDialog(
             "Delete “\(identityToDelete?.displayName ?? "")”?",

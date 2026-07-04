@@ -120,20 +120,21 @@ final class AppModel {
         }
     }
 
-    func importIdentityFile(at url: URL) throws {
+    /// Read an identity file and return the X25519 keys it contains, ready to be
+    /// reviewed and named before import. Throws if the file has no importable keys.
+    func importableKeys(at url: URL) throws -> [ImportableKey] {
         let text = try String(contentsOf: url, encoding: .utf8)
-        var imported = 0
-        for line in text.split(whereSeparator: \.isNewline) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("AGE-SECRET-KEY-1") else { continue }
-            let identity = try AgeIdentity(
-                importingX25519: trimmed,
-                label: url.deletingPathExtension().lastPathComponent
-            )
+        let keys = AgeIdentity.importableKeys(from: text)
+        if keys.isEmpty { throw CypherdexError.unrecognizedIdentity(url.lastPathComponent) }
+        return keys
+    }
+
+    /// Commit reviewed keys to the store. All-or-nothing per key: if a save fails
+    /// the already-added keys stay, and the error is rethrown so the UI can report it.
+    func importIdentities(_ identities: [AgeIdentity]) throws {
+        for identity in identities {
             try add(identity)
-            imported += 1
         }
-        if imported == 0 { throw CypherdexError.unrecognizedIdentity(url.lastPathComponent) }
     }
 
     func delete(_ identity: AgeIdentity) {
