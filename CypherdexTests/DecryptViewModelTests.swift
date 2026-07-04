@@ -86,6 +86,21 @@ struct DecryptViewModelTests {
         #expect(viewModel.statusIsGood)
     }
 
+    @Test("Passphrase decrypt round-trips; wrong passphrase surfaces an error")
+    func passphraseRoundTrip() async throws {
+        let ciphertext = try Cipher.encrypt(Data("night".utf8), passphrase: "open sesame", armored: true, workFactor: 10)
+        let armoredText = String(decoding: ciphertext, as: UTF8.self)
+
+        let viewModel = DecryptViewModel()
+        let ok = await viewModel.decrypt(armoredText, passphrase: "open sesame")
+        #expect(ok)
+        #expect(viewModel.output == .text("night"))
+
+        let bad = await viewModel.decrypt(armoredText, passphrase: "wrong")
+        #expect(!bad)
+        #expect(viewModel.isErrorPresented)
+    }
+
     @Test("Decrypted destination strips .age or appends .decrypted")
     func destination() {
         #expect(DecryptViewModel.destination(for: URL(fileURLWithPath: "/x/secret.txt.age")).lastPathComponent == "secret.txt")

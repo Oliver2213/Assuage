@@ -57,6 +57,42 @@ final class DecryptViewModel {
         statusMessage = "Decrypted \(succeeded) of \(files.count) file\(files.count == 1 ? "" : "s")."
     }
 
+    // MARK: Passphrase
+
+    /// Decrypt text with a passphrase. Returns whether it succeeded, so the view
+    /// can clear the passphrase on success.
+    @discardableResult
+    func decrypt(_ text: String, passphrase: String) async -> Bool {
+        output = nil
+        statusMessage = nil
+        do {
+            let plaintext = try await engine.decrypt(Data(text.utf8), passphrase: passphrase)
+            output = String(data: plaintext, encoding: .utf8).map(CryptoOutput.text) ?? .binary(plaintext)
+            return true
+        } catch {
+            present(error)
+            return false
+        }
+    }
+
+    /// Decrypt each file with a passphrase. Returns whether all files succeeded.
+    @discardableResult
+    func decryptFiles(_ files: [URL], passphrase: String) async -> Bool {
+        guard !files.isEmpty else { return false }
+        var succeeded = 0
+        for url in files {
+            do {
+                try await engine.decryptFile(at: url, to: Self.destination(for: url), passphrase: passphrase)
+                succeeded += 1
+            } catch {
+                present(error)
+            }
+        }
+        statusIsGood = succeeded == files.count
+        statusMessage = "Decrypted \(succeeded) of \(files.count) file\(files.count == 1 ? "" : "s")."
+        return succeeded == files.count
+    }
+
     /// Where a decrypted file is written: drop a `.age` suffix, else append `.decrypted`.
     static func destination(for url: URL) -> URL {
         if url.pathExtension.lowercased() == "age" {

@@ -23,15 +23,30 @@ struct DecryptView: View {
                     font: .caption.monospaced()
                 )
 
-                GroupBox("Try these identities") {
-                    if model.identities.isEmpty {
-                        Text("No identities yet — generate or import one in the Keys tab.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(4)
-                    } else {
-                        IdentityCheckGrid(identities: model.identities, selection: $model.decryptIdentityIDs, showsPresence: true)
+                Picker("Decrypt with", selection: $model.decryptMode) {
+                    Text("Identities").tag(AppModel.CredentialMode.keys)
+                    Text("Passphrase").tag(AppModel.CredentialMode.passphrase)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                switch model.decryptMode {
+                case .keys:
+                    GroupBox("Try these identities") {
+                        if model.identities.isEmpty {
+                            Text("No identities yet — generate or import one in the Keys tab.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(4)
+                        } else {
+                            IdentityCheckGrid(identities: model.identities, selection: $model.decryptIdentityIDs, showsPresence: true)
+                                .padding(4)
+                        }
+                    }
+                case .passphrase:
+                    GroupBox("Passphrase") {
+                        PassphraseField(prompt: "Passphrase", text: $model.decryptPassphrase)
                             .padding(4)
                     }
                 }
@@ -39,9 +54,11 @@ struct DecryptView: View {
                 HStack(spacing: 12) {
                     Button("Decrypt", systemImage: "lock.open", action: decrypt)
                         .buttonStyle(.borderedProminent)
-                        .disabled(model.decryptInput.isEmpty || identities.isEmpty || viewModel.isRunning)
-                    Button("Check", systemImage: "questionmark.circle", action: check)
-                        .disabled(model.decryptInput.isEmpty || identities.isEmpty || viewModel.isRunning)
+                        .disabled(model.decryptInput.isEmpty || !canDecrypt || viewModel.isRunning)
+                    if model.decryptMode == .keys {
+                        Button("Check", systemImage: "questionmark.circle", action: check)
+                            .disabled(model.decryptInput.isEmpty || identities.isEmpty || viewModel.isRunning)
+                    }
                     if viewModel.isRunning {
                         ProgressStrip(progress: viewModel.progress).frame(maxWidth: 260)
                     }
@@ -65,7 +82,7 @@ struct DecryptView: View {
                     runIcon: "lock.open",
                     dropPrompt: "Drop files to decrypt",
                     dropIcon: "arrow.up.doc",
-                    isRunEnabled: !identities.isEmpty && !viewModel.isRunning,
+                    isRunEnabled: canDecrypt && !viewModel.isRunning,
                     onRun: decryptFiles
                 )
             }
@@ -86,10 +103,25 @@ struct DecryptView: View {
         }
     }
 
+    /// Whether the current mode has what it needs to decrypt.
+    private var canDecrypt: Bool {
+        switch model.decryptMode {
+        case .keys: return !identities.isEmpty
+        case .passphrase: return !model.decryptPassphrase.isEmpty
+        }
+    }
+
     private func decrypt() {
         Task {
-            guard let identities = await hydratedIdentities() else { return }
-            await viewModel.decrypt(model.decryptInput, with: identities)
+            switch model.decryptMode {
+            case .keys:
+                guard let identities = await hydratedIdentities() else { return }
+                await viewModel.decrypt(model.decryptInput, with: identities)
+            case .passphrase:
+                if await viewModel.decrypt(model.decryptInput, passphrase: model.decryptPassphrase) {
+                    model.decryptPassphrase = ""
+                }
+            }
         }
     }
 
@@ -103,8 +135,15 @@ struct DecryptView: View {
     private func decryptFiles() {
         let files = model.queuedDecryptFiles
         Task {
-            guard let identities = await hydratedIdentities() else { return }
-            await viewModel.decryptFiles(files, with: identities)
+            switch model.decryptMode {
+            case .keys:
+                guard let identities = await hydratedIdentities() else { return }
+                await viewModel.decryptFiles(files, with: identities)
+            case .passphrase:
+                if await viewModel.decryptFiles(files, passphrase: model.decryptPassphrase) {
+                    model.decryptPassphrase = ""
+                }
+            }
             model.queuedDecryptFiles.removeAll()
         }
     }
@@ -116,7 +155,7 @@ struct DecryptView: View {
     }
 
     private func runAutoCheckIfNeeded() {
-        guard model.autoCheckRequested else { return }
+        guard model.autoCheckRequested, model.decryptMode == .keys else { return }
         model.autoCheckRequested = false
         if model.decryptIdentityIDs.isEmpty { selectAllIdentities() }
         guard !model.decryptInput.isEmpty, !identities.isEmpty else { return }

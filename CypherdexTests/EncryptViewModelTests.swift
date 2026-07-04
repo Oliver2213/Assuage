@@ -72,4 +72,20 @@ struct EncryptViewModelTests {
         #expect(viewModel.fileStatus == "Encrypted 2 of 2 files.")
         #expect(!viewModel.isErrorPresented)
     }
+
+    @Test("Passphrase message succeeds and round-trips")
+    func passphraseMessage() async throws {
+        let viewModel = EncryptViewModel()
+        viewModel.armored = true
+        viewModel.workFactor = 10 // keep scrypt fast in tests
+
+        let ok = await viewModel.encryptMessage("hush", passphrase: "correct horse")
+        #expect(ok)
+        guard case .text(let armored)? = viewModel.output else {
+            Issue.record("expected .text output, got \(String(describing: viewModel.output))")
+            return
+        }
+        let plaintext = try Cipher.decrypt(Data(armored.utf8), passphrase: "correct horse")
+        #expect(String(decoding: plaintext, as: UTF8.self) == "hush")
+    }
 }

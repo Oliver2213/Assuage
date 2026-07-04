@@ -8,6 +8,8 @@ import CypherdexCore
 @Observable
 final class EncryptViewModel {
     var armored = true
+    /// scrypt cost (log2 of iterations) for passphrase encryption.
+    var workFactor = Cipher.defaultWorkFactor
     var output: CryptoOutput?
     var fileStatus: String?
     var errorMessage = ""
@@ -41,6 +43,41 @@ final class EncryptViewModel {
             }
         }
         fileStatus = "Encrypted \(succeeded) of \(files.count) file\(files.count == 1 ? "" : "s")."
+    }
+
+    // MARK: Passphrase
+
+    /// Encrypt text with a passphrase. Returns whether it succeeded, so the view
+    /// can clear the passphrase fields on success.
+    @discardableResult
+    func encryptMessage(_ text: String, passphrase: String) async -> Bool {
+        output = nil
+        do {
+            let data = try await engine.encrypt(Data(text.utf8), passphrase: passphrase, armored: armored, workFactor: workFactor)
+            output = armored ? .text(String(decoding: data, as: UTF8.self)) : .binary(data)
+            return true
+        } catch {
+            present(error)
+            return false
+        }
+    }
+
+    /// Encrypt each file to `<file>.age` with a passphrase. Returns whether all
+    /// files succeeded.
+    @discardableResult
+    func encryptFiles(_ files: [URL], passphrase: String) async -> Bool {
+        guard !files.isEmpty else { return false }
+        var succeeded = 0
+        for url in files {
+            do {
+                try await engine.encryptFile(at: url, to: url.appendingPathExtension("age"), passphrase: passphrase, armored: false, workFactor: workFactor)
+                succeeded += 1
+            } catch {
+                present(error)
+            }
+        }
+        fileStatus = "Encrypted \(succeeded) of \(files.count) file\(files.count == 1 ? "" : "s")."
+        return succeeded == files.count
     }
 
     private func present(_ error: any Error) {

@@ -33,8 +33,24 @@ final class AppModel {
         }
     }
 
+    /// Whether a panel encrypts/decrypts to key recipients or a single passphrase.
+    /// A scrypt (passphrase) stanza must be the sole recipient per the age spec,
+    /// so the two are mutually exclusive.
+    enum CredentialMode: String, CaseIterable, Identifiable {
+        case keys, passphrase
+        var id: Self { self }
+    }
+
     var selection: Panel? = .encrypt
     var identities: [AgeIdentity] = []
+
+    // Passphrase mode: kept here so it survives panel switches like the other
+    // inputs. Cleared after a successful op (see the Encrypt/Decrypt views).
+    var encryptMode: CredentialMode = .keys
+    var decryptMode: CredentialMode = .keys
+    var encryptPassphrase = ""
+    var encryptPassphraseConfirm = ""
+    var decryptPassphrase = ""
 
     /// Sheet presentation, driven from the menu bar as well as the Keys panel so
     /// the dialogs open in place from anywhere — no forced navigation to Keys.

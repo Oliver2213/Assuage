@@ -30,6 +30,28 @@ final class CryptoEngine {
         }
     }
 
+    // MARK: Passphrase operations
+
+    func encrypt(_ plaintext: Data, passphrase: String, armored: Bool, workFactor: Int) async throws -> Data {
+        try await run { try Cipher.encrypt(plaintext, passphrase: passphrase, armored: armored, workFactor: workFactor, progress: $0) }
+    }
+
+    func decrypt(_ ciphertext: Data, passphrase: String) async throws -> Data {
+        try await run { try Cipher.decrypt(ciphertext, passphrase: passphrase, progress: $0) }
+    }
+
+    func encryptFile(at source: URL, to destination: URL, passphrase: String, armored: Bool, workFactor: Int) async throws {
+        try await run {
+            try Cipher.encryptFile(at: source, to: destination, passphrase: passphrase, armored: armored, workFactor: workFactor, progress: $0)
+        }
+    }
+
+    func decryptFile(at source: URL, to destination: URL, passphrase: String) async throws {
+        try await run {
+            try Cipher.decryptFile(at: source, to: destination, passphrase: passphrase, progress: $0)
+        }
+    }
+
     // MARK: Driver
 
     /// Run `work` on a background task, forwarding its progress to `progress` on
