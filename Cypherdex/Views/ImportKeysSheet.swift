@@ -27,10 +27,15 @@ struct ImportKeysSheet: View {
     @State private var source: ImportSource?
     @State private var drafts: [ImportKeyDraft] = []
 
-    @State private var showImporter = false
     @State private var showLossConfirmation = false
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
+
+    // An encrypted OpenSSH key found in a source, awaiting its passphrase.
+    @State private var pendingSSHText: String?
+    @State private var pendingSSHSource: ImportSource?
+    @State private var sshPassphrase = ""
+    @State private var isPassphrasePresented = false
     /// How many duplicate keys within the source were collapsed on load.
     @State private var duplicatesRemoved = 0
 
@@ -74,7 +79,7 @@ struct ImportKeysSheet: View {
             if hasSource {
                 ImportReviewList(drafts: $drafts, duplicatesRemoved: duplicatesRemoved)
             } else {
-                Text("Choose an age identity file, or paste one or more `AGE-SECRET-KEY-1…` keys from the clipboard. You’ll review and name each key before it’s imported. Imported keys are stored in your keychain — the Secure Enclave can only hold keys it generated itself.")
+                Text("Choose an identity file or paste from the clipboard: age keys (`AGE-SECRET-KEY-1…`) or an SSH Ed25519 private key (`~/.ssh/id_ed25519`, passphrase-protected is fine). You’ll review and name each key before it’s imported. Imported keys are stored in your keychain — the Secure Enclave can only hold keys it generated itself.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -93,20 +98,19 @@ struct ImportKeysSheet: View {
                         .disabled(selectedCount == 0)
                 } else {
                     Button("Paste from Clipboard", action: pasteFromClipboard)
-                    Button("Choose File…") { showImporter = true }
+                    Button("Choose File…", action: chooseFile)
                         .buttonStyle(.borderedProminent)
                 }
             }
         }
         .padding(20)
         .frame(width: 520)
-        .fileImporter(
-            isPresented: $showImporter,
-            allowedContentTypes: [.plainText, .text, .item],
-            allowsMultipleSelection: false
-        ) { result in
-            guard case .success(let urls) = result, let url = urls.first else { return }
-            load(url)
+        .alert("Passphrase-protected SSH key", isPresented: $isPassphrasePresented) {
+            SecureField("Passphrase", text: $sshPassphrase)
+            Button("Import", action: importWithPassphrase)
+            Button("Cancel", role: .cancel) { sshPassphrase = "" }
+        } message: {
+            Text("This SSH key is encrypted. Enter its passphrase to import it. Only the key is stored afterward — the passphrase isn’t kept.")
         }
         .confirmationDialog(
             "Delete the file with unselected keys?",
@@ -127,13 +131,28 @@ struct ImportKeysSheet: View {
 
     // MARK: Loading & editing
 
+    /// Present an open panel starting in `~/.ssh` (where SSH keys live), falling
+    /// back to home; hidden files are shown so `.ssh` and dotfiles are reachable.
+    private func chooseFile() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.showsHiddenFiles = true
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let ssh = home.appendingPathComponent(".ssh", isDirectory: true)
+        panel.directoryURL = FileManager.default.fileExists(atPath: ssh.path) ? ssh : home
+        panel.prompt = "Choose"
+        if panel.runModal() == .OK, let url = panel.url {
+            load(url)
+        }
+    }
+
     private func load(_ url: URL) {
         do {
-            let keys = try model.importableKeys(at: url)
-            buildDrafts(from: keys, source: .file(url))
+            let text = try String(contentsOf: url, encoding: .utf8)
+            handle(text: text, source: .file(url))
         } catch {
-            errorMessage = error.localizedDescription
-            isErrorPresented = true
+            present(error.localizedDescription)
         }
     }
 
@@ -142,12 +161,37 @@ struct ImportKeysSheet: View {
             present(String(localized: "The clipboard doesn’t contain any text."))
             return
         }
+        handle(text: text, source: .clipboard)
+    }
+
+    /// Scan text from either source. Unencrypted age/SSH keys become review rows
+    /// directly; an encrypted SSH key (found but unparseable) triggers a
+    /// passphrase prompt; anything else is an error.
+    private func handle(text: String, source: ImportSource) {
         let keys = AgeIdentity.importableKeys(from: text)
-        guard !keys.isEmpty else {
-            present(String(localized: "The clipboard doesn’t contain any age keys (AGE-SECRET-KEY-1…)."))
+        if keys.isEmpty, AgeIdentity.containsOpenSSHPrivateKey(text) {
+            pendingSSHText = text
+            pendingSSHSource = source
+            sshPassphrase = ""
+            isPassphrasePresented = true
             return
         }
-        buildDrafts(from: keys, source: .clipboard)
+        guard !keys.isEmpty else {
+            present(String(localized: "No keys to import — expected an age key (AGE-SECRET-KEY-1…) or an SSH Ed25519 private key."))
+            return
+        }
+        buildDrafts(from: keys, source: source)
+    }
+
+    private func importWithPassphrase() {
+        guard let text = pendingSSHText, let source = pendingSSHSource else { return }
+        defer { sshPassphrase = ""; pendingSSHText = nil; pendingSSHSource = nil }
+        do {
+            let keys = try AgeIdentity.importableSSHKeys(from: text, passphrase: sshPassphrase)
+            buildDrafts(from: keys, source: source)
+        } catch {
+            present(error.localizedDescription)
+        }
     }
 
     /// Turn parsed keys into editable rows: collapse duplicates within the source
@@ -228,7 +272,7 @@ struct ImportKeysSheet: View {
         do {
             let identities = try drafts
                 .filter(\.include)
-                .map { try AgeIdentity(importingX25519: $0.key.secretKey, label: $0.name, protection: $0.storage.protection(auth: defaultAuth)) }
+                .map { try AgeIdentity(importing: $0.key, label: $0.name, protection: $0.storage.protection(auth: defaultAuth)) }
             try model.importIdentities(identities)
             if willDeleteFile, case .file(let url) = source {
                 try? FileManager.default.removeItem(at: url)

@@ -14,14 +14,24 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
         case x25519
         /// Secure Enclave public key: `age1se1…` / `age1p256tag1…`.
         case secureEnclave
+        /// An SSH Ed25519 public key: an `ssh-ed25519 AAAA… [comment]` line.
+        case sshEd25519
     }
 
     public let kind: Kind
 
-    /// The canonical age recipient string, e.g. `age1qz…`.
+    /// The canonical recipient string. Usually a bech32 `age1…` encoding, but for
+    /// an SSH recipient it's the full `authorized_keys` line (with any comment) —
+    /// so this is not always an `age1…` token.
     public let encoding: String
 
-    public var id: String { encoding }
+    /// Deduplication key. For SSH recipients this is the key itself — the
+    /// `ssh-ed25519 <base64>` fields without the trailing comment — mirroring how
+    /// age keys dedupe by their (comment-less) public-key encoding.
+    public var id: String {
+        guard kind == .sshEd25519 else { return encoding }
+        return encoding.split(separator: " ").prefix(2).joined(separator: " ")
+    }
 
     /// Parse and validate a recipient string.
     ///
@@ -40,6 +50,17 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
             _ = try Age.X25519Recipient(s)   // validates Bech32 + key length
             self.kind = .x25519
             self.encoding = s
+        } else if s.hasPrefix("ssh-ed25519") {
+            do {
+                _ = try Age.SSHEd25519Recipient(authorizedKey: s)   // validates the wire encoding
+            } catch {
+                throw CypherdexError.unrecognizedRecipient(raw)
+            }
+            self.kind = .sshEd25519
+            self.encoding = s
+        } else if s.hasPrefix("ssh-rsa") || s.hasPrefix("ecdsa-") || s.hasPrefix("sk-") {
+            // Recognizable SSH keys we don't support — give a specific message.
+            throw CypherdexError.unsupportedSSHKeyType(String(s.prefix(while: { $0 != " " })))
         } else {
             throw CypherdexError.unrecognizedRecipient(raw)
         }
@@ -60,6 +81,8 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
             let publicKey = try P256.KeyAgreement.PublicKey(ageSecureEnclaveRecipient: encoding)
             let stanzaType: SEStanzaType = encoding.hasPrefix("age1p256tag1") ? .p256tag : .pivp256
             return SecureEnclaveRecipient(publicKey: publicKey, stanzaType: stanzaType)
+        case .sshEd25519:
+            return try Age.SSHEd25519Recipient(authorizedKey: encoding)
         }
     }
 }

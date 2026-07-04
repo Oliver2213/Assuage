@@ -8,6 +8,7 @@ extension AgeIdentity {
     }
 
     var defaultName: String {
+        if case .sshEd25519 = material { return "SSH key" }
         switch source {
         case .secureEnclave: return "Secure Enclave key"
         case .keychain: return "age key"
@@ -15,6 +16,7 @@ extension AgeIdentity {
     }
 
     var sourceIcon: String {
+        if case .sshEd25519 = material { return "terminal" }
         switch keychainProtection {
         case .synced: return "icloud"
         case .local: return "key"
@@ -36,6 +38,7 @@ extension AgeIdentity {
         switch material {
         case .x25519: return "age X25519"
         case .secureEnclave: return "Secure Enclave (P-256)"
+        case .sshEd25519: return "SSH (Ed25519)"
         }
     }
 

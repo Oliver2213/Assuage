@@ -20,6 +20,15 @@ public enum IdentityMaterial: Sendable, Hashable, Codable {
     /// presence policy it was created with. Enclave keys never sync — the blob is
     /// only usable on the Mac that generated it.
     case secureEnclave(identity: String, accessControl: SecureEnclaveAccessControl)
+
+    /// An imported SSH Ed25519 key. We keep only the 32-byte Ed25519 `seed`
+    /// (base64) — enough to rebuild the key, decrypt, and re-export it (any
+    /// passphrase is consumed at import). Storage-wise it behaves exactly like an
+    /// X25519 secret: it lives in the keychain and `protection` guards it.
+    ///
+    /// `seed` may be empty for an identity loaded from the keychain but not yet
+    /// unlocked — the app hydrates it on demand (see `withKeychainSecret`).
+    case sshEd25519(seed: String, protection: KeychainProtection)
 }
 
 /// An age identity (private key) the app can decrypt with, plus the metadata age
@@ -43,25 +52,29 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
 
     public var source: Source {
         switch material {
-        case .x25519(_, let protection):
+        case .x25519(_, let protection), .sshEd25519(_, let protection):
             return .keychain(synced: protection.isSynced)
         case .secureEnclave:
             return .secureEnclave
         }
     }
 
-    /// The storage protection for a keychain (X25519) key, or `nil` for Secure
-    /// Enclave keys.
+    /// The storage protection for a keychain key (X25519 or SSH), or `nil` for
+    /// Secure Enclave keys.
     public var keychainProtection: KeychainProtection? {
-        if case .x25519(_, let protection) = material { return protection }
-        return nil
+        switch material {
+        case .x25519(_, let protection), .sshEd25519(_, let protection): return protection
+        case .secureEnclave: return nil
+        }
     }
 
     /// Whether this identity's secret may sync to the user's other devices.
-    /// Only keychain (X25519) keys can sync; Secure Enclave keys never do.
+    /// Only keychain keys (X25519 or SSH) can sync; Secure Enclave keys never do.
     public var isSynced: Bool {
-        if case .x25519(_, let protection) = material { return protection.isSynced }
-        return false
+        switch material {
+        case .x25519(_, let protection), .sshEd25519(_, let protection): return protection.isSynced
+        case .secureEnclave: return false
+        }
     }
 
     /// Whether using this identity to decrypt prompts for presence (Touch ID /
@@ -69,7 +82,8 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
     /// keychain keys.
     public var requiresPresence: Bool {
         switch material {
-        case .x25519(_, let protection): return protection.requiresAuthentication
+        case .x25519(_, let protection), .sshEd25519(_, let protection):
+            return protection.requiresAuthentication
         case .secureEnclave(_, let accessControl): return accessControl.requiresPresence
         }
     }
@@ -121,38 +135,86 @@ extension AgeIdentity {
         )
     }
 
-    /// The raw X25519 secret if present, else `nil` (Secure Enclave keys, or a
-    /// keychain key loaded but not yet hydrated). Used by the store to persist it.
+    /// The raw X25519 secret if present, else `nil`. X25519-specific; used by
+    /// the age-format export path (SSH keys export as OpenSSH, not an age secret).
     public var x25519Secret: String? {
         if case .x25519(let secret, _) = material, !secret.isEmpty { return secret }
         return nil
     }
 
+    /// The keychain secret string for any keychain-backed key — the
+    /// `AGE-SECRET-KEY-1…` for X25519, or the base64 Ed25519 seed for SSH — else
+    /// `nil` (Secure Enclave keys, or a key loaded but not yet hydrated). This is
+    /// the accessor the store uses to persist and probe the secret item.
+    public var keychainSecret: String? {
+        switch material {
+        case .x25519(let secret, _), .sshEd25519(let secret, _): return secret.isEmpty ? nil : secret
+        case .secureEnclave: return nil
+        }
+    }
+
     /// A copy of this keychain identity with its secret filled in, for use right
     /// before decrypting or exporting. A no-op for Secure Enclave keys.
     public func withKeychainSecret(_ secret: String) -> AgeIdentity {
-        guard case .x25519(_, let protection) = material else { return self }
-        return AgeIdentity(
-            id: id,
-            label: label,
-            created: created,
-            material: .x25519(secretKey: secret, protection: protection),
-            recipient: recipient
-        )
+        let filled: IdentityMaterial
+        switch material {
+        case .x25519(_, let protection): filled = .x25519(secretKey: secret, protection: protection)
+        case .sshEd25519(_, let protection): filled = .sshEd25519(seed: secret, protection: protection)
+        case .secureEnclave: return self
+        }
+        return AgeIdentity(id: id, label: label, created: created, material: filled, recipient: recipient)
     }
 
     /// A copy of this keychain identity re-protected under a new `KeychainProtection`,
     /// carrying the given secret. Used when moving a key between local / synced /
     /// authenticated storage. A no-op for Secure Enclave keys.
     public func withKeychainProtection(_ protection: KeychainProtection, secretKey: String) -> AgeIdentity {
-        guard case .x25519 = material else { return self }
-        return AgeIdentity(
-            id: id,
+        let reprotected: IdentityMaterial
+        switch material {
+        case .x25519: reprotected = .x25519(secretKey: secretKey, protection: protection)
+        case .sshEd25519: reprotected = .sshEd25519(seed: secretKey, protection: protection)
+        case .secureEnclave: return self
+        }
+        return AgeIdentity(id: id, label: label, created: created, material: reprotected, recipient: recipient)
+    }
+
+    /// Import an SSH Ed25519 identity from an OpenSSH private key. Passphrase-
+    /// protected keys need `passphrase`; only the 32-byte seed is retained, so no
+    /// passphrase is ever needed again. The derived public recipient is the key's
+    /// `authorized_keys` line.
+    ///
+    /// - Throws: `SSHKeyError.passphraseRequired` / `.incorrectPassphrase` for
+    ///   protected keys, `SSHKeyError.unsupportedKeyType` for non-Ed25519 keys.
+    public init(
+        importingSSHEd25519 pem: String,
+        passphrase: String? = nil,
+        label: String = "",
+        created: Date = Date(),
+        protection: KeychainProtection = .local
+    ) throws {
+        let identity: Age.SSHEd25519Identity
+        do {
+            identity = try Age.SSHEd25519Identity(opensshPEM: pem, passphrase: passphrase)
+        } catch let error as SSHKeyError {
+            throw CypherdexError(sshKeyError: error, context: pem)
+        }
+        self.init(
+            id: UUID(),
             label: label,
             created: created,
-            material: .x25519(secretKey: secretKey, protection: protection),
-            recipient: recipient
+            material: .sshEd25519(seed: Data(identity.seed).base64EncodedString(), protection: protection),
+            recipient: AgeRecipient(kind: .sshEd25519, encoding: identity.authorizedKey)
         )
+    }
+
+    /// Rebuild the AgeKit SSH identity from a stored base64 seed.
+    static func parseSSHEd25519(seed: String) throws -> Age.SSHEd25519Identity {
+        guard let data = Data(base64Encoded: seed) else { throw CypherdexError.unrecognizedIdentity(seed) }
+        do {
+            return try Age.SSHEd25519Identity(seed: Array(data))
+        } catch {
+            throw CypherdexError.unrecognizedIdentity(seed)
+        }
     }
 
     /// Parse an X25519 secret key via AgeKit's public identity parser (the string
@@ -183,6 +245,8 @@ extension AgeIdentity {
         case .secureEnclave(let identity, _):
             let privateKey = try SecureEnclaveKeys.loadPrivateKey(ageIdentity: identity)
             return SecureEnclaveIdentity(privateKey: privateKey)
+        case .sshEd25519(let seed, _):
+            return try Self.parseSSHEd25519(seed: seed)
         }
     }
 
@@ -229,6 +293,12 @@ extension AgeIdentity {
             lines.append(secret)
         case .secureEnclave(let identity, _):
             lines.append(identity)
+        case .sshEd25519(let seed, _):
+            // Export as a real OpenSSH private key (which age/rage accept via -i),
+            // reconstructed from the stored seed.
+            if let identity = try? Self.parseSSHEd25519(seed: seed) {
+                lines.append(identity.opensshPEM())
+            }
         }
         return lines.joined(separator: "\n") + "\n"
     }

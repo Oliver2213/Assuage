@@ -1,4 +1,5 @@
 import Foundation
+import AgeKit
 
 /// Errors surfaced by CypherdexCore.
 ///
@@ -25,6 +26,26 @@ public enum CypherdexError: Error, Sendable, Equatable {
     case secureEnclaveUnavailable
     /// A capability that is planned but not built in this phase was requested.
     case featureNotYetImplemented(String)
+    /// A recognizable but unsupported SSH key type (e.g. `ssh-rsa`, `ecdsa-…`).
+    /// Only `ssh-ed25519` is supported.
+    case unsupportedSSHKeyType(String)
+    /// An SSH private key is passphrase-protected and no passphrase was supplied.
+    case sshPassphraseRequired
+}
+
+extension CypherdexError {
+    /// Map an AgeKit `SSHKeyError` onto the app-facing error vocabulary, so
+    /// callers never need to import AgeKit. `context` labels the input in the
+    /// "unrecognized" fallback.
+    init(sshKeyError error: SSHKeyError, context: String) {
+        switch error {
+        case .passphraseRequired: self = .sshPassphraseRequired
+        case .incorrectPassphrase: self = .incorrectPassphrase
+        case .unsupportedKeyType(let type): self = .unsupportedSSHKeyType(type)
+        case .malformedPublicKey, .malformedPrivateKey, .unsupportedCipher, .unsupportedKDF:
+            self = .unrecognizedIdentity(context)
+        }
+    }
 }
 
 extension CypherdexError: LocalizedError {
@@ -50,6 +71,10 @@ extension CypherdexError: LocalizedError {
             return "This Mac doesn\u{2019}t have a Secure Enclave."
         case .featureNotYetImplemented(let what):
             return "\(what) isn\u{2019}t available yet."
+        case .unsupportedSSHKeyType(let type):
+            return "\(type) SSH keys aren\u{2019}t supported \u{2014} only ssh-ed25519."
+        case .sshPassphraseRequired:
+            return "This SSH key is passphrase-protected. Enter its passphrase to import it."
         }
     }
 }
