@@ -17,12 +17,32 @@ struct KeychainError: LocalizedError {
 /// Persists identities in the data-protection keychain as **two items per key**:
 /// an unprotected *metadata* item and a separate *secret* item.
 ///
-/// The split is what keeps launch prompt-free. Reading an access-controlled
-/// item — even just its attributes — triggers its Touch ID / passcode check, so
-/// keeping the secret in the same item would make merely *listing* keys prompt.
-/// Instead `loadAll()` reads only the metadata items (never access-controlled),
-/// and `secret(for:)` reads the secret item on demand, which is the one place a
-/// prompt is expected.
+/// ## Why two items
+/// On macOS, matching an access-controlled keychain item requires authentication
+/// even when the query asks only for attributes (not `kSecValueData`) — the auth
+/// is gated at the *item*, not its data. The auth-UI query flags spell this out:
+/// `kSecUseAuthenticationUISkip` exists to *skip items that require authentication*
+/// during a search, and `kSecUseAuthenticationUIFail` returns
+/// `errSecInteractionNotAllowed` for such a match. (Confirmed empirically: an
+/// attributes-only read of a `.userPresence` item returns -25308.) So keeping the
+/// secret on the same item would make merely *listing* keys prompt. Splitting it
+/// out lets `loadAll()` read only never-protected metadata items — no prompt —
+/// while `secret(for:)` reads the protected secret on demand at decrypt/export,
+/// which is the one place a prompt belongs.
+///   - https://developer.apple.com/documentation/security/ksecuseauthenticationuiskip
+///   - https://developer.apple.com/documentation/security/ksecuseauthenticationuifail
+///
+/// ## Keeping the pair consistent
+/// - `save(_:)` writes the metadata first, then the secret, and rolls the metadata
+///   back if the secret write fails. Because metadata is written first, a secret is
+///   never left without its metadata; the only possible half-state (a crash between
+///   the two writes) is a metadata item with no secret — public info only, no
+///   secret material orphaned. Saves are add-only (new UUID each time; see `AppModel`).
+/// - `delete(_:)` removes both items.
+/// - `loadAll()` reconciles: it drops and cleans up any metadata whose secret is
+///   *provably* missing. It can only probe keys whose secret isn't access-controlled
+///   (local / synced) without prompting; authenticated keys are trusted to the
+///   paired write/delete above.
 ///
 /// Protection modes (see `KeychainProtection`) apply to the **secret** item:
 /// - `.synced` — `AfterFirstUnlock` + `kSecAttrSynchronizable`, travels via iCloud.
@@ -63,7 +83,45 @@ struct IdentityStore {
         let decoder = JSONDecoder()
         return items
             .compactMap { try? decoder.decode(AgeIdentity.self, from: $0) }
+            .filter { hasIntactSecret($0) }
             .sorted { $0.created < $1.created }
+    }
+
+    /// Whether an identity's secret is present, dropping the metadata if it's an
+    /// orphan we can prove. Only local / synced keychain keys can be probed without
+    /// a prompt; Secure Enclave keys (no secret item) and authenticated keys (a
+    /// probe would prompt) are trusted to the paired save/delete and always kept.
+    private func hasIntactSecret(_ identity: AgeIdentity) -> Bool {
+        guard let protection = identity.keychainProtection, !protection.requiresAuthentication else {
+            return true
+        }
+        switch secretStatus(account: identity.id.uuidString) {
+        case errSecSuccess:
+            return true
+        case errSecItemNotFound:
+            // Orphaned metadata (e.g. a save that crashed mid-write) — clean it up.
+            deleteItems(account: identity.id.uuidString, in: [metaService])
+            return false
+        default:
+            // Ambiguous (e.g. a transient error) — keep it rather than risk deleting
+            // a valid key's metadata and orphaning its secret.
+            return true
+        }
+    }
+
+    /// Existence check for a secret item, reading no data. Safe (prompt-free) only
+    /// for non-access-controlled secrets — the caller guarantees that.
+    private func secretStatus(account: String) -> OSStatus {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: secretService,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: false,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil)
     }
 
     /// Save (or replace) an identity: an unprotected metadata item plus, for
