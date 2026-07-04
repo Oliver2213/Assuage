@@ -2,21 +2,12 @@
   "originHash" : "91f09d24f2784cc134f05441e1917fbaf33b3d326360256f43c68a1475711457",
   "pins" : [
     {
-      "identity" : "swift-atomics",
+      "identity" : "swift-asn1",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-atomics.git",
+      "location" : "https://github.com/apple/swift-asn1.git",
       "state" : {
-        "revision" : "0442cb5a3f98ab802acb777929fdb446bda11a34",
-        "version" : "1.3.1"
-      }
-    },
-    {
-      "identity" : "swift-collections",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-collections.git",
-      "state" : {
-        "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
-        "version" : "1.6.0"
+        "branch" : "main",
+        "revision" : "a9a5efd40eaf558a2bcd48d64b1d1646be686008"
       }
     },
     {
@@ -29,30 +20,12 @@
       }
     },
     {
-      "identity" : "swift-nio",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-nio.git",
-      "state" : {
-        "revision" : "cd3e1152083706d77b223fb29110e590efcc70c0",
-        "version" : "2.101.2"
-      }
-    },
-    {
       "identity" : "swift-scrypt",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/greymass/swift-scrypt.git",
       "state" : {
         "revision" : "631f21c36bff63e33ad13353ee801b4a032dda15",
         "version" : "1.0.2"
-      }
-    },
-    {
-      "identity" : "swift-system",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-system.git",
-      "state" : {
-        "revision" : "7502b711c92a17741fa625d722b0ccbd595d8ed1",
-        "version" : "1.7.2"
       }
     }
   ],

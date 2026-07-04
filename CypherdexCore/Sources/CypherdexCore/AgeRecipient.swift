@@ -12,7 +12,7 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
     public enum Kind: String, Sendable, Hashable, Codable {
         /// Native age X25519 public key: `age1…`
         case x25519
-        /// Secure Enclave public key: `age1se1…` / `age1p256tag1…` (wrapping lands in phase 2).
+        /// Secure Enclave public key: `age1se1…` / `age1p256tag1…`.
         case secureEnclave
     }
 

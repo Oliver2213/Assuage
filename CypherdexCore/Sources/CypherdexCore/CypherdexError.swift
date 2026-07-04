@@ -12,6 +12,11 @@ public enum CypherdexError: Error, Sendable, Equatable {
     case noRecipients
     /// A decrypt / check call was made with an empty identity list.
     case noIdentities
+    /// A passphrase encrypt / decrypt call was made with an empty passphrase.
+    case emptyPassphrase
+    /// A passphrase decrypt failed: the passphrase is wrong, or the file isn't
+    /// passphrase-encrypted.
+    case incorrectPassphrase
     /// The input was not a well-formed age file (bad armor, truncated header, …).
     case invalidAgeFile
     /// An underlying stream read/write failed.
@@ -33,6 +38,10 @@ extension CypherdexError: LocalizedError {
             return "Choose at least one recipient to encrypt to."
         case .noIdentities:
             return "Add at least one identity to decrypt with."
+        case .emptyPassphrase:
+            return "Enter a passphrase."
+        case .incorrectPassphrase:
+            return "The passphrase is incorrect, or this file isn\u{2019}t passphrase-encrypted."
         case .invalidAgeFile:
             return "This doesn\u{2019}t look like a valid age file."
         case .ioFailure:

@@ -50,6 +50,106 @@ public enum Cipher {
         return data
     }
 
+    // MARK: Passphrase (scrypt)
+
+    /// The default scrypt work factor (log2 of N), matching age's own default.
+    /// Higher is slower to derive but more resistant to brute-forcing a weak
+    /// passphrase.
+    public static let defaultWorkFactor = 18
+
+    /// Encrypt `plaintext` with a passphrase, returning the age file bytes.
+    ///
+    /// A passphrase (scrypt) stanza must be the sole recipient per the age spec,
+    /// so this can't be combined with key recipients.
+    public static func encrypt(
+        _ plaintext: Data,
+        passphrase: String,
+        armored: Bool = false,
+        workFactor: Int = defaultWorkFactor,
+        progress: ProgressHandler? = nil
+    ) throws -> Data {
+        let recipient = try scryptRecipient(passphrase, workFactor: workFactor)
+        let binary = try encryptToMemory(
+            source: InputStream(data: plaintext),
+            totalBytes: Int64(plaintext.count),
+            recipient: recipient,
+            progress: progress
+        )
+        return armored ? Data(Armoring.armor(binary).utf8) : binary
+    }
+
+    /// Decrypt an age file (binary or armored) with a passphrase.
+    public static func decrypt(
+        _ ciphertext: Data,
+        passphrase: String,
+        progress: ProgressHandler? = nil
+    ) throws -> Data {
+        let identity = try scryptIdentity(passphrase)
+        let binary = try Armoring.normalizedBinary(ciphertext)
+        let output = OutputStream.toMemory()
+        output.open()
+        try mappingIncorrectPassphrase {
+            try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+        }
+        output.close()
+        guard let data = output.property(forKey: .dataWrittenToMemoryStreamKey) as? Data else {
+            throw CypherdexError.ioFailure
+        }
+        return data
+    }
+
+    /// Encrypt a file to another file with a passphrase.
+    public static func encryptFile(
+        at source: URL,
+        to destination: URL,
+        passphrase: String,
+        armored: Bool = false,
+        workFactor: Int = defaultWorkFactor,
+        progress: ProgressHandler? = nil
+    ) throws {
+        let recipient = try scryptRecipient(passphrase, workFactor: workFactor)
+        let totalBytes = fileSize(source)
+        guard let input = InputStream(url: source) else { throw CypherdexError.ioFailure }
+
+        if armored {
+            let binary = try encryptToMemory(
+                source: input, totalBytes: totalBytes, recipient: recipient, progress: progress
+            )
+            try Data(Armoring.armor(binary).utf8).write(to: destination)
+        } else {
+            guard let output = OutputStream(url: destination, append: false) else {
+                throw CypherdexError.ioFailure
+            }
+            output.open()
+            defer { output.close() }
+            try encryptCore(source: input, totalBytes: totalBytes, recipient: recipient, into: output, progress: progress)
+        }
+    }
+
+    /// Decrypt a file to another file with a passphrase.
+    public static func decryptFile(
+        at source: URL,
+        to destination: URL,
+        passphrase: String,
+        progress: ProgressHandler? = nil
+    ) throws {
+        let identity = try scryptIdentity(passphrase)
+        let binary: Data
+        if let peek = try? Data(contentsOf: source, options: .mappedIfSafe), Armoring.isArmored(peek) {
+            binary = try Armoring.normalizedBinary(peek)
+        } else {
+            binary = try Data(contentsOf: source, options: .mappedIfSafe)
+        }
+        guard let output = OutputStream(url: destination, append: false) else {
+            throw CypherdexError.ioFailure
+        }
+        output.open()
+        defer { output.close() }
+        try mappingIncorrectPassphrase {
+            try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+        }
+    }
+
     // MARK: File to file
 
     /// Encrypt a file to another file. Non-armored output streams to disk with
@@ -108,8 +208,9 @@ public enum Cipher {
     /// Whether any of `identities` is a recipient of this age file — determined by
     /// unwrapping the file key from the header only, without decrypting the payload.
     ///
-    /// For X25519 this is cheap and local. (Secure Enclave identities arrive in
-    /// phase 2 and will prompt for presence, or use a header tag-check.)
+    /// For X25519 this is cheap and local. A Secure Enclave identity first does a
+    /// public tag-check (no enclave access); only if a stanza is addressed to it
+    /// does it touch the enclave, which may prompt for presence (Touch ID / passcode).
     public static func canDecrypt(_ ciphertext: Data, with identities: [AgeIdentity]) -> Bool {
         guard !identities.isEmpty else { return false }
         do {
@@ -221,5 +322,31 @@ public enum Cipher {
 
     private static func fileSize(_ url: URL) -> Int64? {
         (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize.map(Int64.init)
+    }
+
+    private static func scryptRecipient(_ passphrase: String, workFactor: Int) throws -> any Recipient {
+        guard var recipient = Age.ScryptRecipient(password: passphrase) else {
+            throw CypherdexError.emptyPassphrase
+        }
+        recipient.setWorkFactor(workFactor)
+        return recipient
+    }
+
+    private static func scryptIdentity(_ passphrase: String) throws -> any Identity {
+        guard let identity = Age.ScryptIdentity(passphrase) else {
+            throw CypherdexError.emptyPassphrase
+        }
+        return identity
+    }
+
+    /// Run a passphrase decrypt, turning AgeKit's "no identity could unwrap the
+    /// file key" into a passphrase-specific error (a wrong passphrase surfaces as
+    /// `incorrectIdentity` → `noIdentities` before any payload is read).
+    private static func mappingIncorrectPassphrase(_ body: () throws -> Void) throws {
+        do {
+            try body()
+        } catch Age.DecryptError.noIdentities {
+            throw CypherdexError.incorrectPassphrase
+        }
     }
 }
