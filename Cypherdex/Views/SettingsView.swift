@@ -20,6 +20,8 @@ struct SettingsView: View {
     private var clipboardProtectAllCopies = false
     @AppStorage(PreferenceKeys.allowClipboardExport)
     private var allowClipboardExport = false
+    @AppStorage(PreferenceKeys.recipientCommentLabels)
+    private var recipientCommentLabels = false
 
     var body: some View {
         Form {
@@ -48,6 +50,16 @@ struct SettingsView: View {
                 Text("Authentication")
             } footer: {
                 Text("These prompts deter casual access on an unlocked Mac — they don’t encrypt the key at rest, so a keychain key can still be read by any tool with keychain access. For a key that must stay on this Mac and require Touch ID cryptographically, generate a Secure Enclave key instead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Include key names as comments", isOn: $recipientCommentLabels)
+            } header: {
+                Text("Recipients")
+            } footer: {
+                Text("When you copy or export a recipients file, precede each public key with a “# name” comment. Off by default, so the file is just the recipients, one per line — the format age reads and Cypherdex re-imports either way.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

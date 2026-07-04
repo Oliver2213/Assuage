@@ -20,6 +20,10 @@ struct CypherdexCommands: Commands {
                 .disabled(model.singleSelectedKey == nil)
             Button("Export All Identities…") { model.exportingKeys = ExportRequest(identities: model.identities) }
                 .disabled(model.identities.isEmpty)
+            Button("Copy All Recipients") { model.copyRecipients(for: model.identities) }
+                .disabled(model.identities.isEmpty)
+            Button("Export All Recipients…") { model.exportRecipients(for: model.identities) }
+                .disabled(model.identities.isEmpty)
         }
 
         CommandGroup(after: .sidebar) {

@@ -92,11 +92,34 @@ struct IdentityTests {
         #expect(reimported.recipient == generated.recipient)
     }
 
-    @Test("Public-key export contains only the recipient")
-    func publicKeyExport() {
-        let generated = AgeIdentity.generateX25519(label: "Shareable")
-        let text = generated.publicKeyFile()
-        #expect(text.contains(generated.recipient.encoding))
+    @Test("A recipients file lists each public key and no secret")
+    func recipientsFile() {
+        let a = AgeIdentity.generateX25519(label: "Laptop")
+        let b = AgeIdentity.generateX25519(label: "Phone")
+        let text = [a, b].recipientsFile(includeNames: false)
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+
+        // One recipient per line, in order, and nothing else.
+        #expect(lines.filter { !$0.isEmpty } == [a.recipient.encoding, b.recipient.encoding])
         #expect(!text.contains("AGE-SECRET-KEY"))
+        #expect(!text.contains("#"))
+        #expect(text.hasSuffix("\n"))
+    }
+
+    @Test("Names option precedes each labeled recipient with a comment")
+    func recipientsFileWithNames() {
+        let named = AgeIdentity.generateX25519(label: "Laptop")
+        let unlabeled = AgeIdentity.generateX25519(label: "")
+        let text = [named, unlabeled].recipientsFile(includeNames: true)
+        let lines = text.split(separator: "\n").map(String.init)
+
+        // The labeled key gets a `# label` comment above it; the unlabeled one
+        // gets no comment, just its recipient.
+        #expect(lines == ["# Laptop", named.recipient.encoding, unlabeled.recipient.encoding])
+    }
+
+    @Test("An empty identity list yields an empty recipients file")
+    func recipientsFileEmpty() {
+        #expect([AgeIdentity]().recipientsFile(includeNames: true).isEmpty)
     }
 }

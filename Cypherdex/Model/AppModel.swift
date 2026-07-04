@@ -230,6 +230,35 @@ final class AppModel {
         }
     }
 
+    // MARK: Recipients (public keys)
+
+    /// The recipients file for these identities, honoring the "include names"
+    /// preference. Public material, so no auth or hydration is needed.
+    func recipientsFile(for identities: [AgeIdentity]) -> String {
+        let includeNames = UserDefaults.standard.bool(forKey: PreferenceKeys.recipientCommentLabels)
+        return identities.recipientsFile(includeNames: includeNames)
+    }
+
+    /// Copy the recipients file for these identities to the clipboard.
+    func copyRecipients(for identities: [AgeIdentity]) {
+        guard !identities.isEmpty else { return }
+        Pasteboard.copy(recipientsFile(for: identities), sensitive: false)
+    }
+
+    /// Save the recipients file for these identities. A single key suggests a
+    /// `.pub` name; a set suggests a combined recipients file.
+    func exportRecipients(for identities: [AgeIdentity]) {
+        guard !identities.isEmpty else { return }
+        let name: String
+        if identities.count == 1 {
+            let base = identities[0].displayName.replacingOccurrences(of: " ", with: "-")
+            name = "\(base).pub"
+        } else {
+            name = "Cypherdex-Recipients.txt"
+        }
+        SavePanel.save(text: recipientsFile(for: identities), suggestedName: name)
+    }
+
     func delete(_ identity: AgeIdentity) {
         identities.removeAll { $0.id == identity.id }
         encryptRecipientIDs.remove(identity.id)

@@ -233,13 +233,23 @@ extension AgeIdentity {
         return lines.joined(separator: "\n") + "\n"
     }
 
-    /// Just the public recipient, with a short identifying comment. Safe to share.
-    public func publicKeyFile() -> String {
-        var lines = ["# \(Self.appName) recipient"]
-        if !label.isEmpty {
-            lines.append("# label: \(label)")
+}
+
+extension Sequence where Element == AgeIdentity {
+    /// A recipients file: each identity's public recipient on its own line — the
+    /// plain format age reads with `-R`, and that Cypherdex re-imports. With
+    /// `includeNames`, a labeled key is preceded by a `# label` comment for the
+    /// humans reading it; unlabeled keys have none. age ignores comment lines.
+    ///
+    /// Public material only — safe to share.
+    public func recipientsFile(includeNames: Bool) -> String {
+        var lines: [String] = []
+        for identity in self {
+            if includeNames, !identity.label.isEmpty {
+                lines.append("# \(identity.label)")
+            }
+            lines.append(identity.recipient.encoding)
         }
-        lines.append(recipient.encoding)
-        return lines.joined(separator: "\n") + "\n"
+        return lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n"
     }
 }

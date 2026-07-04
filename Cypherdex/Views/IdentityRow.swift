@@ -41,7 +41,7 @@ struct IdentityRow: View {
 
             HStack(spacing: 8) {
                 Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
-                Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
+                Button("Export Public Key…", systemImage: "square.and.arrow.up") { model.exportRecipients(for: [identity]) }
                 Button("Export Identity…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: [identity]) }
                 Spacer()
                 Button("Edit", systemImage: "pencil") { model.editingKey = identity }
@@ -65,7 +65,7 @@ struct IdentityRow: View {
             }
             Divider()
             Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
-            Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
+            Button("Export Public Key…", systemImage: "square.and.arrow.up") { model.exportRecipients(for: [identity]) }
             Button("Export Identity…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: [identity]) }
             Divider()
             Button("Edit…", systemImage: "pencil") { model.editingKey = identity }
@@ -76,16 +76,8 @@ struct IdentityRow: View {
 
     // MARK: Actions
 
-    private var fileBase: String {
-        identity.displayName.replacingOccurrences(of: " ", with: "-")
-    }
-
     private func copyRecipient() {
         // A public key — only protected when the user opts to protect all copies.
         Pasteboard.copy(identity.recipient.encoding, sensitive: false)
-    }
-
-    private func exportPublicKey() {
-        SavePanel.save(text: identity.publicKeyFile(), suggestedName: "\(fileBase).pub")
     }
 }

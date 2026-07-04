@@ -42,7 +42,15 @@ struct KeysView: View {
             ToolbarItemGroup {
                 Button("Edit Key…", systemImage: "pencil") { model.editingKey = model.singleSelectedKey }
                     .disabled(model.singleSelectedKey == nil)
-                Button("Export…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: model.selectedKeys) }
+                Menu {
+                    Button("Copy Recipients", systemImage: "doc.on.doc") { model.copyRecipients(for: model.selectedKeys) }
+                    Button("Export Recipients…", systemImage: "square.and.arrow.up") { model.exportRecipients(for: model.selectedKeys) }
+                } label: {
+                    Label("Recipients", systemImage: "person.2")
+                }
+                .labelStyle(.titleAndIcon)
+                .disabled(model.selectedKeys.isEmpty)
+                Button("Export Identities…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: model.selectedKeys) }
                     .disabled(model.selectedKeys.isEmpty)
                 Button("Import Identity…", systemImage: "square.and.arrow.down") { model.showImportSheet = true }
                 Button("Generate…", systemImage: "plus") { model.showGenerateSheet = true }

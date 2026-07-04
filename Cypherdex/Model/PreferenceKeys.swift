@@ -15,4 +15,8 @@ enum PreferenceKeys {
     /// Whether the export sheet may copy a private key to the clipboard. Off by
     /// default; when on, a "Copy to Clipboard" action appears in the export sheet.
     static let allowClipboardExport = "allowClipboardExport"
+
+    /// Whether a copied/exported recipients file precedes each public key with a
+    /// `# name` comment. Off by default — a bare recipients list, one per line.
+    static let recipientCommentLabels = "recipientCommentLabels"
 }
