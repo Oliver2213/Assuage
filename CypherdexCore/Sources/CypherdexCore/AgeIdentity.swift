@@ -8,10 +8,12 @@ import AgeKit
 /// paired with a separate "source" flag that could disagree).
 public enum IdentityMaterial: Sendable, Hashable, Codable {
     /// A native age X25519 secret key (`AGE-SECRET-KEY-1…`), which is exportable and
-    /// works with any age tool. The secret lives in the keychain; `synced` records
-    /// whether it may travel to the user's other devices via iCloud Keychain
-    /// (`false` = this device only).
-    case x25519(secretKey: String, synced: Bool)
+    /// works with any age tool. The secret lives in the keychain; `protection`
+    /// records where it's stored and whether it's authentication-gated.
+    ///
+    /// `secretKey` may be empty for an identity loaded from the keychain but not
+    /// yet unlocked — the app hydrates it on demand (see `withKeychainSecret`).
+    case x25519(secretKey: String, protection: KeychainProtection)
 
     /// A Secure Enclave key (`AGE-PLUGIN-SE-1…`): device-bound and non-exportable.
     /// The identity string encodes the enclave key blob; `accessControl` records the
@@ -41,24 +43,33 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
 
     public var source: Source {
         switch material {
-        case .x25519(_, let synced):
-            return .keychain(synced: synced)
+        case .x25519(_, let protection):
+            return .keychain(synced: protection.isSynced)
         case .secureEnclave:
             return .secureEnclave
         }
     }
 
+    /// The storage protection for a keychain (X25519) key, or `nil` for Secure
+    /// Enclave keys.
+    public var keychainProtection: KeychainProtection? {
+        if case .x25519(_, let protection) = material { return protection }
+        return nil
+    }
+
     /// Whether this identity's secret may sync to the user's other devices.
     /// Only keychain (X25519) keys can sync; Secure Enclave keys never do.
     public var isSynced: Bool {
-        if case .x25519(_, let synced) = material { return synced }
+        if case .x25519(_, let protection) = material { return protection.isSynced }
         return false
     }
 
-    /// Whether using this identity to decrypt prompts for presence (Touch ID / passcode).
+    /// Whether using this identity to decrypt prompts for presence (Touch ID /
+    /// passcode) — true for Secure Enclave keys and authentication-gated
+    /// keychain keys.
     public var requiresPresence: Bool {
         switch material {
-        case .x25519: return false
+        case .x25519(_, let protection): return protection.requiresAuthentication
         case .secureEnclave(_, let accessControl): return accessControl.requiresPresence
         }
     }
@@ -77,15 +88,15 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
 extension AgeIdentity {
     /// Generate a fresh age X25519 identity, stored in the keychain.
     ///
-    /// - Parameter synced: whether the secret may sync to the user's other devices
-    ///   via iCloud Keychain. Defaults to `false` (this device only).
-    public static func generateX25519(label: String = "", synced: Bool = false, created: Date = Date()) -> AgeIdentity {
+    /// - Parameter protection: where the secret is stored and how it's guarded.
+    ///   Defaults to `.local` (this device, no authentication).
+    public static func generateX25519(label: String = "", protection: KeychainProtection = .local, created: Date = Date()) -> AgeIdentity {
         let identity = Age.X25519Identity.generate()
         return AgeIdentity(
             id: UUID(),
             label: label,
             created: created,
-            material: .x25519(secretKey: identity.string, synced: synced),
+            material: .x25519(secretKey: identity.string, protection: protection),
             recipient: AgeRecipient(kind: .x25519, encoding: identity.recipient.string)
         )
     }
@@ -98,15 +109,35 @@ extension AgeIdentity {
         importingX25519 secretKey: String,
         label: String = "",
         created: Date = Date(),
-        synced: Bool = false
+        protection: KeychainProtection = .local
     ) throws {
         let identity = try Self.parseX25519(secretKey)
         self.init(
             id: UUID(),
             label: label,
             created: created,
-            material: .x25519(secretKey: identity.string, synced: synced),
+            material: .x25519(secretKey: identity.string, protection: protection),
             recipient: AgeRecipient(kind: .x25519, encoding: identity.recipient.string)
+        )
+    }
+
+    /// The raw X25519 secret if present, else `nil` (Secure Enclave keys, or a
+    /// keychain key loaded but not yet hydrated). Used by the store to persist it.
+    public var x25519Secret: String? {
+        if case .x25519(let secret, _) = material, !secret.isEmpty { return secret }
+        return nil
+    }
+
+    /// A copy of this keychain identity with its secret filled in, for use right
+    /// before decrypting or exporting. A no-op for Secure Enclave keys.
+    public func withKeychainSecret(_ secret: String) -> AgeIdentity {
+        guard case .x25519(_, let protection) = material else { return self }
+        return AgeIdentity(
+            id: id,
+            label: label,
+            created: created,
+            material: .x25519(secretKey: secret, protection: protection),
+            recipient: recipient
         )
     }
 

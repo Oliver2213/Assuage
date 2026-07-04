@@ -18,23 +18,32 @@ struct CodableTests {
         #expect(restored.source == original.source)
     }
 
-    @Test("Sync flag round-trips and drives the source")
-    func syncFlagRoundTrip() throws {
+    @Test("Protection round-trips and drives sync + presence")
+    func protectionRoundTrip() throws {
         let generated = AgeIdentity.generateX25519()
         guard case .x25519(let secret, _) = generated.material else {
             Issue.record("expected x25519 material"); return
         }
-        let synced = try AgeIdentity(importingX25519: secret, label: "Laptop", synced: true)
+        let synced = try AgeIdentity(importingX25519: secret, label: "Laptop", protection: .synced)
         #expect(synced.isSynced)
         #expect(synced.source == .keychain(synced: true))
 
         let restored = try JSONDecoder().decode(AgeIdentity.self, from: JSONEncoder().encode(synced))
         #expect(restored.isSynced)
         #expect(restored.source == .keychain(synced: true))
+        #expect(restored.keychainProtection == .synced)
 
-        let local = AgeIdentity.generateX25519(synced: false)
+        let local = AgeIdentity.generateX25519(protection: .local)
         #expect(!local.isSynced)
+        #expect(!local.requiresPresence)
         #expect(local.source == .keychain(synced: false))
+
+        let protected = AgeIdentity.generateX25519(protection: .authenticated(.currentBiometry))
+        #expect(!protected.isSynced)
+        #expect(protected.requiresPresence)
+        #expect(protected.keychainProtection == .authenticated(.currentBiometry))
+        let restoredProtected = try JSONDecoder().decode(AgeIdentity.self, from: JSONEncoder().encode(protected))
+        #expect(restoredProtected.keychainProtection == .authenticated(.currentBiometry))
     }
 
     @Test("Secure Enclave material round-trips with its access control")
