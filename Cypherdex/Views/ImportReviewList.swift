@@ -11,15 +11,17 @@ struct ImportReviewList: View {
     private var existingCount: Int { drafts.filter(\.alreadyExists).count }
 
     /// "3 of 4 keys selected · 1 already in your keychain · 2 duplicates removed".
+    /// Each clause is its own `Text` so it stays localizable, joined with `·`
+    /// via `Text` interpolation (the modern replacement for `Text` concatenation).
     private var summary: Text {
-        var summary = Text("\(selectedCount) of ^[\(drafts.count) key](inflect: true) selected")
+        var clauses = [Text("\(selectedCount) of ^[\(drafts.count) key](inflect: true) selected")]
         if existingCount > 0 {
-            summary = summary + Text(" · ") + Text("\(existingCount) already in your keychain")
+            clauses.append(Text("\(existingCount) already in your keychain"))
         }
         if duplicatesRemoved > 0 {
-            summary = summary + Text(" · ") + Text("^[\(duplicatesRemoved) duplicate](inflect: true) removed")
+            clauses.append(Text("^[\(duplicatesRemoved) duplicate](inflect: true) removed"))
         }
-        return summary
+        return clauses.dropFirst().reduce(clauses[0]) { Text("\($0) · \($1)") }
     }
 
     var body: some View {
