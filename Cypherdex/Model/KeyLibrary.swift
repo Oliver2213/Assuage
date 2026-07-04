@@ -1,0 +1,162 @@
+import Foundation
+import LocalAuthentication
+import CypherdexCore
+
+/// The user's key library: the age identities (keypairs) and every operation on
+/// them. Shared across all windows via a single instance in the environment, so
+/// every window shows and edits the same set of keys.
+///
+/// Identities persist in the keychain (see `IdentityStore`): X25519 keys locally,
+/// synced via iCloud Keychain, or hardware-protected behind Touch ID; Secure
+/// Enclave keys are always device-local. Keychain secrets are loaded lazily —
+/// `hydratedSecrets(for:)` fetches them just before decrypt/export.
+@MainActor
+@Observable
+final class KeyLibrary {
+    /// Every identity the user holds. Mutated only through the methods below so it
+    /// stays in sync with the keychain.
+    private(set) var identities: [AgeIdentity] = []
+
+    private let store = IdentityStore()
+
+    init() {
+        // Sweep out pre-split single-blob items so they don't linger unreadable.
+        store.purgeLegacyItems()
+        identities = store.loadAll()
+    }
+
+    /// Whether this Mac can create Secure Enclave keys.
+    var secureEnclaveAvailable: Bool { SecureEnclaveKeys.isAvailable }
+
+    @discardableResult
+    func generateX25519(label: String, protection: KeychainProtection = .local) throws -> AgeIdentity {
+        let identity = AgeIdentity.generateX25519(label: label, protection: protection)
+        try add(identity)
+        return identity
+    }
+
+    @discardableResult
+    func generateSecureEnclave(
+        label: String,
+        accessControl: SecureEnclaveAccessControl
+    ) throws -> AgeIdentity {
+        let identity = try AgeIdentity.generateSecureEnclave(label: label, accessControl: accessControl)
+        try add(identity)
+        return identity
+    }
+
+    /// Append an identity and persist it. If the keychain rejects the write we
+    /// roll the in-memory list back and rethrow, so the UI never shows a key that
+    /// wouldn't survive a relaunch.
+    private func add(_ identity: AgeIdentity) throws {
+        identities.append(identity)
+        do {
+            try store.save(identity)
+        } catch {
+            identities.removeAll { $0.id == identity.id }
+            throw error
+        }
+    }
+
+    /// Read an identity file and return the keys it contains, ready to be reviewed
+    /// and named before import. Throws if the file has no importable keys.
+    func importableKeys(at url: URL) throws -> [ImportableKey] {
+        let text = try String(contentsOf: url, encoding: .utf8)
+        let keys = AgeIdentity.importableKeys(from: text)
+        if keys.isEmpty { throw CypherdexError.unrecognizedIdentity(url.lastPathComponent) }
+        return keys
+    }
+
+    /// Commit reviewed keys to the store. All-or-nothing per key: if a save fails
+    /// the already-added keys stay, and the error is rethrown so the UI can report it.
+    func importIdentities(_ identities: [AgeIdentity]) throws {
+        for identity in identities {
+            try add(identity)
+        }
+    }
+
+    /// Fetch the secrets for keychain identities so they can decrypt or export.
+    /// Runs off the main actor (the fetch blocks while an auth prompt is up), and
+    /// shares one `LAContext` so a batch of protected keys asks for Touch ID once.
+    /// Secure Enclave keys pass through unchanged (they unlock at use).
+    func hydratedSecrets(for identities: [AgeIdentity]) async throws -> [AgeIdentity] {
+        let store = self.store
+        return try await Task.detached {
+            let context = LAContext()
+            context.touchIDAuthenticationAllowableReuseDuration = LATouchIDAuthenticationMaximumAllowableReuseDuration
+            return try identities.map { identity in
+                // Only keychain keys need hydration, and only if not already loaded.
+                guard identity.keychainProtection != nil, identity.x25519Secret == nil else {
+                    return identity
+                }
+                let secret = try store.secret(for: identity, context: context)
+                return identity.withKeychainSecret(secret)
+            }
+        }.value
+    }
+
+    /// Rename an identity (label only). Persists to the metadata item without
+    /// touching the secret, so it never prompts, and works for every key type.
+    func rename(_ identity: AgeIdentity, to label: String) throws {
+        guard let index = identities.firstIndex(where: { $0.id == identity.id }) else { return }
+        var renamed = identity
+        renamed.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        try store.updateMetadata(renamed)
+        identities[index] = renamed
+    }
+
+    /// Move a keychain (X25519) key to a new protection (local / synced / Touch
+    /// ID), optionally renaming it in the same step. Reads the current secret —
+    /// which prompts if the key is currently Touch ID–protected — off the main
+    /// actor so the prompt doesn't block the UI, then rewrites both items under the
+    /// new class. Not valid for Secure Enclave keys.
+    func changeProtection(of identity: AgeIdentity, to protection: KeychainProtection, newLabel: String) async throws {
+        let store = self.store
+        // Only the secret read can prompt; run it off-main so the sheet stays live.
+        let secret = try await Task.detached {
+            try store.secret(for: identity, context: LAContext())
+        }.value
+        var updated = identity.withKeychainProtection(protection, secretKey: secret)
+        updated.label = newLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        try store.replace(updated)
+        if let index = identities.firstIndex(where: { $0.id == identity.id }) {
+            // Keep the secret out of the in-memory model, as loadAll would.
+            identities[index] = updated.withKeychainSecret("")
+        }
+    }
+
+    /// Remove an identity from the library and the keychain.
+    func delete(_ identity: AgeIdentity) {
+        identities.removeAll { $0.id == identity.id }
+        store.delete(identity)
+    }
+
+    // MARK: Recipients (public keys)
+
+    /// The recipients file for these identities, honoring the "include names"
+    /// preference. Public material, so no auth or hydration is needed.
+    func recipientsFile(for identities: [AgeIdentity]) -> String {
+        let includeNames = UserDefaults.standard.bool(forKey: PreferenceKeys.recipientCommentLabels)
+        return identities.recipientsFile(includeNames: includeNames)
+    }
+
+    /// Copy the recipients file for these identities to the clipboard.
+    func copyRecipients(for identities: [AgeIdentity]) {
+        guard !identities.isEmpty else { return }
+        Pasteboard.copy(recipientsFile(for: identities), sensitive: false)
+    }
+
+    /// Save the recipients file for these identities. A single key suggests a
+    /// `.pub` name; a set suggests a combined recipients file.
+    func exportRecipients(for identities: [AgeIdentity]) {
+        guard !identities.isEmpty else { return }
+        let name: String
+        if identities.count == 1 {
+            let base = identities[0].displayName.replacingOccurrences(of: " ", with: "-")
+            name = "\(base).pub"
+        } else {
+            name = "Cypherdex-Recipients.txt"
+        }
+        SavePanel.save(text: recipientsFile(for: identities), suggestedName: name)
+    }
+}

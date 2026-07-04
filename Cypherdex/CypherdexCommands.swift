@@ -7,30 +7,41 @@ import SwiftUI
 /// ⌘I *opens* the import sheet; committing the import is ⇧⌘I, scoped to the sheet
 /// itself (see `ImportKeysSheet`) so it can't fire from elsewhere.
 struct CypherdexCommands: Commands {
-    var model: AppModel
+    /// The active window's model (each window has its own), so commands act on
+    /// whichever window is frontmost. `nil` when no window is focused.
+    @FocusedValue(\.appModel) private var model: AppModel?
 
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            Button("Generate age Keypair…") { model.showGenerateSheet = true }
+            Button("Generate age Keypair…") { model?.showGenerateSheet = true }
                 .keyboardShortcut("k", modifiers: .command)
-            Button("Import Identity…") { model.showImportSheet = true }
+                .disabled(model == nil)
+            Button("Import Identity…") { model?.showImportSheet = true }
                 .keyboardShortcut("i", modifiers: .command)
+                .disabled(model == nil)
             Divider()
-            Button("Edit Key…") { model.editingKey = model.singleSelectedKey }
-                .disabled(model.singleSelectedKey == nil)
-            Button("Export All Identities…") { model.exportingKeys = ExportRequest(identities: model.identities) }
-                .disabled(model.identities.isEmpty)
-            Button("Copy All Recipients") { model.copyRecipients(for: model.identities) }
-                .disabled(model.identities.isEmpty)
-            Button("Export All Recipients…") { model.exportRecipients(for: model.identities) }
-                .disabled(model.identities.isEmpty)
+            Button("Edit Key…") { model?.editingKey = model?.singleSelectedKey }
+                .disabled(model?.singleSelectedKey == nil)
+            Button("Export All Identities…") {
+                if let model { model.exportingKeys = ExportRequest(identities: model.identities) }
+            }
+            .disabled(model?.identities.isEmpty ?? true)
+            Button("Copy All Recipients") {
+                if let model { model.copyRecipients(for: model.identities) }
+            }
+            .disabled(model?.identities.isEmpty ?? true)
+            Button("Export All Recipients…") {
+                if let model { model.exportRecipients(for: model.identities) }
+            }
+            .disabled(model?.identities.isEmpty ?? true)
         }
 
         CommandGroup(after: .sidebar) {
             Divider()
             ForEach(Array(AppModel.Panel.allCases.enumerated()), id: \.element) { index, panel in
-                Button(panel.title) { model.selection = panel }
+                Button(panel.title) { model?.selection = panel }
                     .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                    .disabled(model == nil)
             }
         }
 

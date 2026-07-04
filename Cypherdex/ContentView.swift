@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var bus = ServiceBus.shared
 
     var body: some View {
@@ -29,12 +30,17 @@ struct ContentView: View {
         .onChange(of: bus.request) { _, request in
             deliver(request)
         }
+        .onChange(of: controlActiveState) { _, state in
+            if state == .key { deliver(bus.request) }
+        }
         .onAppear { deliver(bus.request) }
     }
 
-    /// Route a queued Service request into the model, then clear it.
+    /// Route a queued Service/Finder request into *this* window's model, but only
+    /// when this is the key (frontmost) window — so an open lands in one window and
+    /// leaves any work in the others untouched. Clears the shared request once taken.
     private func deliver(_ request: ServiceRequest?) {
-        guard let request else { return }
+        guard controlActiveState == .key, let request else { return }
         model.handle(request)
         bus.request = nil
     }
@@ -42,5 +48,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environment(AppModel())
+        .environment(AppModel(library: KeyLibrary()))
 }
