@@ -72,7 +72,7 @@ struct DecryptView: View {
                 }
 
                 if let output = viewModel.output {
-                    CipherOutputView(title: "Decrypted", output: output, binarySaveName: "decrypted")
+                    CipherOutputView(title: "Decrypted", output: output, binarySaveName: "decrypted", sensitive: true)
                 }
 
                 QueuedFilesSection(

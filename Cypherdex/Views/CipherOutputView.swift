@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 /// The result of an encrypt or decrypt operation for display.
 enum CryptoOutput: Equatable {
@@ -16,6 +15,9 @@ struct CipherOutputView: View {
     var allowsTextSave = false
     var textSaveName = "message.age"
     var font: Font = .body.monospaced()
+    /// Whether the shown text is secret (decrypted plaintext), so Copy applies the
+    /// clipboard protections even when "protect all copies" is off.
+    var sensitive = false
 
     var body: some View {
         GroupBox(title) {
@@ -51,7 +53,6 @@ struct CipherOutputView: View {
     }
 
     private func copyToPasteboard(_ string: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(string, forType: .string)
+        Pasteboard.copy(string, sensitive: sensitive)
     }
 }

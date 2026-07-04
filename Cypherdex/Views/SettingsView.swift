@@ -10,6 +10,14 @@ struct SettingsView: View {
     private var exportAuthPolicy: ExportAuthPolicy = .always
     @AppStorage(PreferenceKeys.requireAuthToDelete)
     private var requireAuthToDelete = false
+    @AppStorage(PreferenceKeys.clipboardConcealMarker)
+    private var clipboardConcealMarker = true
+    @AppStorage(PreferenceKeys.clipboardClearAfterCopy)
+    private var clipboardClearAfterCopy = false
+    @AppStorage(PreferenceKeys.clipboardClearDelay)
+    private var clipboardClearDelay = 30
+    @AppStorage(PreferenceKeys.clipboardProtectAllCopies)
+    private var clipboardProtectAllCopies = false
 
     var body: some View {
         Form {
@@ -38,6 +46,22 @@ struct SettingsView: View {
                 Text("Authentication")
             } footer: {
                 Text("These prompts deter casual access on an unlocked Mac — they don’t encrypt the key at rest, so a keychain key can still be read by any tool with keychain access. For a key that must stay on this Mac and require Touch ID cryptographically, generate a Secure Enclave key instead.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Mark copies as concealed", isOn: $clipboardConcealMarker)
+                Toggle("Clear the clipboard after copying", isOn: $clipboardClearAfterCopy)
+                Stepper(value: $clipboardClearDelay, in: 5...300, step: 5) {
+                    Text("Clear after ^[\(clipboardClearDelay) second](inflect: true)")
+                }
+                .disabled(!clipboardClearAfterCopy)
+                Toggle("Protect all copies, including public keys", isOn: $clipboardProtectAllCopies)
+            } header: {
+                Text("Clipboard")
+            } footer: {
+                Text("“Concealed” asks clipboard managers to treat a copy as confidential and not store it — a best-effort signal, not a guaranteed block on Handoff / Universal Clipboard, which AppKit can’t offer. Auto-clear is the reliable safeguard: it wipes the clipboard after the delay unless you’ve copied something else. By default these apply only to sensitive text (decrypted output); turn on “Protect all copies” to include public keys and encrypted output too.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

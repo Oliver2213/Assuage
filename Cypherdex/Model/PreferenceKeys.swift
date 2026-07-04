@@ -4,4 +4,11 @@ enum PreferenceKeys {
     static let defaultEnclaveAccessControl = "defaultEnclaveAccessControl"
     static let exportAuthPolicy = "exportAuthPolicy"
     static let requireAuthToDelete = "requireAuthToDelete"
+
+    // Clipboard protections (see `Pasteboard`). Conceal defaults on; clear-after
+    // defaults off with a 30s delay; protect-all defaults off (sensitive only).
+    static let clipboardConcealMarker = "clipboardConcealMarker"
+    static let clipboardClearAfterCopy = "clipboardClearAfterCopy"
+    static let clipboardClearDelay = "clipboardClearDelay"
+    static let clipboardProtectAllCopies = "clipboardProtectAllCopies"
 }

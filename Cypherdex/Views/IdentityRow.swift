@@ -79,8 +79,8 @@ struct IdentityRow: View {
     }
 
     private func copyRecipient() {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(identity.recipient.encoding, forType: .string)
+        // A public key — only protected when the user opts to protect all copies.
+        Pasteboard.copy(identity.recipient.encoding, sensitive: false)
     }
 
     private func exportPublicKey() {
