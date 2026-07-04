@@ -57,6 +57,24 @@ final class AppModel {
     var showGenerateSheet = false
     var showImportSheet = false
 
+    /// The selected keys in the Keys list, and the keys whose Edit / Export sheets
+    /// are open. Selection lets the toolbar and menu act on the chosen keys; the
+    /// sheet targets are set from the row, toolbar, or menu and presented at
+    /// `ContentView`. Editing is single-key; export takes one or more.
+    var selectedKeyIDs: Set<UUID> = []
+    var editingKey: AgeIdentity?
+    var exportingKeys: ExportRequest?
+
+    /// The selected identities, in list order.
+    var selectedKeys: [AgeIdentity] {
+        identities.filter { selectedKeyIDs.contains($0.id) }
+    }
+
+    /// The lone selected identity, or nil when zero or several are selected.
+    var singleSelectedKey: AgeIdentity? {
+        selectedKeys.count == 1 ? selectedKeys.first : nil
+    }
+
     // Compose state, kept here so it survives panel switches and can be populated
     // by incoming system Services (see ServiceProvider) and by the Keys panel.
     var encryptInput = ""

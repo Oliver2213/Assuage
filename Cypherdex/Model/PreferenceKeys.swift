@@ -11,4 +11,8 @@ enum PreferenceKeys {
     static let clipboardClearAfterCopy = "clipboardClearAfterCopy"
     static let clipboardClearDelay = "clipboardClearDelay"
     static let clipboardProtectAllCopies = "clipboardProtectAllCopies"
+
+    /// Whether the export sheet may copy a private key to the clipboard. Off by
+    /// default; when on, a "Copy to Clipboard" action appears in the export sheet.
+    static let allowClipboardExport = "allowClipboardExport"
 }

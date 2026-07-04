@@ -24,6 +24,8 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.showGenerateSheet) { GenerateKeySheet() }
         .sheet(isPresented: $model.showImportSheet) { ImportKeysSheet() }
+        .sheet(item: $model.editingKey) { EditKeySheet(identity: $0) }
+        .sheet(item: $model.exportingKeys) { ExportKeySheet(identities: $0.identities) }
         .onChange(of: bus.request) { _, request in
             deliver(request)
         }

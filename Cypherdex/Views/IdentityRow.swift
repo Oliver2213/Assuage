@@ -1,17 +1,13 @@
 import SwiftUI
-import AppKit
 import CypherdexCore
 
 /// A detailed row for one identity, with visible actions, a matching context
 /// menu, and shortcuts to compose an encrypt/decrypt with this key.
 struct IdentityRow: View {
     @Environment(AppModel.self) private var model
-    @AppStorage(PreferenceKeys.exportAuthPolicy) private var exportAuthPolicy: ExportAuthPolicy = .always
     let identity: AgeIdentity
     /// Ask the parent to confirm and perform deletion.
     let onRequestDelete: () -> Void
-
-    @State private var showEdit = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -46,9 +42,9 @@ struct IdentityRow: View {
             HStack(spacing: 8) {
                 Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
                 Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
-                Button("Export Identity…", systemImage: "key") { exportIdentity() }
+                Button("Export Identity…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: [identity]) }
                 Spacer()
-                Button("Edit", systemImage: "pencil") { showEdit = true }
+                Button("Edit", systemImage: "pencil") { model.editingKey = identity }
                     .labelStyle(.iconOnly)
                 Button("Delete", systemImage: "trash", role: .destructive, action: onRequestDelete)
                     .labelStyle(.iconOnly)
@@ -70,13 +66,12 @@ struct IdentityRow: View {
             Divider()
             Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
             Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
-            Button("Export Identity…", systemImage: "key") { exportIdentity() }
+            Button("Export Identity…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: [identity]) }
             Divider()
-            Button("Edit…", systemImage: "pencil") { showEdit = true }
+            Button("Edit…", systemImage: "pencil") { model.editingKey = identity }
             Divider()
             Button("Delete…", systemImage: "trash", role: .destructive, action: onRequestDelete)
         }
-        .sheet(isPresented: $showEdit) { EditKeySheet(identity: identity) }
     }
 
     // MARK: Actions
@@ -92,32 +87,5 @@ struct IdentityRow: View {
 
     private func exportPublicKey() {
         SavePanel.save(text: identity.publicKeyFile(), suggestedName: "\(fileBase).pub")
-    }
-
-    private func exportIdentity() {
-        Task {
-            // Hardware-protected keys prompt when we fetch the secret below, so the
-            // soft export-auth gate would double up — skip it for those.
-            if identity.keychainProtection?.requiresAuthentication != true {
-                guard await authorizeExportIfNeeded() else { return }
-            }
-            guard let hydrated = try? await model.hydratedSecrets(for: [identity]).first else { return }
-            SavePanel.save(text: hydrated.ageFormatted(), suggestedName: "\(fileBase).txt")
-        }
-    }
-
-    /// Apply the export-auth preference. Secure Enclave exports are device-locked
-    /// blobs, so "only keychain keys" skips them; keychain secrets always gate.
-    private func authorizeExportIfNeeded() async -> Bool {
-        let needsAuth: Bool
-        switch exportAuthPolicy {
-        case .always: needsAuth = true
-        case .keychainOnly: needsAuth = identity.source != .secureEnclave
-        case .never: needsAuth = false
-        }
-        guard needsAuth else { return true }
-        return await Authentication.authorize(
-            reason: String(localized: "Authenticate to export the private key “\(identity.displayName)”.")
-        )
     }
 }

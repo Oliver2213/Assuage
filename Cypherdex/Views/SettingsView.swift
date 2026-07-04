@@ -18,6 +18,8 @@ struct SettingsView: View {
     private var clipboardClearDelay = 30
     @AppStorage(PreferenceKeys.clipboardProtectAllCopies)
     private var clipboardProtectAllCopies = false
+    @AppStorage(PreferenceKeys.allowClipboardExport)
+    private var allowClipboardExport = false
 
     var body: some View {
         Form {
@@ -58,10 +60,11 @@ struct SettingsView: View {
                 }
                 .disabled(!clipboardClearAfterCopy)
                 Toggle("Protect all copies, including public keys", isOn: $clipboardProtectAllCopies)
+                Toggle("Allow exporting a private key to the clipboard", isOn: $allowClipboardExport)
             } header: {
                 Text("Clipboard")
             } footer: {
-                Text("“Concealed” asks clipboard managers to treat a copy as confidential and not store it — a best-effort signal, not a guaranteed block on Handoff / Universal Clipboard, which AppKit can’t offer. Auto-clear is the reliable safeguard: it wipes the clipboard after the delay unless you’ve copied something else. By default these apply only to sensitive text (decrypted output); turn on “Protect all copies” to include public keys and encrypted output too.")
+                Text("“Concealed” asks clipboard managers to treat a copy as confidential and not store it — a best-effort signal, not a guaranteed block on Handoff / Universal Clipboard, which AppKit can’t offer. Auto-clear is the reliable safeguard: it wipes the clipboard after the delay unless you’ve copied something else. By default these apply only to sensitive text (decrypted output); turn on “Protect all copies” to include public keys and encrypted output too. Exporting a private key to the clipboard is off by default because it puts key material on the clipboard.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

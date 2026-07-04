@@ -20,10 +20,12 @@ struct KeysView: View {
                         .buttonStyle(.borderedProminent)
                 }
             } else {
+                @Bindable var model = model
                 VStack(spacing: 0) {
-                    List {
+                    List(selection: $model.selectedKeyIDs) {
                         ForEach(model.identities) { identity in
                             IdentityRow(identity: identity) { requestDelete(identity) }
+                                .tag(identity.id)
                         }
                     }
                     Divider()
@@ -38,6 +40,10 @@ struct KeysView: View {
         .navigationTitle("Keys")
         .toolbar {
             ToolbarItemGroup {
+                Button("Edit Key…", systemImage: "pencil") { model.editingKey = model.singleSelectedKey }
+                    .disabled(model.singleSelectedKey == nil)
+                Button("Export…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: model.selectedKeys) }
+                    .disabled(model.selectedKeys.isEmpty)
                 Button("Import Identity…", systemImage: "square.and.arrow.down") { model.showImportSheet = true }
                 Button("Generate…", systemImage: "plus") { model.showGenerateSheet = true }
             }

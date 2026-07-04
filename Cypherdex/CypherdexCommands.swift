@@ -15,6 +15,11 @@ struct CypherdexCommands: Commands {
                 .keyboardShortcut("k", modifiers: .command)
             Button("Import Identity…") { model.showImportSheet = true }
                 .keyboardShortcut("i", modifiers: .command)
+            Divider()
+            Button("Edit Key…") { model.editingKey = model.singleSelectedKey }
+                .disabled(model.singleSelectedKey == nil)
+            Button("Export All Identities…") { model.exportingKeys = ExportRequest(identities: model.identities) }
+                .disabled(model.identities.isEmpty)
         }
 
         CommandGroup(after: .sidebar) {
