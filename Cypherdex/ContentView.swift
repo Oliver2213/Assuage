@@ -39,5 +39,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environment(AppModel())
-        .environment(CryptoEngine())
 }

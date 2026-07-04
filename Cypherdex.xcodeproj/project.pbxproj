@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		CD00000000000000000000A3 /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = CD00000000000000000000A2 /* CypherdexCore */; };
+		CD00000000000000000000B3 /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = CD00000000000000000000B2 /* CypherdexCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD00000000000000000000B3 /* CypherdexCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +143,7 @@
 			);
 			name = CypherdexTests;
 			packageProductDependencies = (
+				CD00000000000000000000B2 /* CypherdexCore */,
 			);
 			productName = CypherdexTests;
 			productReference = 6A940B232FF8139900E3560A /* CypherdexTests.xctest */;
@@ -636,6 +639,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		CD00000000000000000000A2 /* CypherdexCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CypherdexCore;
+		};
+		CD00000000000000000000B2 /* CypherdexCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CypherdexCore;
 		};

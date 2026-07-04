@@ -4,13 +4,11 @@ import SwiftUI
 struct CypherdexApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var model = AppModel()
-    @State private var engine = CryptoEngine()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(model)
-                .environment(engine)
                 .frame(minWidth: 760, minHeight: 520)
         }
         .commands {
