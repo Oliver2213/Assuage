@@ -27,7 +27,7 @@ struct KeysView: View {
                         }
                     }
                     Divider()
-                    Text("Keys are stored in your keychain. A keychain key stays on this Mac unless you turn on syncing when you create it, which shares it with your other devices via iCloud Keychain. Secure Enclave keys never sync — sealed by the enclave, they only work on the Mac that created them. You can export any key for backup, but an exported Secure Enclave key still only works on that Mac.")
+                    Text("Keys live in your keychain. A local key stays on this Mac; a synced key shares to your other devices via iCloud Keychain; a Touch ID–protected key stays on this Mac and is sealed by the Secure Enclave, so its secret can’t be read at rest without authenticating. Secure Enclave keys never sync — they only work on the Mac that created them. You can export any key for backup, but an exported Secure Enclave key still only works on that Mac.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)

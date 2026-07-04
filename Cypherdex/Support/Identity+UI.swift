@@ -15,17 +15,20 @@ extension AgeIdentity {
     }
 
     var sourceIcon: String {
-        switch source {
-        case .secureEnclave: return "cpu"
-        case .keychain(let synced): return synced ? "icloud" : "key"
+        switch keychainProtection {
+        case .synced: return "icloud"
+        case .local: return "key"
+        case .authenticated: return "touchid"
+        case nil: return "cpu" // Secure Enclave
         }
     }
 
     var sourceDescription: String {
-        switch source {
-        case .secureEnclave: return "Secure Enclave"
-        case .keychain(let synced):
-            return synced ? "Keychain · Synced via iCloud" : "Keychain · This device only"
+        switch keychainProtection {
+        case .synced: return "Keychain · Synced via iCloud"
+        case .local: return "Keychain · This device only"
+        case .authenticated(let auth): return "Keychain · \(auth.displayName), this device"
+        case nil: return "Secure Enclave"
         }
     }
 

@@ -87,19 +87,32 @@ struct DecryptView: View {
     }
 
     private func decrypt() {
-        Task { await viewModel.decrypt(model.decryptInput, with: identities) }
+        Task {
+            guard let identities = await hydratedIdentities() else { return }
+            await viewModel.decrypt(model.decryptInput, with: identities)
+        }
     }
 
     private func check() {
-        Task { await viewModel.check(model.decryptInput, with: identities) }
+        Task {
+            guard let identities = await hydratedIdentities() else { return }
+            await viewModel.check(model.decryptInput, with: identities)
+        }
     }
 
     private func decryptFiles() {
         let files = model.queuedDecryptFiles
         Task {
+            guard let identities = await hydratedIdentities() else { return }
             await viewModel.decryptFiles(files, with: identities)
             model.queuedDecryptFiles.removeAll()
         }
+    }
+
+    /// Unlock the selected identities' secrets (one Touch ID prompt covers any
+    /// protected keys). Returns nil if the user cancels, so the caller aborts.
+    private func hydratedIdentities() async -> [AgeIdentity]? {
+        try? await model.hydratedSecrets(for: identities)
     }
 
     private func runAutoCheckIfNeeded() {

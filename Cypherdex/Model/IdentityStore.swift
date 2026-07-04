@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import LocalAuthentication
 import CypherdexCore
 
 /// A keychain operation that failed, carrying the underlying `OSStatus` so the
@@ -9,34 +10,42 @@ struct KeychainError: LocalizedError {
 
     var errorDescription: String? {
         let detail = SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)"
-        return "Couldn’t save to the keychain: \(detail)"
+        return "Couldn’t reach the keychain: \(detail)"
     }
 }
 
-/// Persists identities — including their secrets — in the data-protection
-/// keychain. One generic-password item per identity, value = JSON of the
-/// identity.
+/// Persists identities in the data-protection keychain — one generic-password
+/// item each, with the public **metadata** in `kSecAttrGeneric` and the **secret**
+/// in the item's data field.
 ///
-/// Non-synced keys use `ThisDeviceOnly` accessibility so they never leave the
-/// Mac. Keys the user marked as synced use `AfterFirstUnlock` (device-only
-/// accessibility can't sync) and set `kSecAttrSynchronizable`, so they travel
-/// via iCloud Keychain. Secure Enclave keys are always device-local.
+/// Splitting them lets `loadAll()` list every key by reading attributes only
+/// (`kSecReturnData: false`), so it never prompts — even for hardware-protected
+/// keys whose secret would otherwise require Touch ID. The secret is fetched
+/// lazily by `secret(for:)` at decrypt/export time, which is where the prompt
+/// belongs.
+///
+/// Protection modes (see `KeychainProtection`):
+/// - `.synced` — `AfterFirstUnlock` + `kSecAttrSynchronizable`, travels via iCloud.
+/// - `.local` — `WhenUnlockedThisDeviceOnly`, device-bound, readable while unlocked.
+/// - `.authenticated` — a `SecAccessControl` (biometry/passcode), so the secret is
+///   released only after authentication and can't sync.
 ///
 /// Requires the **Keychain Sharing** capability — the data-protection keychain
-/// needs a `keychain-access-groups` entitlement, otherwise every write fails
-/// with `errSecMissingEntitlement`.
+/// needs a `keychain-access-groups` entitlement, otherwise writes fail with
+/// `errSecMissingEntitlement`.
 struct IdentityStore {
     private let service = "dev.smoll.Cypherdex.identities"
 
+    /// List every stored identity from metadata alone — no secret is read, so
+    /// this never triggers an authentication prompt.
     func loadAll() -> [AgeIdentity] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecReturnData as String: true,
+            kSecReturnData as String: false,
             kSecReturnAttributes as String: true,
             kSecUseDataProtectionKeychain as String: true,
-            // Return both local and iCloud-synced items.
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         var result: CFTypeRef?
@@ -46,19 +55,20 @@ struct IdentityStore {
         }
         let decoder = JSONDecoder()
         return items
-            .compactMap { $0[kSecValueData as String] as? Data }
+            .compactMap { $0[kSecAttrGeneric as String] as? Data }
             .compactMap { try? decoder.decode(AgeIdentity.self, from: $0) }
             .sorted { $0.created < $1.created }
     }
 
-    /// Save (or replace) an identity. Throws `KeychainError` if the keychain
+    /// Save (or replace) an identity. The secret must be present on `identity`
+    /// (it is at generation/import time). Throws `KeychainError` if the keychain
     /// rejects the write, so callers can tell the user instead of losing the key.
     func save(_ identity: AgeIdentity) throws {
-        let data = try JSONEncoder().encode(identity)
+        // Metadata copy with the secret blanked — this is what we list at launch.
+        let metadata = try JSONEncoder().encode(identity.withKeychainSecret(""))
+        let secret = Data((identity.x25519Secret ?? "").utf8)
         let synced = identity.isSynced
-        // `kSecAttrSynchronizable` and `kSecAttrService`/`kSecAttrAccount` form the
-        // primary key, so the query must match on synchronizable to find an existing
-        // item to update.
+
         let base: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -66,13 +76,20 @@ struct IdentityStore {
             kSecAttrSynchronizable as String: synced,
             kSecUseDataProtectionKeychain as String: true,
         ]
-        let attributes: [String: Any] = [
-            kSecValueData as String: data,
-            // Device-only accessibility cannot sync, so synced items relax it.
-            kSecAttrAccessible as String: synced
-                ? kSecAttrAccessibleAfterFirstUnlock
-                : kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        var attributes: [String: Any] = [
+            kSecAttrGeneric as String: metadata,
+            kSecValueData as String: secret,
+            // The system auth prompt shows this label ("…use “My Laptop”…").
+            kSecAttrLabel as String: identity.displayName,
         ]
+        if case .authenticated(let auth) = identity.keychainProtection {
+            attributes[kSecAttrAccessControl as String] = try makeAccessControl(auth)
+        } else {
+            attributes[kSecAttrAccessible as String] = synced
+                ? kSecAttrAccessibleAfterFirstUnlock
+                : kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        }
+
         let addStatus = SecItemAdd(base.merging(attributes) { $1 } as CFDictionary, nil)
         switch addStatus {
         case errSecSuccess:
@@ -85,6 +102,29 @@ struct IdentityStore {
         }
     }
 
+    /// Fetch a keychain (X25519) key's secret. For `.authenticated` keys this
+    /// prompts for Touch ID / passcode; pass a shared `LAContext` across a batch
+    /// so one prompt covers them all. Throws `KeychainError` on failure or cancel.
+    nonisolated func secret(for identity: AgeIdentity, context: LAContext) throws -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: identity.id.uuidString,
+            kSecReturnData as String: true,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecUseAuthenticationContext as String: context,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let secret = String(data: data, encoding: .utf8) else {
+            throw KeychainError(status: status)
+        }
+        return secret
+    }
+
     func delete(_ identity: AgeIdentity) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -95,5 +135,25 @@ struct IdentityStore {
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         SecItemDelete(query as CFDictionary)
+    }
+
+    /// Build the access control for a hardware-protected key: the secret is
+    /// wrapped by the Secure Enclave and released only after authentication.
+    private func makeAccessControl(_ auth: KeychainAuth) throws -> SecAccessControl {
+        let flags: SecAccessControlCreateFlags
+        switch auth {
+        case .biometryOrPasscode: flags = [.userPresence]
+        case .currentBiometry: flags = [.biometryCurrentSet]
+        }
+        var error: Unmanaged<CFError>?
+        guard let accessControl = SecAccessControlCreateWithFlags(
+            nil,
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            flags,
+            &error
+        ) else {
+            throw KeychainError(status: errSecParam)
+        }
+        return accessControl
     }
 }

@@ -8,7 +8,9 @@ struct ImportKeyDraft: Identifiable {
     var id: UUID { key.id }
     var include = true
     var name: String
-    var sync: Bool
+    /// The chosen keychain storage; resolved to a `KeychainProtection` at import
+    /// time using the sheet's batch auth flavor.
+    var storage: KeychainStorageMode
     /// True when a key with this recipient is already in the keychain.
     var alreadyExists = false
 }

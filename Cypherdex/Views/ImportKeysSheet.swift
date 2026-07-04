@@ -12,7 +12,8 @@ struct ImportKeysSheet: View {
 
     // Defaults, chosen before picking a file.
     @State private var defaultName = ""
-    @State private var syncByDefault = false
+    @State private var defaultStorage: KeychainStorageMode = .authenticated
+    @State private var defaultAuth: KeychainAuth = .biometryOrPasscode
     @State private var deleteFileAfter = false
 
     // Populated once a file is parsed.
@@ -37,14 +38,28 @@ struct ImportKeysSheet: View {
 
             Form {
                 TextField("Default name", text: $defaultName, prompt: Text("Optional — overrides names below"))
-                Toggle("Sync imported keys to my other devices", isOn: $syncByDefault)
+                Picker("Storage", selection: $defaultStorage) {
+                    ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+                }
+                if defaultStorage == .authenticated {
+                    Picker("Require", selection: $defaultAuth) {
+                        ForEach(KeychainAuth.allCases) { Text($0.displayName).tag($0) }
+                    }
+                }
                 Toggle("Delete the file after importing", isOn: $deleteFileAfter)
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
             .fixedSize(horizontal: false, vertical: true)
             .onChange(of: defaultName) { applyDefaultNames() }
-            .onChange(of: syncByDefault) { applyDefaultSync() }
+            .onChange(of: defaultStorage) { applyDefaultStorage() }
+
+            if defaultStorage == .authenticated, defaultAuth == .currentBiometry {
+                Label("“Current fingerprints” ties these keys to your fingerprints as they are now — adding or removing any fingerprint permanently makes them unreadable.", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if hasFile {
                 ImportReviewList(drafts: $drafts, duplicatesRemoved: duplicatesRemoved)
@@ -115,7 +130,7 @@ struct ImportKeysSheet: View {
                 let alreadyExists = existing.contains(key.recipient)
                 // Keys we already hold default to skipped, but stay togglable in case
                 // the user deliberately wants a second, separately-labeled copy.
-                return ImportKeyDraft(key: key, include: !alreadyExists, name: "", sync: syncByDefault, alreadyExists: alreadyExists)
+                return ImportKeyDraft(key: key, include: !alreadyExists, name: "", storage: defaultStorage, alreadyExists: alreadyExists)
             }
             applyDefaultNames()
         } catch {
@@ -137,8 +152,8 @@ struct ImportKeysSheet: View {
         }
     }
 
-    private func applyDefaultSync() {
-        for index in drafts.indices { drafts[index].sync = syncByDefault }
+    private func applyDefaultStorage() {
+        for index in drafts.indices { drafts[index].storage = defaultStorage }
     }
 
     /// Back to a clean slate: forget the file, the parsed keys, and every option.
@@ -146,7 +161,8 @@ struct ImportKeysSheet: View {
         fileURL = nil
         drafts = []
         defaultName = ""
-        syncByDefault = false
+        defaultStorage = .authenticated
+        defaultAuth = .biometryOrPasscode
         deleteFileAfter = false
         duplicatesRemoved = 0
     }
@@ -165,7 +181,7 @@ struct ImportKeysSheet: View {
         do {
             let identities = try drafts
                 .filter(\.include)
-                .map { try AgeIdentity(importingX25519: $0.key.secretKey, label: $0.name, synced: $0.sync) }
+                .map { try AgeIdentity(importingX25519: $0.key.secretKey, label: $0.name, protection: $0.storage.protection(auth: defaultAuth)) }
             try model.importIdentities(identities)
             if deleteFileAfter, let fileURL {
                 try? FileManager.default.removeItem(at: fileURL)

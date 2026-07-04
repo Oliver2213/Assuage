@@ -1,11 +1,13 @@
 import Foundation
+import LocalAuthentication
 import CypherdexCore
 
 /// App-wide state: the panel selection and the user's identities (age keypairs).
 ///
-/// Identities persist in the keychain (see `IdentityStore`): X25519 keys locally
-/// or, when marked synced, via iCloud Keychain; Secure Enclave keys are always
-/// device-local.
+/// Identities persist in the keychain (see `IdentityStore`): X25519 keys locally,
+/// synced via iCloud Keychain, or hardware-protected behind Touch ID; Secure
+/// Enclave keys are always device-local. Keychain secrets are loaded lazily —
+/// `hydratedSecrets(for:)` fetches them just before decrypt/export.
 @MainActor
 @Observable
 final class AppModel {
@@ -96,8 +98,8 @@ final class AppModel {
     var secureEnclaveAvailable: Bool { SecureEnclaveKeys.isAvailable }
 
     @discardableResult
-    func generateX25519(label: String, synced: Bool = false) throws -> AgeIdentity {
-        let identity = AgeIdentity.generateX25519(label: label, synced: synced)
+    func generateX25519(label: String, protection: KeychainProtection = .local) throws -> AgeIdentity {
+        let identity = AgeIdentity.generateX25519(label: label, protection: protection)
         try add(identity)
         return identity
     }
@@ -140,6 +142,26 @@ final class AppModel {
         for identity in identities {
             try add(identity)
         }
+    }
+
+    /// Fetch the secrets for keychain identities so they can decrypt or export.
+    /// Runs off the main actor (the fetch blocks while an auth prompt is up), and
+    /// shares one `LAContext` so a batch of protected keys asks for Touch ID once.
+    /// Secure Enclave keys pass through unchanged (they unlock at use).
+    func hydratedSecrets(for identities: [AgeIdentity]) async throws -> [AgeIdentity] {
+        let store = self.store
+        return try await Task.detached {
+            let context = LAContext()
+            context.touchIDAuthenticationAllowableReuseDuration = LATouchIDAuthenticationMaximumAllowableReuseDuration
+            return try identities.map { identity in
+                // Only keychain keys need hydration, and only if not already loaded.
+                guard identity.keychainProtection != nil, identity.x25519Secret == nil else {
+                    return identity
+                }
+                let secret = try store.secret(for: identity, context: context)
+                return identity.withKeychainSecret(secret)
+            }
+        }.value
     }
 
     func delete(_ identity: AgeIdentity) {

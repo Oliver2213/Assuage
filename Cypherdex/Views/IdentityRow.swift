@@ -89,8 +89,13 @@ struct IdentityRow: View {
 
     private func exportIdentity() {
         Task {
-            guard await authorizeExportIfNeeded() else { return }
-            SavePanel.save(text: identity.ageFormatted(), suggestedName: "\(fileBase).txt")
+            // Hardware-protected keys prompt when we fetch the secret below, so the
+            // soft export-auth gate would double up — skip it for those.
+            if identity.keychainProtection?.requiresAuthentication != true {
+                guard await authorizeExportIfNeeded() else { return }
+            }
+            guard let hydrated = try? await model.hydratedSecrets(for: [identity]).first else { return }
+            SavePanel.save(text: hydrated.ageFormatted(), suggestedName: "\(fileBase).txt")
         }
     }
 

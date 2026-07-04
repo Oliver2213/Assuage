@@ -2,7 +2,7 @@ import SwiftUI
 import CypherdexCore
 
 /// One editable row in the import review list: a checkbox to include the key, a
-/// name field, its public recipient, and an iCloud-sync toggle. Bound to a
+/// name field, its public recipient, and a keychain-storage menu. Bound to a
 /// `Draft` so edits flow straight back to the sheet's state.
 struct ImportKeyRow: View {
     @Binding var draft: ImportKeyDraft
@@ -33,11 +33,14 @@ struct ImportKeyRow: View {
                 }
             }
 
-            Toggle("Sync", isOn: $draft.sync)
-                .toggleStyle(.switch)
-                .controlSize(.small)
-                .fixedSize()
-                .help("Sync this key to your other devices via iCloud Keychain")
+            Picker("Storage", selection: $draft.storage) {
+                ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .controlSize(.small)
+            .fixedSize()
+            .help("Where this key is stored: hardware-protected, local, or synced via iCloud")
         }
         .opacity(draft.include ? 1 : 0.5)
         .padding(.vertical, 2)
