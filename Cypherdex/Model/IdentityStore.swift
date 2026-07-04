@@ -14,76 +14,144 @@ struct KeychainError: LocalizedError {
     }
 }
 
-/// Persists identities in the data-protection keychain — one generic-password
-/// item each, with the public **metadata** in `kSecAttrGeneric` and the **secret**
-/// in the item's data field.
+/// Persists identities in the data-protection keychain as **two items per key**:
+/// an unprotected *metadata* item and a separate *secret* item.
 ///
-/// Splitting them lets `loadAll()` list every key by reading attributes only
-/// (`kSecReturnData: false`), so it never prompts — even for hardware-protected
-/// keys whose secret would otherwise require Touch ID. The secret is fetched
-/// lazily by `secret(for:)` at decrypt/export time, which is where the prompt
-/// belongs.
+/// The split is what keeps launch prompt-free. Reading an access-controlled
+/// item — even just its attributes — triggers its Touch ID / passcode check, so
+/// keeping the secret in the same item would make merely *listing* keys prompt.
+/// Instead `loadAll()` reads only the metadata items (never access-controlled),
+/// and `secret(for:)` reads the secret item on demand, which is the one place a
+/// prompt is expected.
 ///
-/// Protection modes (see `KeychainProtection`):
+/// Protection modes (see `KeychainProtection`) apply to the **secret** item:
 /// - `.synced` — `AfterFirstUnlock` + `kSecAttrSynchronizable`, travels via iCloud.
-/// - `.local` — `WhenUnlockedThisDeviceOnly`, device-bound, readable while unlocked.
+/// - `.local` — `WhenUnlockedThisDeviceOnly`, device-bound, no auth.
 /// - `.authenticated` — a `SecAccessControl` (biometry/passcode), so the secret is
 ///   released only after authentication and can't sync.
+///
+/// Secure Enclave keys have no secret item: their (enclave-encrypted) blob lives
+/// in the metadata and is safe to hold.
 ///
 /// Requires the **Keychain Sharing** capability — the data-protection keychain
 /// needs a `keychain-access-groups` entitlement, otherwise writes fail with
 /// `errSecMissingEntitlement`.
 struct IdentityStore {
-    private let service = "dev.smoll.Cypherdex.identities"
+    /// Public metadata, one per identity, never access-controlled.
+    private let metaService = "dev.smoll.Cypherdex.identities.meta"
+    /// The raw X25519 secret, one per keychain key, access-controlled when protected.
+    private let secretService = "dev.smoll.Cypherdex.identities.secret"
+    /// The pre-split single-item location, kept only so `purgeLegacyItems` can clear it.
+    private let legacyService = "dev.smoll.Cypherdex.identities"
 
-    /// List every stored identity from metadata alone — no secret is read, so
-    /// this never triggers an authentication prompt.
+    /// List every stored identity from the metadata items alone. These carry no
+    /// access control, so this never triggers an authentication prompt.
     func loadAll() -> [AgeIdentity] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: metaService,
             kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecReturnData as String: false,
-            kSecReturnAttributes as String: true,
+            kSecReturnData as String: true,
             kSecUseDataProtectionKeychain as String: true,
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let items = result as? [[String: Any]] else {
+              let items = result as? [Data] else {
             return []
         }
         let decoder = JSONDecoder()
         return items
-            .compactMap { $0[kSecAttrGeneric as String] as? Data }
             .compactMap { try? decoder.decode(AgeIdentity.self, from: $0) }
             .sorted { $0.created < $1.created }
     }
 
-    /// Save (or replace) an identity. The secret must be present on `identity`
-    /// (it is at generation/import time). Throws `KeychainError` if the keychain
-    /// rejects the write, so callers can tell the user instead of losing the key.
+    /// Save (or replace) an identity: an unprotected metadata item plus, for
+    /// keychain (X25519) keys, a secret item guarded per its protection. The
+    /// secret must be present on `identity` (it is at generation/import time).
     func save(_ identity: AgeIdentity) throws {
-        // Metadata copy with the secret blanked — this is what we list at launch.
-        let metadata = try JSONEncoder().encode(identity.withKeychainSecret(""))
-        let secret = Data((identity.x25519Secret ?? "").utf8)
         let synced = identity.isSynced
+        // Metadata: the identity with its secret blanked. Always readable.
+        let metadata = try JSONEncoder().encode(identity.withKeychainSecret(""))
+        try upsert(service: metaService, account: identity.id.uuidString,
+                   data: metadata, accessControl: nil, synced: synced, label: identity.displayName)
 
+        guard let secret = identity.x25519Secret else { return } // SE keys keep no secret item
+        let accessControl: SecAccessControl?
+        if case .authenticated(let auth) = identity.keychainProtection {
+            accessControl = try makeAccessControl(auth)
+        } else {
+            accessControl = nil
+        }
+        do {
+            try upsert(service: secretService, account: identity.id.uuidString,
+                       data: Data(secret.utf8), accessControl: accessControl, synced: synced, label: identity.displayName)
+        } catch {
+            // Don't leave a metadata item with no secret behind it.
+            deleteItems(account: identity.id.uuidString, in: [metaService])
+            throw error
+        }
+    }
+
+    /// Fetch a keychain (X25519) key's secret from its secret item. For
+    /// `.authenticated` keys this prompts for Touch ID / passcode; pass a shared
+    /// `LAContext` across a batch so one prompt covers them all. Throws on cancel.
+    nonisolated func secret(for identity: AgeIdentity, context: LAContext) throws -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: secretService,
+            kSecAttrAccount as String: identity.id.uuidString,
+            kSecReturnData as String: true,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecUseAuthenticationContext as String: context,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let secret = String(data: data, encoding: .utf8) else {
+            throw KeychainError(status: status)
+        }
+        return secret
+    }
+
+    /// Remove every item at the pre-split single-item location. Those held the
+    /// secret alongside the metadata, so they'd both be unreadable by `loadAll()`
+    /// now and prompt when merely matched. A blanket delete needs no read, so it
+    /// never prompts. New-format items live under different services.
+    func purgeLegacyItems() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: legacyService,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
+    func delete(_ identity: AgeIdentity) {
+        deleteItems(account: identity.id.uuidString, in: [metaService, secretService])
+    }
+
+    // MARK: Helpers
+
+    /// Add or update one generic-password item.
+    private func upsert(service: String, account: String, data: Data,
+                        accessControl: SecAccessControl?, synced: Bool, label: String) throws {
         let base: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: identity.id.uuidString,
+            kSecAttrAccount as String: account,
             kSecAttrSynchronizable as String: synced,
             kSecUseDataProtectionKeychain as String: true,
         ]
         var attributes: [String: Any] = [
-            kSecAttrGeneric as String: metadata,
-            kSecValueData as String: secret,
-            // The system auth prompt shows this label ("…use “My Laptop”…").
-            kSecAttrLabel as String: identity.displayName,
+            kSecValueData as String: data,
+            kSecAttrLabel as String: label,
         ]
-        if case .authenticated(let auth) = identity.keychainProtection {
-            attributes[kSecAttrAccessControl as String] = try makeAccessControl(auth)
+        if let accessControl {
+            attributes[kSecAttrAccessControl as String] = accessControl
         } else {
             attributes[kSecAttrAccessible as String] = synced
                 ? kSecAttrAccessibleAfterFirstUnlock
@@ -102,72 +170,17 @@ struct IdentityStore {
         }
     }
 
-    /// Fetch a keychain (X25519) key's secret. For `.authenticated` keys this
-    /// prompts for Touch ID / passcode; pass a shared `LAContext` across a batch
-    /// so one prompt covers them all. Throws `KeychainError` on failure or cancel.
-    nonisolated func secret(for identity: AgeIdentity, context: LAContext) throws -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: identity.id.uuidString,
-            kSecReturnData as String: true,
-            kSecUseDataProtectionKeychain as String: true,
-            kSecUseAuthenticationContext as String: context,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-        ]
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let secret = String(data: data, encoding: .utf8) else {
-            throw KeychainError(status: status)
-        }
-        return secret
-    }
-
-    /// Remove stale items from before the metadata/secret split — those written
-    /// as a single JSON blob, which lack the `kSecAttrGeneric` metadata the new
-    /// format stores. They're unreadable by `loadAll()` and would otherwise sit
-    /// in the keychain forever. New-format items always set `kSecAttrGeneric`, so
-    /// they're never touched. Reads attributes only, so it never prompts.
-    func purgeLegacyItems() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecMatchLimit as String: kSecMatchLimitAll,
-            kSecReturnAttributes as String: true,
-            kSecReturnData as String: false,
-            kSecUseDataProtectionKeychain as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-        ]
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let items = result as? [[String: Any]] else {
-            return
-        }
-        for item in items where item[kSecAttrGeneric as String] == nil {
-            guard let account = item[kSecAttrAccount as String] as? String else { continue }
-            let deleteQuery: [String: Any] = [
+    private func deleteItems(account: String, in services: [String]) {
+        for service in services {
+            let query: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
                 kSecAttrAccount as String: account,
                 kSecUseDataProtectionKeychain as String: true,
                 kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             ]
-            SecItemDelete(deleteQuery as CFDictionary)
+            SecItemDelete(query as CFDictionary)
         }
-    }
-
-    func delete(_ identity: AgeIdentity) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: identity.id.uuidString,
-            kSecUseDataProtectionKeychain as String: true,
-            // Match local or synced so either can be removed.
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-        ]
-        SecItemDelete(query as CFDictionary)
     }
 
     /// Build the access control for a hardware-protected key: the secret is
