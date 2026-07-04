@@ -14,5 +14,9 @@ struct CypherdexApp: App {
         .commands {
             CypherdexCommands(model: model)
         }
+
+        Settings {
+            SettingsView()
+        }
     }
 }

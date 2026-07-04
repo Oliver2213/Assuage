@@ -16,6 +16,9 @@ struct GenerateKeySheet: View {
         }
     }
 
+    @AppStorage(PreferenceKeys.defaultEnclaveAccessControl)
+    private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
+
     @State private var keyType: KeyType = .x25519
     @State private var label = ""
     @State private var syncToICloud = false
@@ -72,6 +75,7 @@ struct GenerateKeySheet: View {
         }
         .padding(20)
         .frame(width: 460)
+        .onAppear { accessControl = defaultEnclaveAccessControl }
         .alert("Couldn’t generate key", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {

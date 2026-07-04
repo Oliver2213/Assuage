@@ -6,6 +6,7 @@ struct KeysView: View {
 
     @State private var identityToDelete: AgeIdentity?
     @State private var isDeleteConfirmationPresented = false
+    @AppStorage(PreferenceKeys.requireAuthToDelete) private var requireAuthToDelete = false
 
     var body: some View {
         Group {
@@ -46,7 +47,7 @@ struct KeysView: View {
             isPresented: $isDeleteConfirmationPresented,
             presenting: identityToDelete
         ) { identity in
-            Button("Delete Key", role: .destructive) { model.delete(identity) }
+            Button("Delete Key", role: .destructive) { performDelete(identity) }
             Button("Cancel", role: .cancel) {}
         } message: { _ in
             Text("This can’t be undone. Export the key first if you might need it again.")
@@ -56,5 +57,18 @@ struct KeysView: View {
     private func requestDelete(_ identity: AgeIdentity) {
         identityToDelete = identity
         isDeleteConfirmationPresented = true
+    }
+
+    /// Authenticate first when the preference asks for it, then delete.
+    private func performDelete(_ identity: AgeIdentity) {
+        Task {
+            if requireAuthToDelete {
+                let ok = await Authentication.authorize(
+                    reason: String(localized: "Authenticate to delete the key “\(identity.displayName)”.")
+                )
+                guard ok else { return }
+            }
+            model.delete(identity)
+        }
     }
 }

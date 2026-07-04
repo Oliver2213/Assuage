@@ -6,6 +6,7 @@ import CypherdexCore
 /// menu, and shortcuts to compose an encrypt/decrypt with this key.
 struct IdentityRow: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(PreferenceKeys.exportAuthPolicy) private var exportAuthPolicy: ExportAuthPolicy = .always
     let identity: AgeIdentity
     /// Ask the parent to confirm and perform deletion.
     let onRequestDelete: () -> Void
@@ -87,6 +88,24 @@ struct IdentityRow: View {
     }
 
     private func exportIdentity() {
-        SavePanel.save(text: identity.ageFormatted(), suggestedName: "\(fileBase).txt")
+        Task {
+            guard await authorizeExportIfNeeded() else { return }
+            SavePanel.save(text: identity.ageFormatted(), suggestedName: "\(fileBase).txt")
+        }
+    }
+
+    /// Apply the export-auth preference. Secure Enclave exports are device-locked
+    /// blobs, so "only keychain keys" skips them; keychain secrets always gate.
+    private func authorizeExportIfNeeded() async -> Bool {
+        let needsAuth: Bool
+        switch exportAuthPolicy {
+        case .always: needsAuth = true
+        case .keychainOnly: needsAuth = identity.source != .secureEnclave
+        case .never: needsAuth = false
+        }
+        guard needsAuth else { return true }
+        return await Authentication.authorize(
+            reason: String(localized: "Authenticate to export the private key “\(identity.displayName)”.")
+        )
     }
 }
