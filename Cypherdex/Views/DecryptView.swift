@@ -4,9 +4,17 @@ import CypherdexCore
 struct DecryptView: View {
     @Environment(AppModel.self) private var model
     @State private var viewModel = DecryptViewModel()
+    /// Header info for the queued files, refreshed when the queue changes.
+    @State private var fileInfos: [URL: AgeFileInfo] = [:]
 
     private var identities: [AgeIdentity] {
         model.identities.filter { model.decryptIdentityIDs.contains($0.id) }
+    }
+
+    /// Header info for the pasted text, when it parses as an age file.
+    private var inputInfo: AgeFileInfo? {
+        guard !model.decryptInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return try? AgeFileInspector.inspect(Data(model.decryptInput.utf8))
     }
 
     var body: some View {
@@ -22,6 +30,10 @@ struct DecryptView: View {
                     text: $model.decryptInput,
                     font: .caption.monospaced()
                 )
+
+                if let inputInfo {
+                    AgeFileInfoView(info: inputInfo)
+                }
 
                 Picker("Decrypt with", selection: $model.decryptMode) {
                     Text("Identities").tag(AppModel.CredentialMode.keys)
@@ -85,6 +97,18 @@ struct DecryptView: View {
                     isRunEnabled: canDecrypt && !viewModel.isRunning,
                     onRun: decryptFiles
                 )
+
+                ForEach(model.queuedDecryptFiles, id: \.self) { url in
+                    if let info = fileInfos[url] {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(url.lastPathComponent)
+                                .font(.caption.weight(.medium))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            AgeFileInfoView(info: info)
+                        }
+                    }
+                }
             }
             .padding(20)
         }
@@ -92,7 +116,9 @@ struct DecryptView: View {
         .onAppear {
             if model.decryptIdentityIDs.isEmpty { selectAllIdentities() }
             runAutoCheckIfNeeded()
+            refreshFileInfos()
         }
+        .onChange(of: model.queuedDecryptFiles) { refreshFileInfos() }
         .onChange(of: model.autoCheckRequested) { _, requested in
             if requested { runAutoCheckIfNeeded() }
         }
@@ -164,5 +190,15 @@ struct DecryptView: View {
 
     private func selectAllIdentities() {
         model.decryptIdentityIDs = Set(model.identities.map(\.id))
+    }
+
+    /// Inspect each queued file's header (a cheap, mapped read) so its recipient
+    /// types and size breakdown can be shown alongside the queue.
+    private func refreshFileInfos() {
+        var infos: [URL: AgeFileInfo] = [:]
+        for url in model.queuedDecryptFiles {
+            if let info = try? AgeFileInspector.inspect(contentsOf: url) { infos[url] = info }
+        }
+        fileInfos = infos
     }
 }
