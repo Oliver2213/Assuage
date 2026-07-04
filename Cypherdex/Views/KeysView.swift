@@ -4,8 +4,6 @@ import CypherdexCore
 struct KeysView: View {
     @Environment(AppModel.self) private var model
 
-    @State private var showGenerate = false
-    @State private var showImport = false
     @State private var identityToDelete: AgeIdentity?
     @State private var isDeleteConfirmationPresented = false
 
@@ -17,7 +15,7 @@ struct KeysView: View {
                 } description: {
                     Text("Generate an age keypair to start encrypting and decrypting. Secure Enclave keys never leave this Mac.")
                 } actions: {
-                    Button("Generate age Keypair…", systemImage: "plus") { showGenerate = true }
+                    Button("Generate age Keypair…", systemImage: "plus") { model.showGenerateSheet = true }
                         .buttonStyle(.borderedProminent)
                 }
             } else {
@@ -39,14 +37,9 @@ struct KeysView: View {
         .navigationTitle("Keys")
         .toolbar {
             ToolbarItemGroup {
-                Button("Import Identity…", systemImage: "square.and.arrow.down") { showImport = true }
-                Button("Generate…", systemImage: "plus") { showGenerate = true }
+                Button("Import Identity…", systemImage: "square.and.arrow.down") { model.showImportSheet = true }
+                Button("Generate…", systemImage: "plus") { model.showGenerateSheet = true }
             }
-        }
-        .sheet(isPresented: $showGenerate) { GenerateKeySheet() }
-        .sheet(isPresented: $showImport) { ImportKeysSheet() }
-        .onReceive(NotificationCenter.default.publisher(for: .generateKeypairRequested)) { _ in
-            showGenerate = true
         }
         .confirmationDialog(
             "Delete “\(identityToDelete?.displayName ?? "")”?",

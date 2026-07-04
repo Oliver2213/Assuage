@@ -22,6 +22,8 @@ struct ContentView: View {
             case .keys: KeysView()
             }
         }
+        .sheet(isPresented: $model.showGenerateSheet) { GenerateKeySheet() }
+        .sheet(isPresented: $model.showImportSheet) { ImportKeysSheet() }
         .onChange(of: bus.request) { _, request in
             deliver(request)
         }

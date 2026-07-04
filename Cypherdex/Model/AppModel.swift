@@ -34,6 +34,11 @@ final class AppModel {
     var selection: Panel? = .encrypt
     var identities: [AgeIdentity] = []
 
+    /// Sheet presentation, driven from the menu bar as well as the Keys panel so
+    /// the dialogs open in place from anywhere — no forced navigation to Keys.
+    var showGenerateSheet = false
+    var showImportSheet = false
+
     // Compose state, kept here so it survives panel switches and can be populated
     // by incoming system Services (see ServiceProvider) and by the Keys panel.
     var encryptInput = ""

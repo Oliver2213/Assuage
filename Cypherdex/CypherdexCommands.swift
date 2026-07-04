@@ -1,0 +1,29 @@
+import SwiftUI
+
+/// Menu-bar commands: panel navigation (⌘1–⌘3 in the View menu) plus the
+/// key-management actions (⌘K generate, ⇧⌘I import in the File menu). All drive
+/// `AppModel` state directly, so they work no matter which panel is showing.
+struct CypherdexCommands: Commands {
+    var model: AppModel
+
+    var body: some Commands {
+        CommandGroup(after: .newItem) {
+            Button("Generate age Keypair…") { model.showGenerateSheet = true }
+                .keyboardShortcut("k", modifiers: .command)
+            Button("Import Identity…") { model.showImportSheet = true }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+        }
+
+        CommandGroup(after: .sidebar) {
+            Divider()
+            ForEach(Array(AppModel.Panel.allCases.enumerated()), id: \.element) { index, panel in
+                Button(panel.title) { model.selection = panel }
+                    .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+            }
+        }
+
+        CommandGroup(replacing: .help) {
+            Link("age Encryption Website", destination: URL(string: "https://age-encryption.org")!)
+        }
+    }
+}
