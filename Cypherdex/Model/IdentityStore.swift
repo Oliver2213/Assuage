@@ -206,6 +206,16 @@ struct IdentityStore {
         deleteItems(account: identity.id.uuidString, in: [metaService, secretService])
     }
 
+    /// Rewrite an identity's items under a (possibly new) protection. The secret
+    /// and synchronizable/access-control attributes are part of how each item is
+    /// stored, so a protection change can't be an in-place update — remove the old
+    /// items (whatever their sync state) and write fresh. The secret must be
+    /// present on `identity`.
+    func replace(_ identity: AgeIdentity) throws {
+        delete(identity)
+        try save(identity)
+    }
+
     // MARK: Helpers
 
     /// Add or update one generic-password item.

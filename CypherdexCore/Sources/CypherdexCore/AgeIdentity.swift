@@ -141,6 +141,20 @@ extension AgeIdentity {
         )
     }
 
+    /// A copy of this keychain identity re-protected under a new `KeychainProtection`,
+    /// carrying the given secret. Used when moving a key between local / synced /
+    /// authenticated storage. A no-op for Secure Enclave keys.
+    public func withKeychainProtection(_ protection: KeychainProtection, secretKey: String) -> AgeIdentity {
+        guard case .x25519 = material else { return self }
+        return AgeIdentity(
+            id: id,
+            label: label,
+            created: created,
+            material: .x25519(secretKey: secretKey, protection: protection),
+            recipient: recipient
+        )
+    }
+
     /// Parse an X25519 secret key via AgeKit's public identity parser (the string
     /// initialiser on `X25519Identity` isn't public).
     static func parseX25519(_ secretKey: String) throws -> Age.X25519Identity {

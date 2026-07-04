@@ -192,6 +192,26 @@ final class AppModel {
         identities[index] = renamed
     }
 
+    /// Move a keychain (X25519) key to a new protection (local / synced / Touch
+    /// ID), optionally renaming it in the same step. Reads the current secret —
+    /// which prompts if the key is currently Touch ID–protected — off the main
+    /// actor so the prompt doesn't block the UI, then rewrites both items under the
+    /// new class. Not valid for Secure Enclave keys.
+    func changeProtection(of identity: AgeIdentity, to protection: KeychainProtection, newLabel: String) async throws {
+        let store = self.store
+        // Only the secret read can prompt; run it off-main so the sheet stays live.
+        let secret = try await Task.detached {
+            try store.secret(for: identity, context: LAContext())
+        }.value
+        var updated = identity.withKeychainProtection(protection, secretKey: secret)
+        updated.label = newLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        try store.replace(updated)
+        if let index = identities.firstIndex(where: { $0.id == identity.id }) {
+            // Keep the secret out of the in-memory model, as loadAll would.
+            identities[index] = updated.withKeychainSecret("")
+        }
+    }
+
     func delete(_ identity: AgeIdentity) {
         identities.removeAll { $0.id == identity.id }
         encryptRecipientIDs.remove(identity.id)
