@@ -182,6 +182,16 @@ final class AppModel {
         }.value
     }
 
+    /// Rename an identity (label only). Persists to the metadata item without
+    /// touching the secret, so it never prompts, and works for every key type.
+    func rename(_ identity: AgeIdentity, to label: String) throws {
+        guard let index = identities.firstIndex(where: { $0.id == identity.id }) else { return }
+        var renamed = identity
+        renamed.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        try store.updateMetadata(renamed)
+        identities[index] = renamed
+    }
+
     func delete(_ identity: AgeIdentity) {
         identities.removeAll { $0.id == identity.id }
         encryptRecipientIDs.remove(identity.id)

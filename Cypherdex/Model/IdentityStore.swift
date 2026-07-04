@@ -151,6 +151,20 @@ struct IdentityStore {
         }
     }
 
+    /// Update an identity's metadata in place — e.g. a rename. Touches only the
+    /// unprotected metadata item, so no secret is read and it never prompts. The
+    /// protection (and thus the item's key attributes) is unchanged, so the upsert
+    /// matches and updates the existing item.
+    ///
+    /// Note: the secret item's `kSecAttrLabel` (shown in the Touch ID prompt) is
+    /// left as-is to avoid touching the protected item; a later protection change
+    /// re-adds it with the current label.
+    func updateMetadata(_ identity: AgeIdentity) throws {
+        let metadata = try JSONEncoder().encode(identity.withKeychainSecret(""))
+        try upsert(service: metaService, account: identity.id.uuidString,
+                   data: metadata, accessControl: nil, synced: identity.isSynced, label: identity.displayName)
+    }
+
     /// Fetch a keychain (X25519) key's secret from its secret item. For
     /// `.authenticated` keys this prompts for Touch ID / passcode; pass a shared
     /// `LAContext` across a batch so one prompt covers them all. Throws on cancel.

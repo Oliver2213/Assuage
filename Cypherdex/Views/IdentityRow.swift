@@ -11,6 +11,8 @@ struct IdentityRow: View {
     /// Ask the parent to confirm and perform deletion.
     let onRequestDelete: () -> Void
 
+    @State private var showEdit = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -46,6 +48,8 @@ struct IdentityRow: View {
                 Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
                 Button("Export Identity…", systemImage: "key") { exportIdentity() }
                 Spacer()
+                Button("Edit", systemImage: "pencil") { showEdit = true }
+                    .labelStyle(.iconOnly)
                 Button("Delete", systemImage: "trash", role: .destructive, action: onRequestDelete)
                     .labelStyle(.iconOnly)
                     .foregroundStyle(.red)
@@ -68,8 +72,11 @@ struct IdentityRow: View {
             Button("Export Public Key…", systemImage: "square.and.arrow.up") { exportPublicKey() }
             Button("Export Identity…", systemImage: "key") { exportIdentity() }
             Divider()
+            Button("Edit…", systemImage: "pencil") { showEdit = true }
+            Divider()
             Button("Delete…", systemImage: "trash", role: .destructive, action: onRequestDelete)
         }
+        .sheet(isPresented: $showEdit) { EditKeySheet(identity: identity) }
     }
 
     // MARK: Actions
