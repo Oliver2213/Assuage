@@ -32,7 +32,7 @@ struct DecryptView: View {
                 )
 
                 if let inputInfo {
-                    AgeFileInfoView(info: inputInfo)
+                    AgeFileInfoView(info: inputInfo, decryptability: decryptability(of: inputInfo))
                 }
 
                 Picker("Decrypt with", selection: $model.decryptMode) {
@@ -105,7 +105,7 @@ struct DecryptView: View {
                                 .font(.caption.weight(.medium))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
-                            AgeFileInfoView(info: info)
+                            AgeFileInfoView(info: info, decryptability: decryptability(of: info))
                         }
                     }
                 }
@@ -127,6 +127,13 @@ struct DecryptView: View {
         } message: {
             Text(viewModel.errorMessage)
         }
+    }
+
+    /// The header-only "can you open this?" verdict for an inspected file, or nil
+    /// when there are no identities to judge against (keeps the row hidden on a
+    /// fresh install). Uses only public key material — nothing is unlocked.
+    private func decryptability(of info: AgeFileInfo) -> DecryptionCapability? {
+        model.identities.isEmpty ? nil : info.decryptability(with: model.identities)
     }
 
     /// Whether the current mode has what it needs to decrypt.

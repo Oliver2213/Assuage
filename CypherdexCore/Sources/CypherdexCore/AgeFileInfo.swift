@@ -51,6 +51,11 @@ public struct AgeFileInfo: Sendable, Equatable {
         public let id: Int
         /// The raw stanza type, e.g. `X25519`, `scrypt`, `ssh-ed25519`.
         public let type: String
+        /// The stanza arguments after the type — public header data (e.g. the
+        /// recipient key tag and the ephemeral share). Used by
+        /// `decryptability(with:)` to match a file against held keys without
+        /// reading any secret. Anonymous X25519 stanzas carry only the share.
+        public let args: [String]
         public let kind: Kind
     }
 
@@ -112,11 +117,12 @@ public enum AgeFileInspector {
         let isArmored = Armoring.isArmored(data)
         let binary = isArmored ? try Armoring.normalizedBinary(data) : data
 
-        let (stanzaTypes, headerLength) = try parseHeader(binary)
+        let (stanzas, headerLength) = try parseHeader(binary)
+        let stanzaTypes = stanzas.map(\.type)
 
-        let recipients = stanzaTypes.enumerated().compactMap { index, type -> AgeFileInfo.Recipient? in
-            guard !isGrease(type) else { return nil }
-            return AgeFileInfo.Recipient(id: index, type: type, kind: .init(stanzaType: type))
+        let recipients = stanzas.enumerated().compactMap { index, stanza -> AgeFileInfo.Recipient? in
+            guard !isGrease(stanza.type) else { return nil }
+            return AgeFileInfo.Recipient(id: index, type: stanza.type, args: stanza.args, kind: .init(stanzaType: stanza.type))
         }
 
         return AgeFileInfo(
@@ -156,7 +162,7 @@ public enum AgeFileInspector {
     ///
     /// Works over `Data` directly (only the header region is read) so a mapped,
     /// multi-gigabyte file is never copied into memory.
-    private static func parseHeader(_ data: Data) throws -> (stanzaTypes: [String], headerLength: Int) {
+    private static func parseHeader(_ data: Data) throws -> (stanzas: [(type: String, args: [String])], headerLength: Int) {
         let newline = UInt8(ascii: "\n")
         var cursor = data.startIndex
 
@@ -174,13 +180,15 @@ public enum AgeFileInspector {
             throw CypherdexError.invalidAgeFile
         }
 
-        var stanzaTypes: [String] = []
+        var stanzas: [(type: String, args: [String])] = []
         while let (line, offset) = readLine() {
             if line.hasPrefix("-> ") {
                 let fields = line.dropFirst(3).split(separator: " ", omittingEmptySubsequences: true)
-                if let type = fields.first { stanzaTypes.append(String(type)) }
+                if let type = fields.first {
+                    stanzas.append((String(type), fields.dropFirst().map(String.init)))
+                }
             } else if line.hasPrefix("---") {
-                return (stanzaTypes, offset)
+                return (stanzas, offset)
             }
             // Otherwise a stanza body line — skip it.
         }

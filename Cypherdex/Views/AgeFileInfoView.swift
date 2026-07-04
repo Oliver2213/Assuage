@@ -6,6 +6,9 @@ import CypherdexCore
 /// byte breakdown. Shown when a `.age` file or armored text is loaded to decrypt.
 struct AgeFileInfoView: View {
     let info: AgeFileInfo
+    /// Whether the user's keys can open this file, judged from the header alone.
+    /// `nil` hides the row (e.g. when no identities are loaded to judge against).
+    var decryptability: DecryptionCapability? = nil
 
     var body: some View {
         GroupBox {
@@ -23,6 +26,13 @@ struct AgeFileInfoView: View {
                             .padding(.vertical, 2)
                             .background(.quaternary, in: Capsule())
                     }
+                }
+
+                if let decryptability {
+                    Label(decryptability.statusText, systemImage: decryptability.statusIcon)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(decryptability.statusColor)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if !info.isPassphrase {
