@@ -72,6 +72,8 @@ final class AppModel {
     private let store = IdentityStore()
 
     init() {
+        // Sweep out pre-split single-blob items so they don't linger unreadable.
+        store.purgeLegacyItems()
         identities = store.loadAll()
     }
 

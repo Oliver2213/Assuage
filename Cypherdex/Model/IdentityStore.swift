@@ -125,6 +125,39 @@ struct IdentityStore {
         return secret
     }
 
+    /// Remove stale items from before the metadata/secret split — those written
+    /// as a single JSON blob, which lack the `kSecAttrGeneric` metadata the new
+    /// format stores. They're unreadable by `loadAll()` and would otherwise sit
+    /// in the keychain forever. New-format items always set `kSecAttrGeneric`, so
+    /// they're never touched. Reads attributes only, so it never prompts.
+    func purgeLegacyItems() {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecReturnAttributes as String: true,
+            kSecReturnData as String: false,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+        ]
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let items = result as? [[String: Any]] else {
+            return
+        }
+        for item in items where item[kSecAttrGeneric as String] == nil {
+            guard let account = item[kSecAttrAccount as String] as? String else { continue }
+            let deleteQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account,
+                kSecUseDataProtectionKeychain as String: true,
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
+            ]
+            SecItemDelete(deleteQuery as CFDictionary)
+        }
+    }
+
     func delete(_ identity: AgeIdentity) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
