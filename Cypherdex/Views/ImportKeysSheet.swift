@@ -1,33 +1,41 @@
 import SwiftUI
+import AppKit
 import UniformTypeIdentifiers
 import CypherdexCore
 
-/// Import age identity files with per-key control. First you set defaults (name,
-/// sync, whether to delete the file afterward) and choose a file; then each key
-/// the file contains becomes an editable row you can rename, toggle sync on, or
-/// deselect before finalizing.
+/// Import age identities with per-key control, from a file or the clipboard.
+/// First you set defaults (name, storage, whether to delete the file afterward),
+/// then choose a source; every `AGE-SECRET-KEY-1…` it contains becomes an
+/// editable row you can rename, restorage, or deselect before finalizing.
 struct ImportKeysSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
 
-    // Defaults, chosen before picking a file.
+    /// Where the keys under review came from.
+    private enum ImportSource {
+        case file(URL)
+        case clipboard
+    }
+
+    // Defaults, chosen before picking a source.
     @State private var defaultName = ""
     @State private var defaultStorage: KeychainStorageMode = .authenticated
     @State private var defaultAuth: KeychainAuth = .biometryOrPasscode
     @State private var deleteFileAfter = false
 
-    // Populated once a file is parsed.
-    @State private var fileURL: URL?
+    // Populated once keys are parsed from a file or the clipboard.
+    @State private var source: ImportSource?
     @State private var drafts: [ImportKeyDraft] = []
 
     @State private var showImporter = false
     @State private var showLossConfirmation = false
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
-    /// How many duplicate keys within the chosen file were collapsed on load.
+    /// How many duplicate keys within the source were collapsed on load.
     @State private var duplicatesRemoved = 0
 
-    private var hasFile: Bool { fileURL != nil }
+    private var hasSource: Bool { source != nil }
+    private var isClipboardSource: Bool { if case .clipboard = source { return true }; return false }
     private var selectedCount: Int { drafts.filter(\.include).count }
     private var droppedCount: Int { drafts.count - selectedCount }
 
@@ -46,7 +54,9 @@ struct ImportKeysSheet: View {
                         ForEach(KeychainAuth.allCases) { Text($0.displayName).tag($0) }
                     }
                 }
-                Toggle("Delete the file after importing", isOn: $deleteFileAfter)
+                if !isClipboardSource {
+                    Toggle("Delete the file after importing", isOn: $deleteFileAfter)
+                }
             }
             .formStyle(.grouped)
             .scrollDisabled(true)
@@ -61,27 +71,28 @@ struct ImportKeysSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if hasFile {
+            if hasSource {
                 ImportReviewList(drafts: $drafts, duplicatesRemoved: duplicatesRemoved)
             } else {
-                Text("Choose an age identity file (one or more `AGE-SECRET-KEY-1…` keys). You’ll review and name each key before it’s imported. Imported keys are stored in your keychain — the Secure Enclave can only hold keys it generated itself.")
+                Text("Choose an age identity file, or paste one or more `AGE-SECRET-KEY-1…` keys from the clipboard. You’ll review and name each key before it’s imported. Imported keys are stored in your keychain — the Secure Enclave can only hold keys it generated itself.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
-                if hasFile {
+                if hasSource {
                     Button("Clear", role: .destructive, action: reset)
                 }
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
-                if hasFile {
+                if hasSource {
                     Button("Import", action: startImport)
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut("i", modifiers: .command)
                         .disabled(selectedCount == 0)
                 } else {
+                    Button("Paste from Clipboard", action: pasteFromClipboard)
                     Button("Choose File…") { showImporter = true }
                         .buttonStyle(.borderedProminent)
                 }
@@ -119,46 +130,75 @@ struct ImportKeysSheet: View {
     private func load(_ url: URL) {
         do {
             let keys = try model.importableKeys(at: url)
-            // Collapse keys that repeat within the file (same recipient), keeping
-            // the first occurrence and counting the rest for the summary line.
-            var seen = Set<AgeRecipient>()
-            let unique = keys.filter { seen.insert($0.recipient).inserted }
-            let existing = Set(model.identities.map(\.recipient))
-            fileURL = url
-            duplicatesRemoved = keys.count - unique.count
-            drafts = unique.map { key in
-                let alreadyExists = existing.contains(key.recipient)
-                // Keys we already hold default to skipped, but stay togglable in case
-                // the user deliberately wants a second, separately-labeled copy.
-                return ImportKeyDraft(key: key, include: !alreadyExists, name: "", storage: defaultStorage, alreadyExists: alreadyExists)
-            }
-            applyDefaultNames()
+            buildDrafts(from: keys, source: .file(url))
         } catch {
             errorMessage = error.localizedDescription
             isErrorPresented = true
         }
     }
 
+    private func pasteFromClipboard() {
+        guard let text = NSPasteboard.general.string(forType: .string) else {
+            present(String(localized: "The clipboard doesn’t contain any text."))
+            return
+        }
+        let keys = AgeIdentity.importableKeys(from: text)
+        guard !keys.isEmpty else {
+            present(String(localized: "The clipboard doesn’t contain any age keys (AGE-SECRET-KEY-1…)."))
+            return
+        }
+        buildDrafts(from: keys, source: .clipboard)
+    }
+
+    /// Turn parsed keys into editable rows: collapse duplicates within the source
+    /// (same recipient), and pre-deselect any we already hold. Shared by the file
+    /// and clipboard paths.
+    private func buildDrafts(from keys: [ImportableKey], source: ImportSource) {
+        var seen = Set<AgeRecipient>()
+        let unique = keys.filter { seen.insert($0.recipient).inserted }
+        let existing = Set(model.identities.map(\.recipient))
+        self.source = source
+        duplicatesRemoved = keys.count - unique.count
+        drafts = unique.map { key in
+            let alreadyExists = existing.contains(key.recipient)
+            // Keys we already hold default to skipped, but stay togglable in case
+            // the user deliberately wants a second, separately-labeled copy.
+            return ImportKeyDraft(key: key, include: !alreadyExists, name: "", storage: defaultStorage, alreadyExists: alreadyExists)
+        }
+        applyDefaultNames()
+    }
+
+    private func present(_ message: String) {
+        errorMessage = message
+        isErrorPresented = true
+    }
+
     /// Name every key. With no default, that's the file's base name (all the same,
-    /// per the "filename for all" rule); with a default, it overrides — numbered
-    /// when the file holds more than one key.
+    /// per the "filename for all" rule) or a generic name for a clipboard paste;
+    /// with a default, it overrides — numbered when there's more than one key.
     private func applyDefaultNames() {
         guard !drafts.isEmpty else { return }
         let base = defaultName.trimmingCharacters(in: .whitespaces).isEmpty
-            ? (fileURL?.deletingPathExtension().lastPathComponent ?? "Imported key")
+            ? (fileBaseName ?? "Imported key")
             : defaultName.trimmingCharacters(in: .whitespaces)
         for index in drafts.indices {
             drafts[index].name = drafts.count > 1 ? "\(base) \(index + 1)" : base
         }
     }
 
+    /// The chosen file's name without extension, or nil for a clipboard paste.
+    private var fileBaseName: String? {
+        if case .file(let url) = source { return url.deletingPathExtension().lastPathComponent }
+        return nil
+    }
+
     private func applyDefaultStorage() {
         for index in drafts.indices { drafts[index].storage = defaultStorage }
     }
 
-    /// Back to a clean slate: forget the file, the parsed keys, and every option.
+    /// Back to a clean slate: forget the source, the parsed keys, and every option.
     private func reset() {
-        fileURL = nil
+        source = nil
         drafts = []
         defaultName = ""
         defaultStorage = .authenticated
@@ -170,11 +210,18 @@ struct ImportKeysSheet: View {
     // MARK: Importing
 
     private func startImport() {
-        if deleteFileAfter && droppedCount > 0 {
+        if willDeleteFile && droppedCount > 0 {
             showLossConfirmation = true
         } else {
             finishImport()
         }
+    }
+
+    /// Whether import will delete a source file — only for file imports with the
+    /// toggle on (a clipboard paste has nothing to delete).
+    private var willDeleteFile: Bool {
+        if case .file = source, deleteFileAfter { return true }
+        return false
     }
 
     private func finishImport() {
@@ -183,8 +230,8 @@ struct ImportKeysSheet: View {
                 .filter(\.include)
                 .map { try AgeIdentity(importingX25519: $0.key.secretKey, label: $0.name, protection: $0.storage.protection(auth: defaultAuth)) }
             try model.importIdentities(identities)
-            if deleteFileAfter, let fileURL {
-                try? FileManager.default.removeItem(at: fileURL)
+            if willDeleteFile, case .file(let url) = source {
+                try? FileManager.default.removeItem(at: url)
             }
             dismiss()
         } catch {
