@@ -40,7 +40,7 @@ struct DecryptView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(4)
                         } else {
-                            IdentityCheckGrid(identities: model.identities, selection: $model.decryptIdentityIDs, showsPresence: true)
+                            IdentityCheckTable(identities: model.identities, selection: $model.decryptIdentityIDs, showsPresence: true)
                                 .padding(4)
                         }
                     }

@@ -20,7 +20,7 @@ struct RecipientSelector: View {
             }
 
             if !identities.isEmpty {
-                IdentityCheckGrid(identities: identities, selection: $selectedIdentityIDs)
+                IdentityCheckTable(identities: identities, selection: $selectedIdentityIDs)
             }
 
             ForEach(extraRecipients) { recipient in
