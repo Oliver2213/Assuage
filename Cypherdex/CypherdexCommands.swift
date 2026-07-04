@@ -1,8 +1,11 @@
 import SwiftUI
 
 /// Menu-bar commands: panel navigation (⌘1–⌘3 in the View menu) plus the
-/// key-management actions (⌘K generate, ⇧⌘I import in the File menu). All drive
+/// key-management actions (⌘K generate, ⌘I import in the File menu). All drive
 /// `AppModel` state directly, so they work no matter which panel is showing.
+///
+/// ⌘I *opens* the import sheet; committing the import is ⇧⌘I, scoped to the sheet
+/// itself (see `ImportKeysSheet`) so it can't fire from elsewhere.
 struct CypherdexCommands: Commands {
     var model: AppModel
 
@@ -11,7 +14,7 @@ struct CypherdexCommands: Commands {
             Button("Generate age Keypair…") { model.showGenerateSheet = true }
                 .keyboardShortcut("k", modifiers: .command)
             Button("Import Identity…") { model.showImportSheet = true }
-                .keyboardShortcut("i", modifiers: [.command, .shift])
+                .keyboardShortcut("i", modifiers: .command)
         }
 
         CommandGroup(after: .sidebar) {

@@ -89,7 +89,7 @@ struct ImportKeysSheet: View {
                 if hasSource {
                     Button("Import", action: startImport)
                         .buttonStyle(.borderedProminent)
-                        .keyboardShortcut("i", modifiers: .command)
+                        .keyboardShortcut("i", modifiers: [.command, .shift])
                         .disabled(selectedCount == 0)
                 } else {
                     Button("Paste from Clipboard", action: pasteFromClipboard)
