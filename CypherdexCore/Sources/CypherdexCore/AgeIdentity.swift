@@ -7,14 +7,16 @@ import AgeKit
 /// never claim a location it doesn't actually have (no nullable "secret" field
 /// paired with a separate "source" flag that could disagree).
 public enum IdentityMaterial: Sendable, Hashable, Codable {
-    /// A native age X25519 secret key (`AGE-SECRET-KEY-1…`), which is exportable.
-    /// `storedAt` is `nil` when the key exists only in memory (freshly generated,
-    /// not yet written to disk).
-    case x25519(secretKey: String, storedAt: URL?)
+    /// A native age X25519 secret key (`AGE-SECRET-KEY-1…`), which is exportable and
+    /// works with any age tool. The secret lives in the keychain; `synced` records
+    /// whether it may travel to the user's other devices via iCloud Keychain
+    /// (`false` = this device only).
+    case x25519(secretKey: String, synced: Bool)
 
     /// A Secure Enclave key (`AGE-PLUGIN-SE-1…`): device-bound and non-exportable.
     /// The identity string encodes the enclave key blob; `accessControl` records the
-    /// presence policy it was created with.
+    /// presence policy it was created with. Enclave keys never sync — the blob is
+    /// only usable on the Mac that generated it.
     case secureEnclave(identity: String, accessControl: SecureEnclaveAccessControl)
 }
 
@@ -32,18 +34,25 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
 
     /// Where the private key lives. Derived from `material`, never stored separately.
     public enum Source: Sendable, Hashable {
-        case memory
-        case file(URL)
+        /// Stored in the keychain. `synced` is true when it may sync via iCloud Keychain.
+        case keychain(synced: Bool)
         case secureEnclave
     }
 
     public var source: Source {
         switch material {
-        case .x25519(_, let url):
-            return url.map(Source.file) ?? .memory
+        case .x25519(_, let synced):
+            return .keychain(synced: synced)
         case .secureEnclave:
             return .secureEnclave
         }
+    }
+
+    /// Whether this identity's secret may sync to the user's other devices.
+    /// Only keychain (X25519) keys can sync; Secure Enclave keys never do.
+    public var isSynced: Bool {
+        if case .x25519(_, let synced) = material { return synced }
+        return false
     }
 
     /// Whether using this identity to decrypt prompts for presence (Touch ID / passcode).
@@ -66,14 +75,17 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
 // MARK: - Creating identities
 
 extension AgeIdentity {
-    /// Generate a fresh, in-memory age X25519 identity.
-    public static func generateX25519(label: String = "", created: Date = Date()) -> AgeIdentity {
+    /// Generate a fresh age X25519 identity, stored in the keychain.
+    ///
+    /// - Parameter synced: whether the secret may sync to the user's other devices
+    ///   via iCloud Keychain. Defaults to `false` (this device only).
+    public static func generateX25519(label: String = "", synced: Bool = false, created: Date = Date()) -> AgeIdentity {
         let identity = Age.X25519Identity.generate()
         return AgeIdentity(
             id: UUID(),
             label: label,
             created: created,
-            material: .x25519(secretKey: identity.string, storedAt: nil),
+            material: .x25519(secretKey: identity.string, synced: synced),
             recipient: AgeRecipient(kind: .x25519, encoding: identity.recipient.string)
         )
     }
@@ -86,14 +98,14 @@ extension AgeIdentity {
         importingX25519 secretKey: String,
         label: String = "",
         created: Date = Date(),
-        storedAt: URL? = nil
+        synced: Bool = false
     ) throws {
         let identity = try Self.parseX25519(secretKey)
         self.init(
             id: UUID(),
             label: label,
             created: created,
-            material: .x25519(secretKey: identity.string, storedAt: storedAt),
+            material: .x25519(secretKey: identity.string, synced: synced),
             recipient: AgeRecipient(kind: .x25519, encoding: identity.recipient.string)
         )
     }

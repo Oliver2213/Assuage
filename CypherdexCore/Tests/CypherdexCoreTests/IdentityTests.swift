@@ -5,11 +5,11 @@ import Testing
 @Suite("Identities and recipients")
 struct IdentityTests {
 
-    @Test("Generated identity is in-memory and derives a matching X25519 recipient")
+    @Test("Generated identity is keychain-stored and derives a matching X25519 recipient")
     func generatedIdentity() {
         let identity = AgeIdentity.generateX25519(label: "Test key")
         #expect(identity.label == "Test key")
-        #expect(identity.source == .memory)
+        #expect(identity.source == .keychain(synced: false))
         #expect(identity.recipient.kind == .x25519)
         #expect(identity.recipient.encoding.hasPrefix("age1"))
     }

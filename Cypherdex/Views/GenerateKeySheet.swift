@@ -10,7 +10,7 @@ struct GenerateKeySheet: View {
         var id: Self { self }
         var title: String {
             switch self {
-            case .x25519: return "Software (X25519)"
+            case .x25519: return "Keychain"
             case .secureEnclave: return "Secure Enclave"
             }
         }
@@ -18,6 +18,7 @@ struct GenerateKeySheet: View {
 
     @State private var keyType: KeyType = .x25519
     @State private var label = ""
+    @State private var syncToICloud = false
     @State private var accessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
@@ -35,7 +36,10 @@ struct GenerateKeySheet: View {
 
                 TextField("Label", text: $label, prompt: Text("Optional, e.g. “My Laptop”"))
 
-                if keyType == .secureEnclave {
+                switch keyType {
+                case .x25519:
+                    Toggle("Sync to my other devices", isOn: $syncToICloud)
+                case .secureEnclave:
                     Picker("Require to use", selection: $accessControl) {
                         ForEach(SecureEnclaveAccessControl.allCases, id: \.self) { control in
                             Text(control.displayName).tag(control)
@@ -78,7 +82,9 @@ struct GenerateKeySheet: View {
     private var explanation: LocalizedStringKey {
         switch keyType {
         case .x25519:
-            return "A standard age key, stored in your keychain. It can be exported and used with any age tool, on any machine."
+            return syncToICloud
+                ? "A standard age key, stored in your keychain and synced to your other devices via iCloud Keychain. It can be exported and used with any age tool, on any machine."
+                : "A standard age key, stored in your keychain and kept on this Mac only. It can be exported and used with any age tool, on any machine."
         case .secureEnclave:
             return "The key is sealed by this Mac’s **Secure Enclave**: you still hold the key and can export it for backup, but since it’s encrypted by the enclave it only works on the Mac that generated it. Compatible with age-plugin-se."
         }
@@ -88,7 +94,7 @@ struct GenerateKeySheet: View {
         do {
             switch keyType {
             case .x25519:
-                model.generateX25519(label: label)
+                try model.generateX25519(label: label, synced: syncToICloud)
             case .secureEnclave:
                 try model.generateSecureEnclave(label: label, accessControl: accessControl)
             }

@@ -3,8 +3,9 @@ import CypherdexCore
 
 /// App-wide state: the panel selection and the user's identities (age keypairs).
 ///
-/// Identities are session-only for now — export the ones you want to keep. Keychain
-/// persistence is the next step.
+/// Identities persist in the keychain (see `IdentityStore`): X25519 keys locally
+/// or, when marked synced, via iCloud Keychain; Secure Enclave keys are always
+/// device-local.
 @MainActor
 @Observable
 final class AppModel {
@@ -90,9 +91,9 @@ final class AppModel {
     var secureEnclaveAvailable: Bool { SecureEnclaveKeys.isAvailable }
 
     @discardableResult
-    func generateX25519(label: String) -> AgeIdentity {
-        let identity = AgeIdentity.generateX25519(label: label)
-        add(identity)
+    func generateX25519(label: String, synced: Bool = false) throws -> AgeIdentity {
+        let identity = AgeIdentity.generateX25519(label: label, synced: synced)
+        try add(identity)
         return identity
     }
 
@@ -102,13 +103,21 @@ final class AppModel {
         accessControl: SecureEnclaveAccessControl
     ) throws -> AgeIdentity {
         let identity = try AgeIdentity.generateSecureEnclave(label: label, accessControl: accessControl)
-        add(identity)
+        try add(identity)
         return identity
     }
 
-    private func add(_ identity: AgeIdentity) {
+    /// Append an identity and persist it. If the keychain rejects the write we
+    /// roll the in-memory list back and rethrow, so the UI never shows a key that
+    /// wouldn't survive a relaunch.
+    private func add(_ identity: AgeIdentity) throws {
         identities.append(identity)
-        store.save(identity)
+        do {
+            try store.save(identity)
+        } catch {
+            identities.removeAll { $0.id == identity.id }
+            throw error
+        }
     }
 
     func importIdentityFile(at url: URL) throws {
@@ -119,10 +128,9 @@ final class AppModel {
             guard trimmed.hasPrefix("AGE-SECRET-KEY-1") else { continue }
             let identity = try AgeIdentity(
                 importingX25519: trimmed,
-                label: url.deletingPathExtension().lastPathComponent,
-                storedAt: url
+                label: url.deletingPathExtension().lastPathComponent
             )
-            add(identity)
+            try add(identity)
             imported += 1
         }
         if imported == 0 { throw CypherdexError.unrecognizedIdentity(url.lastPathComponent) }

@@ -18,18 +18,23 @@ struct CodableTests {
         #expect(restored.source == original.source)
     }
 
-    @Test("File-backed identity preserves its stored URL")
-    func fileBackedRoundTrip() throws {
-        let url = URL(fileURLWithPath: "/keys/laptop.txt")
+    @Test("Sync flag round-trips and drives the source")
+    func syncFlagRoundTrip() throws {
         let generated = AgeIdentity.generateX25519()
         guard case .x25519(let secret, _) = generated.material else {
             Issue.record("expected x25519 material"); return
         }
-        let identity = try AgeIdentity(importingX25519: secret, label: "Laptop", storedAt: url)
+        let synced = try AgeIdentity(importingX25519: secret, label: "Laptop", synced: true)
+        #expect(synced.isSynced)
+        #expect(synced.source == .keychain(synced: true))
 
-        let data = try JSONEncoder().encode(identity)
-        let restored = try JSONDecoder().decode(AgeIdentity.self, from: data)
-        #expect(restored.source == .file(url))
+        let restored = try JSONDecoder().decode(AgeIdentity.self, from: JSONEncoder().encode(synced))
+        #expect(restored.isSynced)
+        #expect(restored.source == .keychain(synced: true))
+
+        let local = AgeIdentity.generateX25519(synced: false)
+        #expect(!local.isSynced)
+        #expect(local.source == .keychain(synced: false))
     }
 
     @Test("Secure Enclave material round-trips with its access control")
