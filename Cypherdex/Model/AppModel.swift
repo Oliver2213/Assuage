@@ -111,23 +111,39 @@ final class AppModel {
         identities = store.loadAll()
     }
 
-    /// Route an incoming system Service request into the right panel.
+    /// The id of the most recent request already routed. `ServiceBus.shared` is a
+    /// single object observed by every open window, so one request fires each
+    /// window's `.onChange`; without this guard the files would be enqueued once
+    /// per window (2×, 3×, …). Handling each id once makes the fan-out harmless.
+    private var lastHandledRequestID: ServiceRequest.ID?
+
+    /// Route an incoming system Service request into the right panel. Idempotent:
+    /// a request already handled (redelivered by another observing window) is
+    /// ignored, and files already queued aren't added again.
     func handle(_ request: ServiceRequest) {
+        guard request.id != lastHandledRequestID else { return }
+        lastHandledRequestID = request.id
+
         switch request.action {
         case .encrypt:
             if let text = request.text, !text.isEmpty { encryptInput = text }
-            queuedEncryptFiles.append(contentsOf: request.files)
+            enqueue(request.files, into: &queuedEncryptFiles)
             selection = .encrypt
         case .decrypt:
             if let text = request.text, !text.isEmpty { decryptInput = text }
-            queuedDecryptFiles.append(contentsOf: request.files)
+            enqueue(request.files, into: &queuedDecryptFiles)
             selection = .decrypt
         case .check:
             if let text = request.text, !text.isEmpty { decryptInput = text }
-            queuedDecryptFiles.append(contentsOf: request.files)
+            enqueue(request.files, into: &queuedDecryptFiles)
             autoCheckRequested = true
             selection = .decrypt
         }
+    }
+
+    /// Append only files not already queued, preserving order.
+    private func enqueue(_ files: [URL], into queue: inout [URL]) {
+        queue.append(contentsOf: files.filter { !queue.contains($0) })
     }
 
     /// Whether this Mac can create Secure Enclave keys.
