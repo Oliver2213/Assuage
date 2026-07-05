@@ -59,7 +59,7 @@ struct SettingsView: View {
             } header: {
                 Text("Recipients")
             } footer: {
-                Text("When you copy or export a recipients file, precede each public key with a “# name” comment. Off by default, so the file is just the recipients, one per line — the format age reads and Cypherdex re-imports either way.")
+                Text("When you copy or export a recipients file, precede each public key with a “# name” comment. Off by default, so the file is just the recipients, one per line — the format age reads and \(AppInfo.name) re-imports either way.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -79,6 +79,13 @@ struct SettingsView: View {
                 Text("“Concealed” asks clipboard managers to treat a copy as confidential and not store it — a best-effort signal, not a guaranteed block on Handoff / Universal Clipboard, which AppKit can’t offer. Auto-clear is the reliable safeguard: it wipes the clipboard after the delay unless you’ve copied something else. By default these apply only to sensitive text (decrypted output); turn on “Protect all copies” to include public keys and encrypted output too. Exporting a private key to the clipboard is off by default because it puts key material on the clipboard.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            Section {
+                LabeledContent("Version", value: "\(AppInfo.version) (\(AppInfo.build))")
+                LabeledContent("Install source", value: AppInfo.distribution.displayName)
+            } header: {
+                Text("About")
             }
         }
         .formStyle(.grouped)

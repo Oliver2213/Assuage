@@ -272,14 +272,16 @@ extension AgeIdentity {
 // MARK: - Export
 
 extension AgeIdentity {
-    private static let appName = "Cypherdex"
-
     /// The full identity rendered the way age renders a generated key: a comment
-    /// header with the creation date, a comment with the public key, then the
-    /// private key on its own line. Suitable for writing to an identity file.
-    public func ageFormatted() -> String {
+    /// header naming the `generator` app, the creation date, the public key, then
+    /// the private key on its own line. Suitable for writing to an identity file.
+    ///
+    /// - Parameter generator: the app producing the file, written into the first
+    ///   comment line. Defaults to `"age"`; the app passes its own name so the
+    ///   core stays free of any app branding.
+    public func ageFormatted(generator: String = "age") -> String {
         var lines: [String] = []
-        lines.append("# \(Self.appName) age identity")
+        lines.append("# \(generator) identity")
         if !label.isEmpty {
             lines.append("# label: \(label)")
         }

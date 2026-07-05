@@ -15,7 +15,7 @@ struct ContentView: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
-            .navigationTitle("Cypherdex")
+            .navigationTitle(AppInfo.name)
         } detail: {
             switch model.selection ?? .encrypt {
             case .encrypt: EncryptView()

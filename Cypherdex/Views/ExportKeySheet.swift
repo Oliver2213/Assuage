@@ -42,7 +42,7 @@ struct ExportKeySheet: View {
     private var isBundle: Bool { identities.count > 1 }
     private var title: LocalizedStringKey { isBundle ? "Export Identities" : "Export Identity" }
     private var fileBase: String {
-        isBundle ? "Cypherdex-Identities" : (identities.first?.displayName.replacingOccurrences(of: " ", with: "-") ?? "identity")
+        isBundle ? "\(AppInfo.name)-Identities" : (identities.first?.displayName.replacingOccurrences(of: " ", with: "-") ?? "identity")
     }
 
     var body: some View {
@@ -142,7 +142,7 @@ struct ExportKeySheet: View {
                     guard await Authentication.authorize(reason: authReason) else { isExporting = false; return }
                 }
                 let hydrated = try await model.hydratedSecrets(for: identities)
-                let combined = hydrated.map { $0.ageFormatted() }.joined(separator: "\n")
+                let combined = hydrated.map { $0.ageFormatted(generator: AppInfo.name) }.joined(separator: "\n")
                 let (text, name) = try await render(combined)
                 switch destination {
                 case .file: SavePanel.save(text: text, suggestedName: name)

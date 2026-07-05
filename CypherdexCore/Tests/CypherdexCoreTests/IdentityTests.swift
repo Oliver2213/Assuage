@@ -80,7 +80,9 @@ struct IdentityTests {
         let text = generated.ageFormatted()
         let lines = text.split(separator: "\n").map(String.init)
 
-        #expect(lines[0] == "# Cypherdex age identity")
+        // Core stays app-agnostic: the default generator is the neutral "age".
+        // The app passes its own `AppInfo.name` at the call site.
+        #expect(lines[0] == "# age identity")
         #expect(lines.contains("# label: My Laptop"))
         #expect(lines.contains { $0.hasPrefix("# created: ") })
         #expect(lines.contains("# public key: \(generated.recipient.encoding)"))

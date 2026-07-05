@@ -155,7 +155,7 @@ final class KeyLibrary {
             let base = identities[0].displayName.replacingOccurrences(of: " ", with: "-")
             name = "\(base).pub"
         } else {
-            name = "Cypherdex-Recipients.txt"
+            name = "\(AppInfo.name)-Recipients.txt"
         }
         SavePanel.save(text: recipientsFile(for: identities), suggestedName: name)
     }
