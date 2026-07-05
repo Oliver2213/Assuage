@@ -33,6 +33,14 @@ public enum SecureEnclaveAccessControl: String, Sendable, Hashable, Codable, Cas
         }
     }
 
+    /// Parse the label age-plugin-se (and our own export) writes in a
+    /// `# access control:` comment, e.g. `any biometry or passcode`.
+    public init?(ageLabel: String) {
+        let normalized = ageLabel.trimmingCharacters(in: .whitespaces).lowercased()
+        guard let match = Self.allCases.first(where: { $0.ageLabel == normalized }) else { return nil }
+        self = match
+    }
+
     /// A concise description for the key-generation UI.
     public var displayName: String {
         switch self {

@@ -165,6 +165,16 @@ public enum SecureEnclaveKeys {
         return (identity, recipient)
     }
 
+    /// The recipient (`age1se1…`) for an `AGE-PLUGIN-SE-1…` identity, derived by
+    /// reconstructing the enclave key. This also proves the key belongs to *this*
+    /// Mac — the private-key blob is device-bound, so a key from another machine
+    /// throws `unrecognizedIdentity`. No presence prompt: only the public key is
+    /// derived, never a key agreement.
+    public static func recipient(forIdentity ageIdentity: String) throws -> String {
+        let key = try loadPrivateKey(ageIdentity: ageIdentity)
+        return Bech32().encode(hrp: "age1se", data: key.publicKey.compressedRepresentation)
+    }
+
     /// Load the enclave private key behind an `AGE-PLUGIN-SE-1…` identity string.
     static func loadPrivateKey(ageIdentity: String) throws -> SecureEnclave.P256.KeyAgreement.PrivateKey {
         let decoded: (hrp: String, data: Data)

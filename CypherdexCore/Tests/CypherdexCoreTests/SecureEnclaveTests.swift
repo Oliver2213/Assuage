@@ -73,4 +73,51 @@ struct SecureEnclaveTests {
         #expect(text.contains("# public key: age1se1"))
         #expect(text.contains("\nAGE-PLUGIN-SE-1"))
     }
+
+    @Test("A Secure Enclave identity round-trips through export and re-import")
+    func importRoundTrip() throws {
+        // `.none` so the decrypt below runs headless (no presence prompt).
+        let generated = try AgeIdentity.generateSecureEnclave(label: "Laptop", accessControl: .none)
+        guard case .secureEnclave(let generatedIdentity, _) = generated.material else {
+            Issue.record("expected secureEnclave material"); return
+        }
+
+        // Parse the exported identity file back into an importable key.
+        let importable = AgeIdentity.importableKeys(from: generated.ageFormatted())
+        #expect(importable.count == 1)
+        let key = try #require(importable.first)
+        #expect(key.recipient == generated.recipient)
+        guard case .secureEnclave(let identityString, let accessControl) = key.secret else {
+            Issue.record("expected a Secure Enclave importable key"); return
+        }
+        #expect(identityString == generatedIdentity)
+        // The `# access control: none` comment is read back as metadata.
+        #expect(accessControl == .none)
+
+        // Committing it reconstructs a usable identity that still decrypts.
+        let imported = try AgeIdentity(importing: key, label: "Imported", protection: .local)
+        #expect(imported.source == .secureEnclave)
+        #expect(imported.recipient == generated.recipient)
+
+        let message = Data("re-imported enclave".utf8)
+        let ciphertext = try Cipher.encrypt(message, to: [imported.recipient])
+        #expect(try Cipher.decrypt(ciphertext, with: [imported]) == message)
+    }
+
+    @Test("A bare AGE-PLUGIN-SE-1 line (no comments) imports and defaults its access control")
+    func importBareLine() throws {
+        let generated = try AgeIdentity.generateSecureEnclave(accessControl: .none)
+        guard case .secureEnclave(let bareLine, _) = generated.material else {
+            Issue.record("expected secureEnclave material"); return
+        }
+
+        let importable = AgeIdentity.importableKeys(from: bareLine)
+        let key = try #require(importable.first)
+        #expect(key.recipient == generated.recipient)
+        guard case .secureEnclave(_, let accessControl) = key.secret else {
+            Issue.record("expected a Secure Enclave importable key"); return
+        }
+        // No comment to read, so the metadata falls back to the safe default.
+        #expect(accessControl == .anyBiometryOrPasscode)
+    }
 }

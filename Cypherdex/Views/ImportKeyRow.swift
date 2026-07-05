@@ -33,14 +33,25 @@ struct ImportKeyRow: View {
                 }
             }
 
-            Picker("Storage", selection: $draft.storage) {
-                ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+            if draft.key.recipient.kind == .secureEnclave {
+                // Device-bound: storage isn't a choice, so show a fixed tag
+                // rather than a picker that could imply syncing.
+                Label("Secure Enclave", systemImage: "cpu")
+                    .labelStyle(.titleAndIcon)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .help("Device-bound key. It stays in this Mac’s Secure Enclave and can’t be moved or synced.")
+            } else {
+                Picker("Storage", selection: $draft.storage) {
+                    ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .controlSize(.small)
+                .fixedSize()
+                .help("Where this key is stored: hardware-protected, local, or synced via iCloud")
             }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .controlSize(.small)
-            .fixedSize()
-            .help("Where this key is stored: hardware-protected, local, or synced via iCloud")
         }
         .opacity(draft.include ? 1 : 0.5)
         .padding(.vertical, 2)
