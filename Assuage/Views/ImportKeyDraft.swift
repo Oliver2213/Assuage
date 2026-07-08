@@ -1,5 +1,5 @@
 import Foundation
-import CypherdexCore
+import AssuageCore
 
 /// One key being reviewed in the import sheet: the parsed key plus the user's
 /// editable choices (include, name, sync) and whether we already hold it.

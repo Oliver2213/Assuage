@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 /// Real Secure Enclave round trips. Skipped on Macs without a Secure Enclave.
 /// Uses `.none` access control so tests run headless without a Touch ID prompt.

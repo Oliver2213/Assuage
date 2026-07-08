@@ -1,5 +1,5 @@
 import Foundation
-import CypherdexCore
+import AssuageCore
 
 /// Per-window state: the panel selection, compose inputs, and sheet presentation
 /// for one window. Each window has its own `AppModel`, so composing or opening a

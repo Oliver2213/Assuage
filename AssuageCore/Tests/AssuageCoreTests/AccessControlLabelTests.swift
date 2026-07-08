@@ -1,5 +1,5 @@
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 /// Parsing the `# access control:` label age-plugin-se writes. Pure value logic,
 /// so it runs everywhere (no Secure Enclave hardware needed).

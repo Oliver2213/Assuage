@@ -8,10 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		6A940D9C2FFE484800E3560A /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6A940D9B2FFE484800E3560A /* QuickLook.framework */; };
-		6A940DB02FFE4A7500E3560A /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6A940DAF2FFE4A7500E3560A /* CypherdexCore */; };
 		6A940DB52FFE6CBC00E3560A /* QLExtension.appex in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6A940D992FFE484800E3560A /* QLExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		CD00000000000000000000A3 /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = CD00000000000000000000A2 /* CypherdexCore */; };
-		CD00000000000000000000B3 /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = CD00000000000000000000B2 /* CypherdexCore */; };
+		6AF2C4422FFEF7310088140F /* AssuageCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6AF2C4412FFEF7310088140F /* AssuageCore */; };
+		6AF2C4442FFEF7540088140F /* AssuageCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6AF2C4432FFEF7540088140F /* AssuageCore */; };
+		6AF2C4462FFEF77E0088140F /* AssuageCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6AF2C4452FFEF77E0088140F /* AssuageCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,14 +86,14 @@
 			path = Assuage;
 			sourceTree = "<group>";
 		};
-		6A940B262FF8139900E3560A /* CypherdexTests */ = {
+		6A940B262FF8139900E3560A /* AssuageTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CypherdexTests;
+			path = AssuageTests;
 			sourceTree = "<group>";
 		};
-		6A940B302FF8139900E3560A /* CypherdexUITests */ = {
+		6A940B302FF8139900E3560A /* AssuageUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CypherdexUITests;
+			path = AssuageUITests;
 			sourceTree = "<group>";
 		};
 		6A940D9D2FFE484800E3560A /* QLExtension */ = {
@@ -110,13 +110,13 @@
 		6A940B132FF8139800E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				CD00000000000000000000A3 /* CypherdexCore in Frameworks */,
+				6AF2C4462FFEF77E0088140F /* AssuageCore in Frameworks */,
 			);
 		};
 		6A940B202FF8139900E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				CD00000000000000000000B3 /* CypherdexCore in Frameworks */,
+				6AF2C4422FFEF7310088140F /* AssuageCore in Frameworks */,
 			);
 		};
 		6A940B2A2FF8139900E3560A /* Frameworks */ = {
@@ -127,8 +127,8 @@
 		6A940D962FFE484800E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
-				6A940DB02FFE4A7500E3560A /* CypherdexCore in Frameworks */,
 				6A940D9C2FFE484800E3560A /* QuickLook.framework in Frameworks */,
+				6AF2C4442FFEF7540088140F /* AssuageCore in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -138,8 +138,8 @@
 			isa = PBXGroup;
 			children = (
 				6A940B182FF8139800E3560A /* Assuage */,
-				6A940B262FF8139900E3560A /* CypherdexTests */,
-				6A940B302FF8139900E3560A /* CypherdexUITests */,
+				6A940B262FF8139900E3560A /* AssuageTests */,
+				6A940B302FF8139900E3560A /* AssuageUITests */,
 				6A940D9D2FFE484800E3560A /* QLExtension */,
 				6A940D9A2FFE484800E3560A /* Frameworks */,
 				6A940B172FF8139800E3560A /* Products */,
@@ -187,7 +187,7 @@
 			);
 			name = Assuage;
 			packageProductDependencies = (
-				CD00000000000000000000A2 /* CypherdexCore */,
+				6AF2C4452FFEF77E0088140F /* AssuageCore */,
 			);
 			productName = Cypherdex;
 			productReference = 6A940B162FF8139800E3560A /* Assuage.app */;
@@ -207,11 +207,11 @@
 				6A940B252FF8139900E3560A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				6A940B262FF8139900E3560A /* CypherdexTests */,
+				6A940B262FF8139900E3560A /* AssuageTests */,
 			);
 			name = AssuageTests;
 			packageProductDependencies = (
-				CD00000000000000000000B2 /* CypherdexCore */,
+				6AF2C4412FFEF7310088140F /* AssuageCore */,
 			);
 			productName = CypherdexTests;
 			productReference = 6A940B232FF8139900E3560A /* AssuageTests.xctest */;
@@ -231,7 +231,7 @@
 				6A940B2F2FF8139900E3560A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				6A940B302FF8139900E3560A /* CypherdexUITests */,
+				6A940B302FF8139900E3560A /* AssuageUITests */,
 			);
 			name = AssuageUITests;
 			productName = CypherdexUITests;
@@ -253,7 +253,7 @@
 			);
 			name = QLExtension;
 			packageProductDependencies = (
-				6A940DAF2FFE4A7500E3560A /* CypherdexCore */,
+				6AF2C4432FFEF7540088140F /* AssuageCore */,
 			);
 			productName = QLExtension;
 			productReference = 6A940D992FFE484800E3560A /* QLExtension.appex */;
@@ -295,7 +295,7 @@
 			mainGroup = 6A940B0D2FF8139800E3560A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CD00000000000000000000A1 /* XCLocalSwiftPackageReference "CypherdexCore" */,
+				6AF2C4402FFEF71A0088140F /* XCLocalSwiftPackageReference "AssuageCore" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = 6A940B172FF8139800E3560A /* Products */;
@@ -598,7 +598,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.CypherdexTests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.AssuageTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -624,7 +624,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.CypherdexTests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.AssuageTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -649,7 +649,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.CypherdexUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.AssuageUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -674,7 +674,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.CypherdexUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.AssuageUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -830,25 +830,27 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		CD00000000000000000000A1 /* XCLocalSwiftPackageReference "CypherdexCore" */ = {
+		6AF2C4402FFEF71A0088140F /* XCLocalSwiftPackageReference "AssuageCore" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = CypherdexCore;
+			relativePath = AssuageCore;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		6A940DAF2FFE4A7500E3560A /* CypherdexCore */ = {
+		6AF2C4412FFEF7310088140F /* AssuageCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CD00000000000000000000A1 /* XCLocalSwiftPackageReference "CypherdexCore" */;
-			productName = CypherdexCore;
+			package = 6AF2C4402FFEF71A0088140F /* XCLocalSwiftPackageReference "AssuageCore" */;
+			productName = AssuageCore;
 		};
-		CD00000000000000000000A2 /* CypherdexCore */ = {
+		6AF2C4432FFEF7540088140F /* AssuageCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = CypherdexCore;
+			package = 6AF2C4402FFEF71A0088140F /* XCLocalSwiftPackageReference "AssuageCore" */;
+			productName = AssuageCore;
 		};
-		CD00000000000000000000B2 /* CypherdexCore */ = {
+		6AF2C4452FFEF77E0088140F /* AssuageCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = CypherdexCore;
+			package = 6AF2C4402FFEF71A0088140F /* XCLocalSwiftPackageReference "AssuageCore" */;
+			productName = AssuageCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

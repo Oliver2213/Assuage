@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 @Suite("Age file inspection")
 struct AgeFileInfoTests {

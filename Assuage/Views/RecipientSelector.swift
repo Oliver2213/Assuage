@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// Chooses recipients: a checkbox grid over the user's own keys plus ad-hoc
 /// public keys pasted in as `age1…` strings.

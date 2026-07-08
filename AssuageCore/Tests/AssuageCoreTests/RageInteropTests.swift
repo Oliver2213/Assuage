@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 /// Proves our age files interoperate with a real age implementation (`rage`).
 /// Skipped automatically when no `rage`/`age` binary is on the system.

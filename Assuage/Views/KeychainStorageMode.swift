@@ -1,4 +1,4 @@
-import CypherdexCore
+import AssuageCore
 
 /// The user-facing keychain storage choice, shared by the generate and import
 /// flows. Resolves to a concrete `KeychainProtection` given an auth flavor.

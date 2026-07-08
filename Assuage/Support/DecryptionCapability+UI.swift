@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// UI presentation for a header-only decryptability verdict, kept out of the core
 /// library. Shown on the Decrypt inspector so you can tell at a glance whether a

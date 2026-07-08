@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import CypherdexCore
+import AssuageCore
 @testable import Assuage
 
 @MainActor

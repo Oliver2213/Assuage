@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// Edit an existing key: rename it, and for keychain (X25519) keys move it between
 /// local / iCloud / Touch ID storage. Secure Enclave keys are sealed to this Mac,

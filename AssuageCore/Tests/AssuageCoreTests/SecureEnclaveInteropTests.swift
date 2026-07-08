@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 /// Proves our in-process Secure Enclave crypto is wire-compatible with the real
 /// `age-plugin-se`. Requires a Secure Enclave, a real age CLI, and a built

@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// A compact, read-only summary of an inspected age file — the same information
 /// `age-inspect` reports: armor, recipient types, post-quantum status, and a

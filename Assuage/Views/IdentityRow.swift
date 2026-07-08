@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// A detailed row for one identity, with visible actions, a matching context
 /// menu, and shortcuts to compose an encrypt/decrypt with this key.

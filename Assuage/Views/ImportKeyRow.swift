@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// One editable row in the import review list: a checkbox to include the key, a
 /// name field, its public recipient, and a keychain-storage menu. Bound to a

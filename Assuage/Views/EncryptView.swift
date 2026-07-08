@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 struct EncryptView: View {
     @Environment(AppModel.self) private var model

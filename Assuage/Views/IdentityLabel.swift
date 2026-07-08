@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// A compact two-line identity label: name over its recipient string.
 struct IdentityLabel: View {

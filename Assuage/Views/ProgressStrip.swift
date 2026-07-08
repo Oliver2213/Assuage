@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// A determinate-or-indeterminate progress bar with a size / throughput read-out.
 struct ProgressStrip: View {

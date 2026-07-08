@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// Export one or more identities (private keys) as a single text file, protected
 /// by recipients, a passphrase, or — deliberately — not at all. Reveals the

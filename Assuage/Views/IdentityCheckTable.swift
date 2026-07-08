@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// A table for selecting a subset of identities: a checkbox column plus the key's
 /// label/recipient and storage, with Select All / Deselect All controls. Used to

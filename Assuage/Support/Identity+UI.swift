@@ -1,5 +1,5 @@
 import Foundation
-import CypherdexCore
+import AssuageCore
 
 /// UI-facing presentation helpers for identities, kept out of the core library.
 extension AgeIdentity {

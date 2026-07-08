@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
-import CypherdexCore
+import AssuageCore
 
 /// Import age identities with per-key control, from a file or the clipboard.
 /// First you set defaults (name, storage, whether to delete the file afterward),

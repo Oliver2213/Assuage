@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "CypherdexCore",
+    name: "AssuageCore",
     platforms: [
         // The app deploys to newer OSes, but the core only needs a floor recent
         // enough for CryptoKit's Secure Enclave APIs — and at least AgeKit's iOS
@@ -11,7 +11,7 @@ let package = Package(
         .iOS(.v18)
     ],
     products: [
-        .library(name: "CypherdexCore", targets: ["CypherdexCore"]),
+        .library(name: "AssuageCore", targets: ["AssuageCore"]),
     ],
     dependencies: [
         // The user-provided age implementation. Referenced by local path for now;
@@ -20,7 +20,7 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "CypherdexCore",
+            name: "AssuageCore",
             dependencies: [
                 .product(name: "AgeKit", package: "AgeKit"),
             ],
@@ -29,8 +29,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "CypherdexCoreTests",
-            dependencies: ["CypherdexCore"],
+            name: "AssuageCoreTests",
+            dependencies: ["AssuageCore"],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]

@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// The app's Preferences window (⌘,). Presented from the `Settings` scene, so
 /// macOS supplies the menu item and shortcut automatically.

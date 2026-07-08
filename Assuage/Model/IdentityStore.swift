@@ -1,7 +1,7 @@
 import Foundation
 import Security
 import LocalAuthentication
-import CypherdexCore
+import AssuageCore
 
 /// A keychain operation that failed, carrying the underlying `OSStatus` so the
 /// failure is surfaced instead of silently swallowed.

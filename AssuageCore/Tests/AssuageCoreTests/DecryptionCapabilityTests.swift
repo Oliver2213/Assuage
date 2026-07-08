@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 import Testing
 import AgeKit
-@testable import CypherdexCore
+@testable import AssuageCore
 
 /// Header-only "can you decrypt this?" checks — no secrets, no Secure Enclave.
 @Suite("Decryption capability")

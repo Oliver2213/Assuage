@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 /// The Quick Look preview body: the file name over the shared `AgeFileInfoView`.
 /// `decryptability` is always omitted here — the extension holds no keys.

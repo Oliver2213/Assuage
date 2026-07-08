@@ -1,5 +1,5 @@
 import Foundation
-import CypherdexCore
+import AssuageCore
 
 /// Runs blocking crypto off the main actor while streaming progress back to the UI.
 @MainActor

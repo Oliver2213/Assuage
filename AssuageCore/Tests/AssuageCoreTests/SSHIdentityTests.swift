@@ -1,8 +1,8 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
-/// End-to-end coverage of the SSH Ed25519 integration in CypherdexCore: importing
+/// End-to-end coverage of the SSH Ed25519 integration in AssuageCore: importing
 /// an OpenSSH key as an identity, encrypting to an `ssh-ed25519` recipient, and
 /// decrypting `rage`-produced files. Fixtures are the same fixed keypair used in
 /// AgeKit's tests.

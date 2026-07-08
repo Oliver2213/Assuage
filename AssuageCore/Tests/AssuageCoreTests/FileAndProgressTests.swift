@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 @Suite("File operations, progress, and inspection")
 struct FileAndProgressTests {

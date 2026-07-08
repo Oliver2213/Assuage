@@ -1,6 +1,6 @@
 import Foundation
 import LocalAuthentication
-import CypherdexCore
+import AssuageCore
 
 /// The user's key library: the age identities (keypairs) and every operation on
 /// them. Shared across all windows via a single instance in the environment, so

@@ -1,5 +1,5 @@
 import SwiftUI
-import CypherdexCore
+import AssuageCore
 
 struct KeysView: View {
     @Environment(AppModel.self) private var model

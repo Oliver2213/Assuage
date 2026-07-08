@@ -1,8 +1,8 @@
 import Foundation
-import CypherdexCore
+import AssuageCore
 
 /// Drives the Encrypt panel. Owns presentation state and the encrypt orchestration;
-/// the actual crypto lives in `CypherdexCore` (`Cipher`), so this has no view
+/// the actual crypto lives in `AssuageCore` (`Cipher`), so this has no view
 /// dependencies and its methods take explicit parameters.
 @MainActor
 @Observable

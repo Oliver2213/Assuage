@@ -1,7 +1,7 @@
 import Foundation
 import AgeKit
 
-/// Errors surfaced by CypherdexCore.
+/// Errors surfaced by AssuageCore.
 ///
 /// Kept small and `Equatable` so both the UI and tests can pattern-match on them.
 public enum CypherdexError: Error, Sendable, Equatable {

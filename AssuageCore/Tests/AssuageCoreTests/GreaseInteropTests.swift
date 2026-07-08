@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CypherdexCore
+@testable import AssuageCore
 
 /// Real age/rage inserts a random-length "grease" stanza into every header, and
 /// wraps any base64 body over 48 bytes across multiple 64-column lines. The header

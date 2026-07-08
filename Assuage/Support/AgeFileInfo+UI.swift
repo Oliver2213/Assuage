@@ -1,5 +1,5 @@
 import Foundation
-import CypherdexCore
+import AssuageCore
 
 /// UI-facing presentation for an inspected age file, kept out of the core library.
 extension AgeFileInfo.Kind {
