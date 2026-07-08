@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 100;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -41,13 +41,11 @@
 /* Begin PBXCopyFilesBuildPhase section */
 		6A940DB42FFE6C5E00E3560A /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
 			dstPath = "";
-			dstSubfolderSpec = 13;
+			dstSubfolder = PlugIns;
 			files = (
 				6A940DB52FFE6CBC00E3560A /* QLExtension.appex in CopyFiles */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -111,35 +109,27 @@
 /* Begin PBXFrameworksBuildPhase section */
 		6A940B132FF8139800E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				CD00000000000000000000A3 /* CypherdexCore in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940B202FF8139900E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				CD00000000000000000000B3 /* CypherdexCore in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940B2A2FF8139900E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940D962FFE484800E3560A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 				6A940DB02FFE4A7500E3560A /* CypherdexCore in Frameworks */,
 				6A940D9C2FFE484800E3560A /* QuickLook.framework in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -244,8 +234,6 @@
 				6A940B302FF8139900E3560A /* CypherdexUITests */,
 			);
 			name = CypherdexUITests;
-			packageProductDependencies = (
-			);
 			productName = CypherdexUITests;
 			productReference = 6A940B2D2FF8139900E3560A /* CypherdexUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -259,8 +247,6 @@
 				6A940D972FFE484800E3560A /* Resources */,
 			);
 			buildRules = (
-			);
-			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
 				6A940D9D2FFE484800E3560A /* QLExtension */,
@@ -311,7 +297,7 @@
 			packageReferences = (
 				CD00000000000000000000A1 /* XCLocalSwiftPackageReference "CypherdexCore" */,
 			);
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 100;
 			productRefGroup = 6A940B172FF8139800E3560A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -327,62 +313,46 @@
 /* Begin PBXResourcesBuildPhase section */
 		6A940B142FF8139800E3560A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940B212FF8139900E3560A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940B2B2FF8139900E3560A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940D972FFE484800E3560A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		6A940B122FF8139800E3560A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940B1F2FF8139900E3560A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940B292FF8139900E3560A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		6A940D952FFE484800E3560A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -405,7 +375,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		6A940B352FF8139900E3560A /* Debug */ = {
+		6A940B352FF8139900E3560A /* Debug configuration for PBXProject "Cypherdex" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -467,7 +437,7 @@
 			};
 			name = Debug;
 		};
-		6A940B362FF8139900E3560A /* Release */ = {
+		6A940B362FF8139900E3560A /* Release configuration for PBXProject "Cypherdex" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -521,7 +491,7 @@
 			};
 			name = Release;
 		};
-		6A940B382FF8139900E3560A /* Debug */ = {
+		6A940B382FF8139900E3560A /* Debug configuration for PBXNativeTarget "Cypherdex" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -536,6 +506,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Cypherdex/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -567,7 +538,7 @@
 			};
 			name = Debug;
 		};
-		6A940B392FF8139900E3560A /* Release */ = {
+		6A940B392FF8139900E3560A /* Release configuration for PBXNativeTarget "Cypherdex" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -582,6 +553,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Cypherdex/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -613,7 +585,7 @@
 			};
 			name = Release;
 		};
-		6A940B3B2FF8139900E3560A /* Debug */ = {
+		6A940B3B2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -639,7 +611,7 @@
 			};
 			name = Debug;
 		};
-		6A940B3C2FF8139900E3560A /* Release */ = {
+		6A940B3C2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -665,7 +637,7 @@
 			};
 			name = Release;
 		};
-		6A940B3E2FF8139900E3560A /* Debug */ = {
+		6A940B3E2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -690,7 +662,7 @@
 			};
 			name = Debug;
 		};
-		6A940B3F2FF8139900E3560A /* Release */ = {
+		6A940B3F2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -715,7 +687,7 @@
 			};
 			name = Release;
 		};
-		6A940DA82FFE484800E3560A /* Debug */ = {
+		6A940DA82FFE484800E3560A /* Debug configuration for PBXNativeTarget "QLExtension" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -753,7 +725,7 @@
 			};
 			name = Debug;
 		};
-		6A940DA92FFE484800E3560A /* Release */ = {
+		6A940DA92FFE484800E3560A /* Release configuration for PBXNativeTarget "QLExtension" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -798,46 +770,41 @@
 		6A940B112FF8139800E3560A /* Build configuration list for PBXProject "Cypherdex" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B352FF8139900E3560A /* Debug */,
-				6A940B362FF8139900E3560A /* Release */,
+				6A940B352FF8139900E3560A /* Debug configuration for PBXProject "Cypherdex" */,
+				6A940B362FF8139900E3560A /* Release configuration for PBXProject "Cypherdex" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		6A940B372FF8139900E3560A /* Build configuration list for PBXNativeTarget "Cypherdex" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B382FF8139900E3560A /* Debug */,
-				6A940B392FF8139900E3560A /* Release */,
+				6A940B382FF8139900E3560A /* Debug configuration for PBXNativeTarget "Cypherdex" */,
+				6A940B392FF8139900E3560A /* Release configuration for PBXNativeTarget "Cypherdex" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		6A940B3A2FF8139900E3560A /* Build configuration list for PBXNativeTarget "CypherdexTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B3B2FF8139900E3560A /* Debug */,
-				6A940B3C2FF8139900E3560A /* Release */,
+				6A940B3B2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexTests" */,
+				6A940B3C2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexTests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		6A940B3D2FF8139900E3560A /* Build configuration list for PBXNativeTarget "CypherdexUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B3E2FF8139900E3560A /* Debug */,
-				6A940B3F2FF8139900E3560A /* Release */,
+				6A940B3E2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexUITests" */,
+				6A940B3F2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexUITests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		6A940DA72FFE484800E3560A /* Build configuration list for PBXNativeTarget "QLExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940DA82FFE484800E3560A /* Debug */,
-				6A940DA92FFE484800E3560A /* Release */,
+				6A940DA82FFE484800E3560A /* Debug configuration for PBXNativeTarget "QLExtension" */,
+				6A940DA92FFE484800E3560A /* Release configuration for PBXNativeTarget "QLExtension" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
