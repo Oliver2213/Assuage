@@ -58,11 +58,9 @@ struct KeychainError: LocalizedError {
 /// `errSecMissingEntitlement`.
 struct IdentityStore {
     /// Public metadata, one per identity, never access-controlled.
-    private let metaService = "dev.smoll.Cypherdex.identities.meta"
+    private let metaService = "dev.smoll.Assuage.identities.meta"
     /// The raw X25519 secret, one per keychain key, access-controlled when protected.
-    private let secretService = "dev.smoll.Cypherdex.identities.secret"
-    /// The pre-split single-item location, kept only so `purgeLegacyItems` can clear it.
-    private let legacyService = "dev.smoll.Cypherdex.identities"
+    private let secretService = "dev.smoll.Assuage.identities.secret"
 
     /// List every stored identity from the metadata items alone. These carry no
     /// access control, so this never triggers an authentication prompt.
@@ -186,20 +184,6 @@ struct IdentityStore {
             throw KeychainError(status: status)
         }
         return secret
-    }
-
-    /// Remove every item at the pre-split single-item location. Those held the
-    /// secret alongside the metadata, so they'd both be unreadable by `loadAll()`
-    /// now and prompt when merely matched. A blanket delete needs no read, so it
-    /// never prompts. New-format items live under different services.
-    func purgeLegacyItems() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: legacyService,
-            kSecUseDataProtectionKeychain as String: true,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
-        ]
-        SecItemDelete(query as CFDictionary)
     }
 
     func delete(_ identity: AgeIdentity) {
