@@ -130,7 +130,8 @@ struct IdentityStore {
         // Metadata: the identity with its secret blanked. Always readable.
         let metadata = try JSONEncoder().encode(identity.withKeychainSecret(""))
         try upsert(service: metaService, account: identity.id.uuidString,
-                   data: metadata, accessControl: nil, synced: synced, label: identity.displayName)
+                   data: metadata, accessControl: nil, synced: synced, label: identity.displayName,
+                   description: metaDescription(for: identity))
 
         guard let secret = identity.x25519Secret else { return } // SE keys keep no secret item
         let accessControl: SecAccessControl?
@@ -141,7 +142,8 @@ struct IdentityStore {
         }
         do {
             try upsert(service: secretService, account: identity.id.uuidString,
-                       data: Data(secret.utf8), accessControl: accessControl, synced: synced, label: identity.displayName)
+                       data: Data(secret.utf8), accessControl: accessControl, synced: synced, label: identity.displayName,
+                       description: "age private key")
         } catch {
             // Don't leave a metadata item with no secret behind it.
             deleteItems(account: identity.id.uuidString, in: [metaService])
@@ -160,7 +162,8 @@ struct IdentityStore {
     func updateMetadata(_ identity: AgeIdentity) throws {
         let metadata = try JSONEncoder().encode(identity.withKeychainSecret(""))
         try upsert(service: metaService, account: identity.id.uuidString,
-                   data: metadata, accessControl: nil, synced: identity.isSynced, label: identity.displayName)
+                   data: metadata, accessControl: nil, synced: identity.isSynced, label: identity.displayName,
+                   description: metaDescription(for: identity))
     }
 
     /// Fetch a keychain (X25519) key's secret from its secret item. For
@@ -202,9 +205,20 @@ struct IdentityStore {
 
     // MARK: Helpers
 
-    /// Add or update one generic-password item.
+    /// The `kSecAttrDescription` for the metadata item. For X25519 / SSH keys it's
+    /// public info (the secret lives in a separate item); a Secure Enclave key has
+    /// no separate secret, so its metadata item holds the device-bound enclave blob.
+    private func metaDescription(for identity: AgeIdentity) -> String {
+        identity.keychainProtection == nil ? "age Secure Enclave key" : "age identity (public)"
+    }
+
+    /// Add or update one generic-password item. `description` sets the item's
+    /// "Kind" (`kSecAttrDescription`) so it's self-describing — age X25519 / Secure
+    /// Enclave material isn't a keychain-native key type, so these are stored as
+    /// generic passwords rather than `kSecClassKey`, and the description is how we
+    /// convey what each item holds.
     private func upsert(service: String, account: String, data: Data,
-                        accessControl: SecAccessControl?, synced: Bool, label: String) throws {
+                        accessControl: SecAccessControl?, synced: Bool, label: String, description: String) throws {
         let base: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -215,6 +229,7 @@ struct IdentityStore {
         var attributes: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrLabel as String: label,
+            kSecAttrDescription as String: description,
         ]
         if let accessControl {
             attributes[kSecAttrAccessControl as String] = accessControl

@@ -7,8 +7,11 @@ public enum KeychainProtection: Sendable, Hashable, Codable {
     /// iCloud Keychain — available on the user's other devices. Not auth-gated.
     case synced
 
-    /// This device only. Readable whenever the login keychain is unlocked, with
-    /// no authentication — i.e. it sits decryptable in the keychain while unlocked.
+    /// This device only. Stored in the data-protection keychain with
+    /// `WhenUnlockedThisDeviceOnly` accessibility — readable without authentication
+    /// whenever the Mac is unlocked, and never synced to iCloud. It sits decryptable
+    /// in the keychain while unlocked. (This is the data-protection keychain, not
+    /// the legacy file-based login keychain.)
     case local
 
     /// This device only, wrapped by the Secure Enclave. The secret is released

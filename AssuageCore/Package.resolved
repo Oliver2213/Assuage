@@ -1,0 +1,24 @@
+{
+  "originHash" : "c5f2bc5a7a9a36739b532553b0ff2f0e0e34d2e64c721596883f3e1b9de1bd11",
+  "pins" : [
+    {
+      "identity" : "swift-extras-base64",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-extras/swift-extras-base64.git",
+      "state" : {
+        "revision" : "97237cf1bc1feebaeb0febec91c1e1b9e4d839b3",
+        "version" : "0.7.0"
+      }
+    },
+    {
+      "identity" : "swift-scrypt",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/greymass/swift-scrypt.git",
+      "state" : {
+        "revision" : "631f21c36bff63e33ad13353ee801b4a032dda15",
+        "version" : "1.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
