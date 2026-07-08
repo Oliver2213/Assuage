@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		6A940D9C2FFE484800E3560A /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6A940D9B2FFE484800E3560A /* QuickLook.framework */; };
 		6A940DB02FFE4A7500E3560A /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6A940DAF2FFE4A7500E3560A /* CypherdexCore */; };
+		6A940DB52FFE6CBC00E3560A /* QLExtension.appex in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6A940D992FFE484800E3560A /* QLExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CD00000000000000000000A3 /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = CD00000000000000000000A2 /* CypherdexCore */; };
 		CD00000000000000000000B3 /* CypherdexCore in Frameworks */ = {isa = PBXBuildFile; productRef = CD00000000000000000000B2 /* CypherdexCore */; };
 /* End PBXBuildFile section */
@@ -28,7 +29,27 @@
 			remoteGlobalIDString = 6A940B152FF8139800E3560A;
 			remoteInfo = Cypherdex;
 		};
+		6A940DB12FFE6A9100E3560A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6A940B0E2FF8139800E3560A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6A940D982FFE484800E3560A;
+			remoteInfo = QLExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6A940DB42FFE6C5E00E3560A /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				6A940DB52FFE6CBC00E3560A /* QLExtension.appex in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		6A940B162FF8139800E3560A /* Cypherdex.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cypherdex.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -46,11 +67,24 @@
 			);
 			target = 6A940D982FFE484800E3560A /* QLExtension */;
 		};
+		6A940E332FFE770200E3560A /* Exceptions for "Cypherdex" folder in "QLExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Support/AgeFileInfo+UI.swift",
+				"Support/DecryptionCapability+UI.swift",
+				"Support/Identity+UI.swift",
+				Views/AgeFileInfoView.swift,
+			);
+			target = 6A940D982FFE484800E3560A /* QLExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6A940B182FF8139800E3560A /* Cypherdex */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6A940E332FFE770200E3560A /* Exceptions for "Cypherdex" folder in "QLExtension" target */,
+			);
 			path = Cypherdex;
 			sourceTree = "<group>";
 		};
@@ -151,10 +185,12 @@
 				6A940B122FF8139800E3560A /* Sources */,
 				6A940B132FF8139800E3560A /* Frameworks */,
 				6A940B142FF8139800E3560A /* Resources */,
+				6A940DB42FFE6C5E00E3560A /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6A940DB22FFE6A9100E3560A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				6A940B182FF8139800E3560A /* Cypherdex */,
@@ -360,6 +396,11 @@
 			isa = PBXTargetDependency;
 			target = 6A940B152FF8139800E3560A /* Cypherdex */;
 			targetProxy = 6A940B2E2FF8139900E3560A /* PBXContainerItemProxy */;
+		};
+		6A940DB22FFE6A9100E3560A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6A940D982FFE484800E3560A /* QLExtension */;
+			targetProxy = 6A940DB12FFE6A9100E3560A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -693,9 +734,9 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = "15.6 ";
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.QLExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Cypherdex.QLExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
@@ -731,9 +772,9 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = "15.6 ";
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.QLExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Cypherdex.QLExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
