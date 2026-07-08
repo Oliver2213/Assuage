@@ -50,9 +50,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		6A940B162FF8139800E3560A /* Cypherdex.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cypherdex.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6A940B232FF8139900E3560A /* CypherdexTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CypherdexTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		6A940B2D2FF8139900E3560A /* CypherdexUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CypherdexUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A940B162FF8139800E3560A /* Assuage.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Assuage.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A940B232FF8139900E3560A /* AssuageTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AssuageTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6A940B2D2FF8139900E3560A /* AssuageUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AssuageUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6A940D992FFE484800E3560A /* QLExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QLExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6A940D9B2FFE484800E3560A /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -65,7 +65,7 @@
 			);
 			target = 6A940D982FFE484800E3560A /* QLExtension */;
 		};
-		6A940E332FFE770200E3560A /* Exceptions for "Cypherdex" folder in "QLExtension" target */ = {
+		6A940E332FFE770200E3560A /* Exceptions for "Assuage" folder in "QLExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Support/AgeFileInfo+UI.swift",
@@ -78,12 +78,12 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		6A940B182FF8139800E3560A /* Cypherdex */ = {
+		6A940B182FF8139800E3560A /* Assuage */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				6A940E332FFE770200E3560A /* Exceptions for "Cypherdex" folder in "QLExtension" target */,
+				6A940E332FFE770200E3560A /* Exceptions for "Assuage" folder in "QLExtension" target */,
 			);
-			path = Cypherdex;
+			path = Assuage;
 			sourceTree = "<group>";
 		};
 		6A940B262FF8139900E3560A /* CypherdexTests */ = {
@@ -137,7 +137,7 @@
 		6A940B0D2FF8139800E3560A = {
 			isa = PBXGroup;
 			children = (
-				6A940B182FF8139800E3560A /* Cypherdex */,
+				6A940B182FF8139800E3560A /* Assuage */,
 				6A940B262FF8139900E3560A /* CypherdexTests */,
 				6A940B302FF8139900E3560A /* CypherdexUITests */,
 				6A940D9D2FFE484800E3560A /* QLExtension */,
@@ -149,9 +149,9 @@
 		6A940B172FF8139800E3560A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6A940B162FF8139800E3560A /* Cypherdex.app */,
-				6A940B232FF8139900E3560A /* CypherdexTests.xctest */,
-				6A940B2D2FF8139900E3560A /* CypherdexUITests.xctest */,
+				6A940B162FF8139800E3560A /* Assuage.app */,
+				6A940B232FF8139900E3560A /* AssuageTests.xctest */,
+				6A940B2D2FF8139900E3560A /* AssuageUITests.xctest */,
 				6A940D992FFE484800E3560A /* QLExtension.appex */,
 			);
 			name = Products;
@@ -168,9 +168,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		6A940B152FF8139800E3560A /* Cypherdex */ = {
+		6A940B152FF8139800E3560A /* Assuage */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6A940B372FF8139900E3560A /* Build configuration list for PBXNativeTarget "Cypherdex" */;
+			buildConfigurationList = 6A940B372FF8139900E3560A /* Build configuration list for PBXNativeTarget "Assuage" */;
 			buildPhases = (
 				6A940B122FF8139800E3560A /* Sources */,
 				6A940B132FF8139800E3560A /* Frameworks */,
@@ -183,19 +183,19 @@
 				6A940DB22FFE6A9100E3560A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				6A940B182FF8139800E3560A /* Cypherdex */,
+				6A940B182FF8139800E3560A /* Assuage */,
 			);
-			name = Cypherdex;
+			name = Assuage;
 			packageProductDependencies = (
 				CD00000000000000000000A2 /* CypherdexCore */,
 			);
 			productName = Cypherdex;
-			productReference = 6A940B162FF8139800E3560A /* Cypherdex.app */;
+			productReference = 6A940B162FF8139800E3560A /* Assuage.app */;
 			productType = "com.apple.product-type.application";
 		};
-		6A940B222FF8139900E3560A /* CypherdexTests */ = {
+		6A940B222FF8139900E3560A /* AssuageTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6A940B3A2FF8139900E3560A /* Build configuration list for PBXNativeTarget "CypherdexTests" */;
+			buildConfigurationList = 6A940B3A2FF8139900E3560A /* Build configuration list for PBXNativeTarget "AssuageTests" */;
 			buildPhases = (
 				6A940B1F2FF8139900E3560A /* Sources */,
 				6A940B202FF8139900E3560A /* Frameworks */,
@@ -209,17 +209,17 @@
 			fileSystemSynchronizedGroups = (
 				6A940B262FF8139900E3560A /* CypherdexTests */,
 			);
-			name = CypherdexTests;
+			name = AssuageTests;
 			packageProductDependencies = (
 				CD00000000000000000000B2 /* CypherdexCore */,
 			);
 			productName = CypherdexTests;
-			productReference = 6A940B232FF8139900E3560A /* CypherdexTests.xctest */;
+			productReference = 6A940B232FF8139900E3560A /* AssuageTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		6A940B2C2FF8139900E3560A /* CypherdexUITests */ = {
+		6A940B2C2FF8139900E3560A /* AssuageUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6A940B3D2FF8139900E3560A /* Build configuration list for PBXNativeTarget "CypherdexUITests" */;
+			buildConfigurationList = 6A940B3D2FF8139900E3560A /* Build configuration list for PBXNativeTarget "AssuageUITests" */;
 			buildPhases = (
 				6A940B292FF8139900E3560A /* Sources */,
 				6A940B2A2FF8139900E3560A /* Frameworks */,
@@ -233,9 +233,9 @@
 			fileSystemSynchronizedGroups = (
 				6A940B302FF8139900E3560A /* CypherdexUITests */,
 			);
-			name = CypherdexUITests;
+			name = AssuageUITests;
 			productName = CypherdexUITests;
-			productReference = 6A940B2D2FF8139900E3560A /* CypherdexUITests.xctest */;
+			productReference = 6A940B2D2FF8139900E3560A /* AssuageUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		6A940D982FFE484800E3560A /* QLExtension */ = {
@@ -285,7 +285,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 6A940B112FF8139800E3560A /* Build configuration list for PBXProject "Cypherdex" */;
+			buildConfigurationList = 6A940B112FF8139800E3560A /* Build configuration list for PBXProject "Assuage" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -302,9 +302,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				6A940B152FF8139800E3560A /* Cypherdex */,
-				6A940B222FF8139900E3560A /* CypherdexTests */,
-				6A940B2C2FF8139900E3560A /* CypherdexUITests */,
+				6A940B152FF8139800E3560A /* Assuage */,
+				6A940B222FF8139900E3560A /* AssuageTests */,
+				6A940B2C2FF8139900E3560A /* AssuageUITests */,
 				6A940D982FFE484800E3560A /* QLExtension */,
 			);
 		};
@@ -359,12 +359,12 @@
 /* Begin PBXTargetDependency section */
 		6A940B252FF8139900E3560A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 6A940B152FF8139800E3560A /* Cypherdex */;
+			target = 6A940B152FF8139800E3560A /* Assuage */;
 			targetProxy = 6A940B242FF8139900E3560A /* PBXContainerItemProxy */;
 		};
 		6A940B2F2FF8139900E3560A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 6A940B152FF8139800E3560A /* Cypherdex */;
+			target = 6A940B152FF8139800E3560A /* Assuage */;
 			targetProxy = 6A940B2E2FF8139900E3560A /* PBXContainerItemProxy */;
 		};
 		6A940DB22FFE6A9100E3560A /* PBXTargetDependency */ = {
@@ -375,7 +375,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		6A940B352FF8139900E3560A /* Debug configuration for PBXProject "Cypherdex" */ = {
+		6A940B352FF8139900E3560A /* Debug configuration for PBXProject "Assuage" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -437,7 +437,7 @@
 			};
 			name = Debug;
 		};
-		6A940B362FF8139900E3560A /* Release configuration for PBXProject "Cypherdex" */ = {
+		6A940B362FF8139900E3560A /* Release configuration for PBXProject "Assuage" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -491,12 +491,12 @@
 			};
 			name = Release;
 		};
-		6A940B382FF8139900E3560A /* Debug configuration for PBXNativeTarget "Cypherdex" */ = {
+		6A940B382FF8139900E3560A /* Debug configuration for PBXNativeTarget "Assuage" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Cypherdex/Cypherdex.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TARGET_NAME)/$(TARGET_NAME).entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = F3AZTWNYRT;
@@ -505,7 +505,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Cypherdex/Info.plist;
+				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Assuage;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -522,7 +523,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Cypherdex;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Assuage;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -538,12 +539,12 @@
 			};
 			name = Debug;
 		};
-		6A940B392FF8139900E3560A /* Release configuration for PBXNativeTarget "Cypherdex" */ = {
+		6A940B392FF8139900E3560A /* Release configuration for PBXNativeTarget "Assuage" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Cypherdex/Cypherdex.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(TARGET_NAME)/$(TARGET_NAME).entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = F3AZTWNYRT;
@@ -552,7 +553,8 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Cypherdex/Info.plist;
+				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Assuage;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -569,7 +571,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Cypherdex;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Assuage;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -585,7 +587,7 @@
 			};
 			name = Release;
 		};
-		6A940B3B2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexTests" */ = {
+		6A940B3B2FF8139900E3560A /* Debug configuration for PBXNativeTarget "AssuageTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -606,12 +608,12 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cypherdex.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Cypherdex";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Assuage.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Assuage";
 				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Debug;
 		};
-		6A940B3C2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexTests" */ = {
+		6A940B3C2FF8139900E3560A /* Release configuration for PBXNativeTarget "AssuageTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -632,12 +634,12 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Cypherdex.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Cypherdex";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Assuage.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Assuage";
 				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Release;
 		};
-		6A940B3E2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexUITests" */ = {
+		6A940B3E2FF8139900E3560A /* Debug configuration for PBXNativeTarget "AssuageUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -662,7 +664,7 @@
 			};
 			name = Debug;
 		};
-		6A940B3F2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexUITests" */ = {
+		6A940B3F2FF8139900E3560A /* Release configuration for PBXNativeTarget "AssuageUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -695,7 +697,16 @@
 				DEVELOPMENT_TEAM = F3AZTWNYRT;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QLExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = QLExtension;
@@ -708,7 +719,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Cypherdex.QLExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Assuage.QLExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
@@ -733,7 +744,16 @@
 				DEVELOPMENT_TEAM = F3AZTWNYRT;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = QLExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = QLExtension;
@@ -746,7 +766,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Cypherdex.QLExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.smoll.Assuage.QLExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
@@ -767,35 +787,35 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6A940B112FF8139800E3560A /* Build configuration list for PBXProject "Cypherdex" */ = {
+		6A940B112FF8139800E3560A /* Build configuration list for PBXProject "Assuage" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B352FF8139900E3560A /* Debug configuration for PBXProject "Cypherdex" */,
-				6A940B362FF8139900E3560A /* Release configuration for PBXProject "Cypherdex" */,
+				6A940B352FF8139900E3560A /* Debug configuration for PBXProject "Assuage" */,
+				6A940B362FF8139900E3560A /* Release configuration for PBXProject "Assuage" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		6A940B372FF8139900E3560A /* Build configuration list for PBXNativeTarget "Cypherdex" */ = {
+		6A940B372FF8139900E3560A /* Build configuration list for PBXNativeTarget "Assuage" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B382FF8139900E3560A /* Debug configuration for PBXNativeTarget "Cypherdex" */,
-				6A940B392FF8139900E3560A /* Release configuration for PBXNativeTarget "Cypherdex" */,
+				6A940B382FF8139900E3560A /* Debug configuration for PBXNativeTarget "Assuage" */,
+				6A940B392FF8139900E3560A /* Release configuration for PBXNativeTarget "Assuage" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		6A940B3A2FF8139900E3560A /* Build configuration list for PBXNativeTarget "CypherdexTests" */ = {
+		6A940B3A2FF8139900E3560A /* Build configuration list for PBXNativeTarget "AssuageTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B3B2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexTests" */,
-				6A940B3C2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexTests" */,
+				6A940B3B2FF8139900E3560A /* Debug configuration for PBXNativeTarget "AssuageTests" */,
+				6A940B3C2FF8139900E3560A /* Release configuration for PBXNativeTarget "AssuageTests" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		6A940B3D2FF8139900E3560A /* Build configuration list for PBXNativeTarget "CypherdexUITests" */ = {
+		6A940B3D2FF8139900E3560A /* Build configuration list for PBXNativeTarget "AssuageUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6A940B3E2FF8139900E3560A /* Debug configuration for PBXNativeTarget "CypherdexUITests" */,
-				6A940B3F2FF8139900E3560A /* Release configuration for PBXNativeTarget "CypherdexUITests" */,
+				6A940B3E2FF8139900E3560A /* Debug configuration for PBXNativeTarget "AssuageUITests" */,
+				6A940B3F2FF8139900E3560A /* Release configuration for PBXNativeTarget "AssuageUITests" */,
 			);
 			defaultConfigurationName = Release;
 		};
