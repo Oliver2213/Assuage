@@ -3,6 +3,7 @@
 * [x] an app info struct like my other apps have with info like the website URL, repository URL (only show website if they're both the same) in the help menu
 * [x] Clipboard import (encrypt/decrypt from clipboard content)
 
+* Do we support passphrase encrypted age files as identities when decrypting? Do we support importing an encrypted identity (with a passphrase)?
 * QuickLook **Thumbnail** extension: a lock-badge thumbnail for `.age` files
 * Menu-bar extra (NSStatusItem): "Encrypt clipboard / Decrypt clipboard" in one click — pairs with clipboard import
 * Recipient address book: saved named public keys you don't own, so you can encrypt to "Alice" without pasting her key each time. Import from file/clipboard, plus **recipient groups** for multi-recipient encryption
