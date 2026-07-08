@@ -1,13 +1,13 @@
 //
-//  CypherdexUITestsLaunchTests.swift
-//  CypherdexUITests
+//  AssuageUITestsLaunchTests.swift
+//  AssuageUITests
 //
 //  Created by Blake Oliver on 7/3/26.
 //
 
 import XCTest
 
-final class CypherdexUITestsLaunchTests: XCTestCase {
+final class AssuageUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

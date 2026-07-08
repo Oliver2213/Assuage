@@ -1,13 +1,13 @@
 //
-//  CypherdexUITests.swift
-//  CypherdexUITests
+//  AssuageUITests.swift
+//  AssuageUITests
 //
 //  Created by Blake Oliver on 7/3/26.
 //
 
 import XCTest
 
-final class CypherdexUITests: XCTestCase {
+final class AssuageUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

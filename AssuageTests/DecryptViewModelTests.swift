@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 import CypherdexCore
-@testable import Cypherdex
+@testable import Assuage
 
 @MainActor
 @Suite("DecryptViewModel")
