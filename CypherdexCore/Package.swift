@@ -4,9 +4,11 @@ import PackageDescription
 let package = Package(
     name: "CypherdexCore",
     platforms: [
-        // The app deploys to a newer macOS, but the core logic only needs a
-        // floor recent enough for CryptoKit's Secure Enclave APIs.
-        .macOS(.v15)
+        // The app deploys to newer OSes, but the core only needs a floor recent
+        // enough for CryptoKit's Secure Enclave APIs — and at least AgeKit's iOS
+        // 14. (iOS 18 parallels the macOS 15 floor; the app can deploy higher.)
+        .macOS(.v15),
+        .iOS(.v18)
     ],
     products: [
         .library(name: "CypherdexCore", targets: ["CypherdexCore"]),
