@@ -15,7 +15,7 @@ struct EncryptView: View {
         @Bindable var viewModel = viewModel
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                InfoBanner("**Encrypt anything.** Type or paste a message, choose one or more recipients, and encrypt. Drop files onto the well to encrypt them in place. Also available from **Services** and Finder’s right-click menu.")
+                InfoBanner("**Encrypt anything.** Type or paste a message, choose one or more recipients, and encrypt. Drop files or folders onto the well to encrypt them in place — a folder is zipped first. Also available from **Services** and Finder’s right-click menu.")
 
                 MultilineTextField(title: "Message", placeholder: "Secret message…", text: $model.encryptInput)
 
@@ -81,11 +81,11 @@ struct EncryptView: View {
                 }
 
                 QueuedFilesSection(
-                    caption: "Encrypts each file to a new **.age** file next to the original.",
+                    caption: "Encrypts each file to a new **.age** next to the original. A folder is zipped to a single **.zip.age**.",
                     files: $model.queuedEncryptFiles,
                     runVerb: "Encrypt",
                     runIcon: "lock",
-                    dropPrompt: "Drop files to encrypt",
+                    dropPrompt: "Drop files or folders to encrypt",
                     dropIcon: "arrow.down.doc",
                     isRunEnabled: canEncrypt && !viewModel.isRunning,
                     onRun: encryptFiles,
