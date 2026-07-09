@@ -4,7 +4,7 @@ import AgeKit
 /// Errors surfaced by AssuageCore.
 ///
 /// Kept small and `Equatable` so both the UI and tests can pattern-match on them.
-public enum CypherdexError: Error, Sendable, Equatable {
+public enum AssuageError: Error, Sendable, Equatable {
     /// A string that was expected to be an age recipient could not be recognised.
     case unrecognizedRecipient(String)
     /// A string that was expected to be an age identity (secret key) could not be recognised.
@@ -33,7 +33,7 @@ public enum CypherdexError: Error, Sendable, Equatable {
     case sshPassphraseRequired
 }
 
-extension CypherdexError {
+extension AssuageError {
     /// Map an AgeKit `SSHKeyError` onto the app-facing error vocabulary, so
     /// callers never need to import AgeKit. `context` labels the input in the
     /// "unrecognized" fallback.
@@ -48,7 +48,7 @@ extension CypherdexError {
     }
 }
 
-extension CypherdexError: LocalizedError {
+extension AssuageError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .unrecognizedRecipient(let s):

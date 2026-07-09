@@ -11,7 +11,7 @@ extension OutputStream {
             var remaining = data.count
             while remaining > 0 {
                 let n = write(ptr, maxLength: remaining)
-                if n < 0 { throw streamError ?? CypherdexError.ioFailure }
+                if n < 0 { throw streamError ?? AssuageError.ioFailure }
                 if n == 0 { break } // stream at capacity with no error; treat as done
                 remaining -= n
                 total += n

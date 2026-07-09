@@ -81,14 +81,14 @@ extension AgeIdentity {
     /// Build an importable key from one OpenSSH private key block. Pass
     /// `passphrase` for encrypted keys.
     ///
-    /// - Throws: `CypherdexError.sshPassphraseRequired` / `.incorrectPassphrase`
+    /// - Throws: `AssuageError.sshPassphraseRequired` / `.incorrectPassphrase`
     ///   / `.unsupportedSSHKeyType`.
     public static func importableSSHKey(fromOpenSSH pem: String, passphrase: String?) throws -> ImportableKey {
         let identity: Age.SSHEd25519Identity
         do {
             identity = try Age.SSHEd25519Identity(opensshPEM: pem, passphrase: passphrase)
         } catch let error as SSHKeyError {
-            throw CypherdexError(sshKeyError: error, context: pem)
+            throw AssuageError(sshKeyError: error, context: pem)
         }
         return ImportableKey(
             secret: .sshEd25519(seed: Data(identity.seed).base64EncodedString()),

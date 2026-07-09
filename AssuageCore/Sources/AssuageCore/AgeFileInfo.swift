@@ -112,7 +112,7 @@ public enum AgeFileInspector {
 
     /// Inspect age file bytes (binary or ASCII-armored).
     ///
-    /// - Throws: `CypherdexError.invalidAgeFile` if the header can't be parsed.
+    /// - Throws: `AssuageError.invalidAgeFile` if the header can't be parsed.
     public static func inspect(_ data: Data) throws -> AgeFileInfo {
         let isArmored = Armoring.isArmored(data)
         let binary = isArmored ? try Armoring.normalizedBinary(data) : data
@@ -177,7 +177,7 @@ public enum AgeFileInspector {
         }
 
         guard let intro = readLine(), intro.text == AgeFileInfo.currentVersion else {
-            throw CypherdexError.invalidAgeFile
+            throw AssuageError.invalidAgeFile
         }
 
         var stanzas: [(type: String, args: [String])] = []
@@ -193,7 +193,7 @@ public enum AgeFileInspector {
             // Otherwise a stanza body line — skip it.
         }
         // Ran out of bytes before the footer: not a complete, valid header.
-        throw CypherdexError.invalidAgeFile
+        throw AssuageError.invalidAgeFile
     }
 
     private static func sizes(headerLength: Int, binaryCount: Int, originalCount: Int, isArmored: Bool) -> AgeFileInfo.Sizes? {

@@ -93,7 +93,7 @@ struct AgeFileInfoTests {
 
     @Test("Non-age input is rejected")
     func rejectsGarbage() {
-        #expect(throws: CypherdexError.invalidAgeFile) {
+        #expect(throws: AssuageError.invalidAgeFile) {
             try AgeFileInspector.inspect(Data("not an age file at all\n".utf8))
         }
     }

@@ -43,7 +43,7 @@ struct CompositeIdentity: Identity {
 extension Array where Element == AgeRecipient {
     /// Collapse to a single AgeKit recipient suitable for `Age.encrypt`.
     func makeAgeRecipient() throws -> any Recipient {
-        guard !isEmpty else { throw CypherdexError.noRecipients }
+        guard !isEmpty else { throw AssuageError.noRecipients }
         let wrapped = try map { try $0.makeAgeRecipient() }
         return wrapped.count == 1 ? wrapped[0] : CompositeRecipient(recipients: wrapped)
     }
@@ -52,7 +52,7 @@ extension Array where Element == AgeRecipient {
 extension Array where Element == AgeIdentity {
     /// Collapse to a single AgeKit identity suitable for `Age.decrypt`.
     func makeAgeIdentity() throws -> any Identity {
-        guard !isEmpty else { throw CypherdexError.noIdentities }
+        guard !isEmpty else { throw AssuageError.noIdentities }
         let wrapped = try map { try $0.makeAgeIdentity() }
         return wrapped.count == 1 ? wrapped[0] : CompositeIdentity(identities: wrapped)
     }

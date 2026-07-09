@@ -104,7 +104,7 @@ extension AgeFileInfo {
 public enum DecryptionCapabilityChecker {
     /// Judge whether `identities` can decrypt the age file `data`, header only.
     ///
-    /// - Throws: `CypherdexError.invalidAgeFile` if `data` isn't a parseable age file.
+    /// - Throws: `AssuageError.invalidAgeFile` if `data` isn't a parseable age file.
     public static func capability(of data: Data, for identities: [AgeIdentity]) throws -> DecryptionCapability {
         try AgeFileInspector.inspect(data).decryptability(with: identities)
     }
@@ -112,7 +112,7 @@ public enum DecryptionCapabilityChecker {
     /// Judge whether `identities` can decrypt the age file at `url`, reading only
     /// its header (the file is memory-mapped, so large files aren't copied).
     ///
-    /// - Throws: `CypherdexError.invalidAgeFile` if the file isn't a parseable age file.
+    /// - Throws: `AssuageError.invalidAgeFile` if the file isn't a parseable age file.
     public static func capability(ofFileAt url: URL, for identities: [AgeIdentity]) throws -> DecryptionCapability {
         try AgeFileInspector.inspect(contentsOf: url).decryptability(with: identities)
     }

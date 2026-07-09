@@ -61,7 +61,7 @@ final class KeyLibrary {
     func importableKeys(at url: URL) throws -> [ImportableKey] {
         let text = try String(contentsOf: url, encoding: .utf8)
         let keys = AgeIdentity.importableKeys(from: text)
-        if keys.isEmpty { throw CypherdexError.unrecognizedIdentity(url.lastPathComponent) }
+        if keys.isEmpty { throw AssuageError.unrecognizedIdentity(url.lastPathComponent) }
         return keys
     }
 

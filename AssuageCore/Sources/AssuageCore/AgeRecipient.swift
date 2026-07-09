@@ -35,11 +35,11 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
 
     /// Parse and validate a recipient string.
     ///
-    /// - Throws: `CypherdexError.unrecognizedRecipient` if the string isn't a
+    /// - Throws: `AssuageError.unrecognizedRecipient` if the string isn't a
     ///   recipient we understand.
     public init(parsing raw: String) throws {
         let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !s.isEmpty else { throw CypherdexError.unrecognizedRecipient(raw) }
+        guard !s.isEmpty else { throw AssuageError.unrecognizedRecipient(raw) }
 
         // Order matters: the Secure Enclave prefixes are more specific than `age1`.
         if s.hasPrefix("age1se1") || s.hasPrefix("age1p256tag1") {
@@ -54,15 +54,15 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
             do {
                 _ = try Age.SSHEd25519Recipient(authorizedKey: s)   // validates the wire encoding
             } catch {
-                throw CypherdexError.unrecognizedRecipient(raw)
+                throw AssuageError.unrecognizedRecipient(raw)
             }
             self.kind = .sshEd25519
             self.encoding = s
         } else if s.hasPrefix("ssh-rsa") || s.hasPrefix("ecdsa-") || s.hasPrefix("sk-") {
             // Recognizable SSH keys we don't support — give a specific message.
-            throw CypherdexError.unsupportedSSHKeyType(String(s.prefix(while: { $0 != " " })))
+            throw AssuageError.unsupportedSSHKeyType(String(s.prefix(while: { $0 != " " })))
         } else {
-            throw CypherdexError.unrecognizedRecipient(raw)
+            throw AssuageError.unrecognizedRecipient(raw)
         }
     }
 

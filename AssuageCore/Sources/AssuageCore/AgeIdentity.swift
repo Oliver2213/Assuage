@@ -117,7 +117,7 @@ extension AgeIdentity {
 
     /// Import an identity from an `AGE-SECRET-KEY-1…` secret key string.
     ///
-    /// - Throws: `CypherdexError.unrecognizedIdentity` if the string isn't a valid
+    /// - Throws: `AssuageError.unrecognizedIdentity` if the string isn't a valid
     ///   X25519 secret key.
     public init(
         importingX25519 secretKey: String,
@@ -196,7 +196,7 @@ extension AgeIdentity {
         do {
             identity = try Age.SSHEd25519Identity(opensshPEM: pem, passphrase: passphrase)
         } catch let error as SSHKeyError {
-            throw CypherdexError(sshKeyError: error, context: pem)
+            throw AssuageError(sshKeyError: error, context: pem)
         }
         self.init(
             id: UUID(),
@@ -209,11 +209,11 @@ extension AgeIdentity {
 
     /// Rebuild the AgeKit SSH identity from a stored base64 seed.
     static func parseSSHEd25519(seed: String) throws -> Age.SSHEd25519Identity {
-        guard let data = Data(base64Encoded: seed) else { throw CypherdexError.unrecognizedIdentity(seed) }
+        guard let data = Data(base64Encoded: seed) else { throw AssuageError.unrecognizedIdentity(seed) }
         do {
             return try Age.SSHEd25519Identity(seed: Array(data))
         } catch {
-            throw CypherdexError.unrecognizedIdentity(seed)
+            throw AssuageError.unrecognizedIdentity(seed)
         }
     }
 
@@ -229,10 +229,10 @@ extension AgeIdentity {
         do {
             identities = try Age.parseIdentities(input: input)
         } catch {
-            throw CypherdexError.unrecognizedIdentity(secretKey)
+            throw AssuageError.unrecognizedIdentity(secretKey)
         }
         guard let x25519 = identities.first as? Age.X25519Identity else {
-            throw CypherdexError.unrecognizedIdentity(secretKey)
+            throw AssuageError.unrecognizedIdentity(secretKey)
         }
         return x25519
     }
@@ -252,7 +252,7 @@ extension AgeIdentity {
 
     /// Generate a new Secure Enclave identity on this Mac.
     ///
-    /// - Throws: `CypherdexError.secureEnclaveUnavailable` on Macs without a Secure Enclave.
+    /// - Throws: `AssuageError.secureEnclaveUnavailable` on Macs without a Secure Enclave.
     public static func generateSecureEnclave(
         label: String = "",
         accessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode,

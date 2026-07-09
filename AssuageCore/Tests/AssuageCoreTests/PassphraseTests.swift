@@ -26,17 +26,17 @@ struct PassphraseTests {
     @Test("The wrong passphrase is rejected")
     func wrongPassphrase() throws {
         let cipher = try Cipher.encrypt(Data("secret".utf8), passphrase: Self.pass, workFactor: 10)
-        #expect(throws: CypherdexError.incorrectPassphrase) {
+        #expect(throws: AssuageError.incorrectPassphrase) {
             try Cipher.decrypt(cipher, passphrase: "not the passphrase")
         }
     }
 
     @Test("An empty passphrase is rejected")
     func emptyPassphrase() throws {
-        #expect(throws: CypherdexError.emptyPassphrase) {
+        #expect(throws: AssuageError.emptyPassphrase) {
             try Cipher.encrypt(Data("x".utf8), passphrase: "")
         }
-        #expect(throws: CypherdexError.emptyPassphrase) {
+        #expect(throws: AssuageError.emptyPassphrase) {
             try Cipher.decrypt(Data("x".utf8), passphrase: "")
         }
     }

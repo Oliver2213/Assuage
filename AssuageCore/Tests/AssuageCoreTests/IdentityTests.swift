@@ -28,7 +28,7 @@ struct IdentityTests {
 
     @Test("Importing garbage throws unrecognizedIdentity")
     func importGarbage() {
-        #expect(throws: CypherdexError.unrecognizedIdentity("not-a-key")) {
+        #expect(throws: AssuageError.unrecognizedIdentity("not-a-key")) {
             _ = try AgeIdentity(importingX25519: "not-a-key")
         }
     }
@@ -65,10 +65,10 @@ struct IdentityTests {
         #expect(parsed == identity.recipient)
         #expect(parsed.kind == .x25519)
 
-        #expect(throws: CypherdexError.self) {
+        #expect(throws: AssuageError.self) {
             _ = try AgeRecipient(parsing: "ssh-ed25519 AAAA...")
         }
-        #expect(throws: CypherdexError.self) {
+        #expect(throws: AssuageError.self) {
             _ = try AgeRecipient(parsing: "")
         }
     }

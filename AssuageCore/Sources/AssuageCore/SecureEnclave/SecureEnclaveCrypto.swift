@@ -52,15 +52,15 @@ extension P256.KeyAgreement.PublicKey {
         do {
             decoded = try Bech32().decode(string)
         } catch {
-            throw CypherdexError.unrecognizedRecipient(string)
+            throw AssuageError.unrecognizedRecipient(string)
         }
         guard decoded.hrp == "age1se" || decoded.hrp == "age1p256tag" else {
-            throw CypherdexError.unrecognizedRecipient(string)
+            throw AssuageError.unrecognizedRecipient(string)
         }
         do {
             self = try P256.KeyAgreement.PublicKey(compressedRepresentation: decoded.data)
         } catch {
-            throw CypherdexError.unrecognizedRecipient(string)
+            throw AssuageError.unrecognizedRecipient(string)
         }
     }
 }
@@ -155,7 +155,7 @@ public enum SecureEnclaveKeys {
     /// Generate a new Secure Enclave key. Returns the age identity string
     /// (`AGE-PLUGIN-SE-1…`) and the recipient string (`age1se1…`).
     static func generate(accessControl: SecureEnclaveAccessControl) throws -> (identity: String, recipient: String) {
-        guard SecureEnclave.isAvailable else { throw CypherdexError.secureEnclaveUnavailable }
+        guard SecureEnclave.isAvailable else { throw AssuageError.secureEnclaveUnavailable }
         let secAccessControl = try accessControl.makeSecAccessControl()
         let key = try SecureEnclave.P256.KeyAgreement.PrivateKey(
             accessControl: secAccessControl, authenticationContext: LAContext()
@@ -181,10 +181,10 @@ public enum SecureEnclaveKeys {
         do {
             decoded = try Bech32().decode(ageIdentity)
         } catch {
-            throw CypherdexError.unrecognizedIdentity(ageIdentity)
+            throw AssuageError.unrecognizedIdentity(ageIdentity)
         }
         guard decoded.hrp == "AGE-PLUGIN-SE-" else {
-            throw CypherdexError.unrecognizedIdentity(ageIdentity)
+            throw AssuageError.unrecognizedIdentity(ageIdentity)
         }
         return try SecureEnclave.P256.KeyAgreement.PrivateKey(
             dataRepresentation: decoded.data, authenticationContext: LAContext()

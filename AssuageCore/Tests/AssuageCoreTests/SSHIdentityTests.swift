@@ -89,7 +89,7 @@ struct SSHIdentityTests {
 
     @Test("A missing passphrase is reported so the UI can prompt")
     func missingPassphrase() {
-        #expect(throws: CypherdexError.sshPassphraseRequired) {
+        #expect(throws: AssuageError.sshPassphraseRequired) {
             _ = try AgeIdentity(importingSSHEd25519: Self.encPEM)
         }
     }
@@ -107,7 +107,7 @@ struct SSHIdentityTests {
 
     @Test("ssh-rsa is rejected with a specific error")
     func unsupportedType() {
-        #expect(throws: CypherdexError.unsupportedSSHKeyType("ssh-rsa")) {
+        #expect(throws: AssuageError.unsupportedSSHKeyType("ssh-rsa")) {
             _ = try AgeRecipient(parsing: "ssh-rsa AAAAB3NzaC1yc2EAAAA test")
         }
     }

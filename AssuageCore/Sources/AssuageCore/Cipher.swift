@@ -45,7 +45,7 @@ public enum Cipher {
         // chunk is included in the snapshot.
         output.close()
         guard let data = output.property(forKey: .dataWrittenToMemoryStreamKey) as? Data else {
-            throw CypherdexError.ioFailure
+            throw AssuageError.ioFailure
         }
         return data
     }
@@ -93,7 +93,7 @@ public enum Cipher {
         }
         output.close()
         guard let data = output.property(forKey: .dataWrittenToMemoryStreamKey) as? Data else {
-            throw CypherdexError.ioFailure
+            throw AssuageError.ioFailure
         }
         return data
     }
@@ -109,7 +109,7 @@ public enum Cipher {
     ) throws {
         let recipient = try scryptRecipient(passphrase, workFactor: workFactor)
         let totalBytes = fileSize(source)
-        guard let input = InputStream(url: source) else { throw CypherdexError.ioFailure }
+        guard let input = InputStream(url: source) else { throw AssuageError.ioFailure }
 
         if armored {
             let binary = try encryptToMemory(
@@ -118,7 +118,7 @@ public enum Cipher {
             try Data(Armoring.armor(binary).utf8).write(to: destination)
         } else {
             guard let output = OutputStream(url: destination, append: false) else {
-                throw CypherdexError.ioFailure
+                throw AssuageError.ioFailure
             }
             output.open()
             defer { output.close() }
@@ -141,7 +141,7 @@ public enum Cipher {
             binary = try Data(contentsOf: source, options: .mappedIfSafe)
         }
         guard let output = OutputStream(url: destination, append: false) else {
-            throw CypherdexError.ioFailure
+            throw AssuageError.ioFailure
         }
         output.open()
         defer { output.close() }
@@ -163,7 +163,7 @@ public enum Cipher {
     ) throws {
         let recipient = try recipients.makeAgeRecipient()
         let totalBytes = fileSize(source)
-        guard let input = InputStream(url: source) else { throw CypherdexError.ioFailure }
+        guard let input = InputStream(url: source) else { throw AssuageError.ioFailure }
 
         if armored {
             let binary = try encryptToMemory(
@@ -172,7 +172,7 @@ public enum Cipher {
             try Data(Armoring.armor(binary).utf8).write(to: destination)
         } else {
             guard let output = OutputStream(url: destination, append: false) else {
-                throw CypherdexError.ioFailure
+                throw AssuageError.ioFailure
             }
             output.open()
             defer { output.close() }
@@ -196,7 +196,7 @@ public enum Cipher {
             binary = try Data(contentsOf: source, options: .mappedIfSafe)
         }
         guard let output = OutputStream(url: destination, append: false) else {
-            throw CypherdexError.ioFailure
+            throw AssuageError.ioFailure
         }
         output.open()
         defer { output.close() }
@@ -241,7 +241,7 @@ public enum Cipher {
         try encryptCore(source: source, totalBytes: totalBytes, recipient: recipient, into: output, progress: progress)
         output.close()
         guard let data = output.property(forKey: .dataWrittenToMemoryStreamKey) as? Data else {
-            throw CypherdexError.ioFailure
+            throw AssuageError.ioFailure
         }
         return data
     }
@@ -267,7 +267,7 @@ public enum Cipher {
 
         while true {
             let n = source.read(&buffer, maxLength: chunkSize)
-            if n < 0 { throw source.streamError ?? CypherdexError.ioFailure }
+            if n < 0 { throw source.streamError ?? AssuageError.ioFailure }
             if n == 0 { break }
             var chunk = Data(bytes: buffer, count: n)
             _ = try writer.write(&chunk)
@@ -326,7 +326,7 @@ public enum Cipher {
 
     private static func scryptRecipient(_ passphrase: String, workFactor: Int) throws -> any Recipient {
         guard var recipient = Age.ScryptRecipient(password: passphrase) else {
-            throw CypherdexError.emptyPassphrase
+            throw AssuageError.emptyPassphrase
         }
         recipient.setWorkFactor(workFactor)
         return recipient
@@ -334,7 +334,7 @@ public enum Cipher {
 
     private static func scryptIdentity(_ passphrase: String) throws -> any Identity {
         guard let identity = Age.ScryptIdentity(passphrase) else {
-            throw CypherdexError.emptyPassphrase
+            throw AssuageError.emptyPassphrase
         }
         return identity
     }
@@ -346,7 +346,7 @@ public enum Cipher {
         do {
             try body()
         } catch Age.DecryptError.noIdentities {
-            throw CypherdexError.incorrectPassphrase
+            throw AssuageError.incorrectPassphrase
         }
     }
 }

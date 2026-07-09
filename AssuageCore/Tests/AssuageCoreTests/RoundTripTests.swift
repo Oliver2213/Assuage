@@ -64,11 +64,11 @@ struct RoundTripTests {
 
     @Test("Empty recipient / identity lists are rejected")
     func emptyInputs() throws {
-        #expect(throws: CypherdexError.noRecipients) {
+        #expect(throws: AssuageError.noRecipients) {
             _ = try Cipher.encrypt(Data("x".utf8), to: [])
         }
         let ciphertext = try Cipher.encrypt(Data("x".utf8), to: [AgeIdentity.generateX25519().recipient])
-        #expect(throws: CypherdexError.noIdentities) {
+        #expect(throws: AssuageError.noIdentities) {
             _ = try Cipher.decrypt(ciphertext, with: [])
         }
     }

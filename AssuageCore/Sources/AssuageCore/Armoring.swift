@@ -43,7 +43,7 @@ enum Armoring {
             if insideBody { base64 += line }
         }
         guard insideBody, let data = Data(base64Encoded: base64) else {
-            throw CypherdexError.invalidAgeFile
+            throw AssuageError.invalidAgeFile
         }
         return data
     }
@@ -52,7 +52,7 @@ enum Armoring {
     static func normalizedBinary(_ data: Data) throws -> Data {
         guard isArmored(data) else { return data }
         guard let text = String(data: data, encoding: .utf8) else {
-            throw CypherdexError.invalidAgeFile
+            throw AssuageError.invalidAgeFile
         }
         return try dearmor(text)
     }
