@@ -16,6 +16,22 @@
 				<string>org.age-encryption.age</string>
 			</array>
 		</dict>
+		<dict>
+			<!-- Any file or folder, so dropping one on the Dock icon (or "Open
+			     With") reaches application(_:open:), which encrypts it. Alternate
+			     rank so we never become the default handler for other files. -->
+			<key>CFBundleTypeName</key>
+			<string>File or folder</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.data</string>
+				<string>public.folder</string>
+			</array>
+		</dict>
 	</array>
 	<key>NSServices</key>
 	<array>

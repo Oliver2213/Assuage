@@ -17,6 +17,17 @@ struct QueuedFilesSection: View {
 
     @State private var showImporter = false
 
+    /// Singular noun for the run button, reflecting what's queued: "File", "Folder",
+    /// or "Item" for a mix. Pluralized by the caller.
+    private var itemNoun: String {
+        let folders = files.filter {
+            (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        }.count
+        if folders == 0 { return "File" }
+        if folders == files.count { return "Folder" }
+        return "Item"
+    }
+
     var body: some View {
         GroupBox("Files") {
             VStack(alignment: .leading, spacing: 10) {
@@ -28,7 +39,7 @@ struct QueuedFilesSection: View {
 
                 HStack {
                     Button("Add Files…", systemImage: "plus") { showImporter = true }
-                    Button("\(runVerb) \(files.count) File\(files.count == 1 ? "" : "s")", systemImage: runIcon, action: onRun)
+                    Button("\(runVerb) \(files.count) \(itemNoun)\(files.count == 1 ? "" : "s")", systemImage: runIcon, action: onRun)
                         .disabled(files.isEmpty || !isRunEnabled)
                     Spacer()
                 }

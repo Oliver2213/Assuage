@@ -110,6 +110,26 @@ public enum AgeFileInspector {
         try inspect(Data(contentsOf: url, options: .mappedIfSafe))
     }
 
+    /// A cheap check of whether `url` looks like an age file, reading only a small
+    /// prefix and never parsing the full header. Used to classify a dropped or
+    /// Finder-selected item — encrypted (decrypt it) vs. anything else (encrypt
+    /// it) — without the cost or the throw of a full `inspect`. A directory (or an
+    /// unreadable path) returns `false`, so folders route to encryption.
+    public static func isAgeFile(at url: URL) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { try? handle.close() }
+        guard let prefix = try? handle.read(upToCount: 128) else { return false }
+        return looksLikeAge(prefix)
+    }
+
+    /// Whether `prefix` begins like an age file: the binary format's version intro
+    /// line, or the ASCII-armor (PEM) header — tolerating leading whitespace.
+    static func looksLikeAge(_ prefix: Data) -> Bool {
+        if prefix.starts(with: Data(AgeFileInfo.currentVersion.utf8)) { return true }
+        guard let text = String(data: prefix, encoding: .utf8) else { return false }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(Armoring.header)
+    }
+
     /// Inspect age file bytes (binary or ASCII-armored).
     ///
     /// - Throws: `AssuageError.invalidAgeFile` if the header can't be parsed.
