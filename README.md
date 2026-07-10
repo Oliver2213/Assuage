@@ -1,10 +1,10 @@
-# Cypherdex
+# Assuage
 
 > An [age](https://age-encryption.org) encryption interface for macOS: encrypt and
 > decrypt files and text from anywhere on your Mac, with keys you can keep in the
 > Secure Enclave.
 
-Cypherdex brings the power of modern cryptography to the macOS UI and to the system
+Assuage brings the power of modern cryptography to the macOS UI and to the system
 itself. It aims for secure, sensible defaults, native platform integration, and
 data-first design where invalid states can't be represented.
 
@@ -12,15 +12,29 @@ data-first design where invalid states can't be represented.
 
 ## Trust model
 
-Cypherdex is **pure in-process Swift** — there are **no bundled binaries and no
-subprocesses** in the shipping app. All cryptography runs through Apple's CryptoKit
-and the [AgeKit](https://github.com/jamesog/AgeKit) Swift implementation of age.
+**All cryptography is pure in-process Swift** — there are **no third-party binaries
+and no subprocesses** anywhere in what ships. Crypto runs through Apple's CryptoKit
+and the [AgeKit](https://github.com/Oliver2213/AgeKit) Swift implementation of age.
 Secure Enclave support is a native re-implementation of `age-plugin-se`'s wire
-format, not a bundled copy of the plugin. There is nothing to trust but the app,
-Apple's frameworks, and one small vendored, auditable Bech32 file.
+format, not a bundled copy of the plugin. There is nothing to trust for the crypto
+but the app, Apple's frameworks, and one small vendored, auditable Bech32 file.
+
+The `.app` **does** bundle additional binaries beyond the main executable, but they
+are all **our own first-party code** — macOS *app extensions* that push the app's
+reach into other parts of the system (Finder, Quick Look). They add no new trust
+surface: each either links the *same* audited Swift core the app does, or ships no
+crypto at all. Specifically:
+
+- **Finder Quick Actions** (`EncryptAction` / `DecryptAction`) — headless Action
+  Extensions with **no crypto and no keys**. They don't even link the core; they
+  just forward the selected files to the app via LaunchServices and quit. All
+  encryption/decryption still happens in the one app process.
+- **Quick Look preview** (`QLExtension`) — links the Swift core (`AssuageCore`) and
+  uses its header-only inspector to render an `.age` file's metadata as a preview.
+  It reads the age header; it never decrypts payloads.
 
 Interoperability is verified against real age implementations, so files produced by
-Cypherdex work with the wider age ecosystem and vice versa.
+Assuage work with the wider age ecosystem and vice versa.
 
 ---
 
@@ -49,13 +63,19 @@ Cypherdex work with the wider age ecosystem and vice versa.
 - **Keychain persistence** (data-protection keychain, `ThisDeviceOnly`) so keys
   survive relaunch and never sync off the Mac.
 
-**System integration**
+**System integration** (all via first-party app extensions — see Trust model)
 - **Services** for **Encrypt**, **Decrypt**, and **Check** that accept selected
   **text or files**, so they appear in the system-wide *Services* menu and in
   **Finder's** right-click menu. A crypto tool shouldn't silently rewrite other
-  apps' data, so each service brings Cypherdex forward with the content loaded into
+  apps' data, so each service brings the app forward with the content loaded into
   the right panel (choose recipients, then encrypt) rather than transforming the
   pasteboard in place.
+- **Finder Quick Actions** — *Encrypt with Assuage* / *Decrypt with Assuage* on the
+  right-click menu for files and folders. The action forwards the selection to the
+  app (no crypto in the extension); the app infers encrypt vs. decrypt from the
+  contents and loads it into the right panel. Folders are zipped before encryption.
+- **Quick Look preview** of `.age` files — press Space in Finder to see the file's
+  age metadata (recipients/stanza types) without opening or decrypting it.
 
 **App**
 - Native SwiftUI Mac app: `NavigationSplitView` with Encrypt / Decrypt / Keys panels,
@@ -81,9 +101,11 @@ Cypherdex work with the wider age ecosystem and vice versa.
 
 ## Architecture
 
-Two layers: a testable core package and a thin native app.
+A testable core package, a native app, and a set of first-party app extensions that
+share that core. All crypto lives in the core; everything above it is UI or a thin
+system-integration shell that calls in.
 
-### `CypherdexCore` (local Swift 6 package)
+### `AssuageCore` (local Swift 6 package)
 
 All cryptographic logic, unit-tested with fast `swift test` (no Xcode/simulator).
 Depends on AgeKit. Platform floor macOS 15.
@@ -101,7 +123,7 @@ Depends on AgeKit. Platform floor macOS 15.
 | `Armoring` | age's PEM-style base64 armor (encode / decode / detect). |
 | `Bech32` (vendored) | Bech32 used for Secure Enclave encodings, vendored from age-plugin-se for byte-identical output. |
 
-### `Cypherdex` (SwiftUI app, macOS-only, Swift 6)
+### `Assuage` (SwiftUI app, macOS-only, Swift 6)
 
 | Area | Types |
 | --- | --- |
@@ -109,6 +131,16 @@ Depends on AgeKit. Platform floor macOS 15.
 | Persistence | `IdentityStore` (data-protection keychain, one item per identity, value = JSON). |
 | UI | `ContentView` (split view + Service dispatch), `EncryptView`, `DecryptView`, `KeysView`, `GenerateKeySheet`, plus `RecipientSelector`, `IdentityRow`, `FileWell`, `QueuedFilesList`, `ProgressStrip`, `InfoBanner`. |
 | Services | `ServiceProvider` (AppKit `NSObject` reading text/files from the pasteboard), `ServiceBus` (bridges to SwiftUI), `AppDelegate` (registers the provider), `Info.plist` `NSServices`. |
+
+### App extensions (embedded `.appex` bundles)
+
+Separate targets, each its own bundle embedded in the app. They extend the app into
+other parts of macOS without moving any crypto out of the app process.
+
+| Target | Extension point | Role |
+| --- | --- | --- |
+| `EncryptAction` / `DecryptAction` | Action Extension (Finder Quick Actions + Services) | Headless forwarders — no crypto, no keys, don't link the core. Resolve each selected item's file URL and open the app via LaunchServices, which grants the app access to the selection. Activation rules gate them: Encrypt for any item, Decrypt only when every item is a `.age` file. The app infers encrypt vs. decrypt from the bytes. |
+| `QLExtension` | Quick Look Preview | Links `AssuageCore` and uses its header-only `AgeFileInspector` to render an `.age` file's metadata in a preview. Reads the header only; never decrypts. |
 
 ### Concurrency
 
@@ -134,7 +166,7 @@ progress to the main actor via an `AsyncStream`; domain types are `Sendable`.
 
 ## Testing
 
-`swift test` in `CypherdexCore` — round trips (binary / armored / multi-chunk /
+`swift test` in `AssuageCore` — round trips (binary / armored / multi-chunk /
 multi-recipient), identity import/export, Codable persistence, Secure Enclave round
 trips on real hardware, and **interop both directions** with:
 
@@ -148,7 +180,9 @@ absent. Secure Enclave tests use `none` access control to run headless.
 
 ## Dependencies & modifications
 
-- **AgeKit** (`~/src/AgeKit`) — the age implementation. One minimal patch: `Age.Stanza`
+- **AgeKit** — the age implementation. We use our fork,
+  [Oliver2213/AgeKit](https://github.com/Oliver2213/AgeKit) (local checkout at
+  `~/src/AgeKit`, branch `assuagefixes`). One minimal patch: `Age.Stanza`
   was made publicly constructible/readable (its fields and `init(type:args:body:)`
   were `internal`), which its public `Recipient`/`Identity` protocols require to be
   usable by external conformers such as the Secure Enclave recipient.
