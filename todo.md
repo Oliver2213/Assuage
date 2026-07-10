@@ -1,7 +1,15 @@
 # TODO
 
-* [x] an app info struct like my other apps have with info like the website URL, repository URL (only show website if they're both the same) in the help menu
 * [x] Clipboard import (encrypt/decrypt from clipboard content)
+
+* age-agent! Was reading the age plugin spec and it briefly mentions an outline for them
+  A shim binary age-plugin-assuagent or something calls out / starts up the main app.
+  Users should be able to create... Idk. "agent identities" or something, which represent a set of their keys.
+  So the app might suggest "all keys", "all secure enclave keys" (better name for users), and these are dynamic and the public key stays the same as they add keys / remove them.
+  (option to have this not be the case, regenerate this key invalidating the old public key when the dynamic list changes)
+  My read of plugin spec suggests these agent identity keys are short-lived, so might change on app restart regardless. Option for this probably as well // fold it into above.
+
+* Stretch / harder for me to test directly:: if you have a keys window open, you should be able to drag it to an encrypt or decrypt list, our standard UI view for that.
 
 * Do we support passphrase encrypted age files as identities when decrypting? Do we support importing an encrypted identity (with a passphrase)?
 * QuickLook **Thumbnail** extension: a lock-badge thumbnail for `.age` files
