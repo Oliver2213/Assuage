@@ -115,14 +115,16 @@ public enum Cipher {
             let binary = try encryptToMemory(
                 source: input, totalBytes: totalBytes, recipient: recipient, progress: progress
             )
-            try Data(Armoring.armor(binary).utf8).write(to: destination)
+            try atomicWrite(to: destination) { try Data(Armoring.armor(binary).utf8).write(to: $0) }
         } else {
-            guard let output = OutputStream(url: destination, append: false) else {
-                throw AssuageError.ioFailure
+            try atomicWrite(to: destination) { temp in
+                guard let output = OutputStream(url: temp, append: false) else {
+                    throw AssuageError.ioFailure
+                }
+                output.open()
+                defer { output.close() }
+                try encryptCore(source: input, totalBytes: totalBytes, recipient: recipient, into: output, progress: progress)
             }
-            output.open()
-            defer { output.close() }
-            try encryptCore(source: input, totalBytes: totalBytes, recipient: recipient, into: output, progress: progress)
         }
     }
 
@@ -140,13 +142,15 @@ public enum Cipher {
         } else {
             binary = try Data(contentsOf: source, options: .mappedIfSafe)
         }
-        guard let output = OutputStream(url: destination, append: false) else {
-            throw AssuageError.ioFailure
-        }
-        output.open()
-        defer { output.close() }
-        try mappingIncorrectPassphrase {
-            try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+        try atomicWrite(to: destination) { temp in
+            guard let output = OutputStream(url: temp, append: false) else {
+                throw AssuageError.ioFailure
+            }
+            output.open()
+            defer { output.close() }
+            try mappingIncorrectPassphrase {
+                try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+            }
         }
     }
 
@@ -169,14 +173,16 @@ public enum Cipher {
             let binary = try encryptToMemory(
                 source: input, totalBytes: totalBytes, recipient: recipient, progress: progress
             )
-            try Data(Armoring.armor(binary).utf8).write(to: destination)
+            try atomicWrite(to: destination) { try Data(Armoring.armor(binary).utf8).write(to: $0) }
         } else {
-            guard let output = OutputStream(url: destination, append: false) else {
-                throw AssuageError.ioFailure
+            try atomicWrite(to: destination) { temp in
+                guard let output = OutputStream(url: temp, append: false) else {
+                    throw AssuageError.ioFailure
+                }
+                output.open()
+                defer { output.close() }
+                try encryptCore(source: input, totalBytes: totalBytes, recipient: recipient, into: output, progress: progress)
             }
-            output.open()
-            defer { output.close() }
-            try encryptCore(source: input, totalBytes: totalBytes, recipient: recipient, into: output, progress: progress)
         }
     }
 
@@ -195,12 +201,42 @@ public enum Cipher {
         } else {
             binary = try Data(contentsOf: source, options: .mappedIfSafe)
         }
-        guard let output = OutputStream(url: destination, append: false) else {
-            throw AssuageError.ioFailure
+        try atomicWrite(to: destination) { temp in
+            guard let output = OutputStream(url: temp, append: false) else {
+                throw AssuageError.ioFailure
+            }
+            output.open()
+            defer { output.close() }
+            try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
         }
-        output.open()
-        defer { output.close() }
-        try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+    }
+
+    // MARK: Atomic output
+
+    /// Produce `destination` by writing into a sibling temporary file and moving it
+    /// into place only on success. If `write` throws — a wrong key, a bad
+    /// passphrase, an I/O error — the temporary file is removed, so a failed
+    /// operation never leaves a partial or zero-byte file behind, and any existing
+    /// file at `destination` is left untouched.
+    private static func atomicWrite(to destination: URL, _ write: (URL) throws -> Void) throws {
+        let temp = destination.deletingLastPathComponent()
+            .appendingPathComponent(".\(destination.lastPathComponent).\(UUID().uuidString).partial")
+        do {
+            try write(temp)
+        } catch {
+            try? FileManager.default.removeItem(at: temp)
+            throw error
+        }
+        do {
+            if FileManager.default.fileExists(atPath: destination.path) {
+                _ = try FileManager.default.replaceItemAt(destination, withItemAt: temp)
+            } else {
+                try FileManager.default.moveItem(at: temp, to: destination)
+            }
+        } catch {
+            try? FileManager.default.removeItem(at: temp)
+            throw error
+        }
     }
 
     // MARK: Inspection

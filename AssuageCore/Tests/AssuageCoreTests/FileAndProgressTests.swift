@@ -53,6 +53,43 @@ struct FileAndProgressTests {
         #expect(try Data(contentsOf: restored) == original)
     }
 
+    @Test("A failed decrypt leaves no partial file behind")
+    func failedDecryptWritesNothing() throws {
+        let dir = TempDir()
+        let owner = AgeIdentity.generateX25519()
+        let stranger = AgeIdentity.generateX25519()
+
+        let encrypted = dir.file("secret.age")
+        try Cipher.encrypt(Data("classified".utf8), to: [owner.recipient]).write(to: encrypted)
+
+        // The real destination the app uses: the source minus its `.age` extension.
+        let out = encrypted.deletingPathExtension() // …/secret
+        #expect(throws: (any Error).self) {
+            try Cipher.decryptFile(at: encrypted, to: out, identities: [stranger])
+        }
+        // No zero-byte turd left where the output would have gone.
+        #expect(!FileManager.default.fileExists(atPath: out.path))
+    }
+
+    @Test("A failed decrypt leaves an existing destination untouched")
+    func failedDecryptPreservesExisting() throws {
+        let dir = TempDir()
+        let owner = AgeIdentity.generateX25519()
+        let stranger = AgeIdentity.generateX25519()
+
+        let encrypted = dir.file("secret.age")
+        try Cipher.encrypt(Data("classified".utf8), to: [owner.recipient]).write(to: encrypted)
+
+        let out = encrypted.deletingPathExtension() // …/secret
+        let sentinel = Data("do not clobber me".utf8)
+        try sentinel.write(to: out)
+
+        #expect(throws: (any Error).self) {
+            try Cipher.decryptFile(at: encrypted, to: out, identities: [stranger])
+        }
+        #expect(try Data(contentsOf: out) == sentinel)
+    }
+
     @Test("Progress is reported and reaches the total")
     func progressReporting() throws {
         let identity = AgeIdentity.generateX25519()
