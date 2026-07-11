@@ -123,8 +123,9 @@ struct IdentityStore {
     }
 
     /// Save (or replace) an identity: an unprotected metadata item plus, for
-    /// keychain (X25519) keys, a secret item guarded per its protection. The
-    /// secret must be present on `identity` (it is at generation/import time).
+    /// keychain keys (X25519, SSH, or post-quantum), a secret item guarded per its
+    /// protection. The secret must be present on `identity` (it is at
+    /// generation/import time). Secure Enclave keys have no secret item.
     func save(_ identity: AgeIdentity) throws {
         let synced = identity.isSynced
         // Metadata: the identity with its secret blanked. Always readable.
@@ -133,7 +134,7 @@ struct IdentityStore {
                    data: metadata, accessControl: nil, synced: synced, label: identity.displayName,
                    description: metaDescription(for: identity))
 
-        guard let secret = identity.x25519Secret else { return } // SE keys keep no secret item
+        guard let secret = identity.keychainSecret else { return } // SE keys keep no secret item
         let accessControl: SecAccessControl?
         if case .authenticated(let auth) = identity.keychainProtection {
             accessControl = try makeAccessControl(auth)
