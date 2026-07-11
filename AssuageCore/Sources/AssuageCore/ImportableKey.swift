@@ -12,6 +12,9 @@ public enum ImportableSecret: Sendable, Hashable {
     /// from the file's `# access control:` comment (the enclave enforces the real
     /// policy regardless).
     case secureEnclave(identity: String, accessControl: SecureEnclaveAccessControl)
+    /// A hardware post-quantum Secure Enclave key (an `AGE-PLUGIN-SE-1…` whose
+    /// payload is the ML-KEM-768 + P-256 container). Device-bound, like `secureEnclave`.
+    case secureEnclavePostQuantum(identity: String, accessControl: SecureEnclaveAccessControl)
 }
 
 /// A single secret key found in an imported file or clipboard, validated and
@@ -55,12 +58,23 @@ extension AgeIdentity {
                     secret: .x25519(secretKey: parsed.string),
                     recipient: AgeRecipient(kind: .x25519, encoding: parsed.recipient.string)
                 ))
-            } else if trimmed.hasPrefix("AGE-PLUGIN-SE-1"),
-                      let recipient = try? SecureEnclaveKeys.recipient(forIdentity: trimmed) {
-                keys.append(ImportableKey(
-                    secret: .secureEnclave(identity: trimmed, accessControl: pendingAccessControl ?? .anyBiometryOrPasscode),
-                    recipient: AgeRecipient(kind: .secureEnclave, encoding: recipient)
-                ))
+            } else if trimmed.hasPrefix("AGE-PLUGIN-SE-1") {
+                // One HRP covers both classical (P-256) and post-quantum enclave keys;
+                // the payload's shape decides which. Deriving the recipient also proves
+                // the key belongs to this Mac. No enclave access, so no prompt.
+                let accessControl = pendingAccessControl ?? .anyBiometryOrPasscode
+                if #available(macOS 26, iOS 26, *), SecureEnclavePostQuantumKeys.isPostQuantum(trimmed),
+                   let recipient = try? SecureEnclavePostQuantumKeys.recipient(forIdentity: trimmed) {
+                    keys.append(ImportableKey(
+                        secret: .secureEnclavePostQuantum(identity: trimmed, accessControl: accessControl),
+                        recipient: AgeRecipient(kind: .postQuantumHardware, encoding: recipient)
+                    ))
+                } else if let recipient = try? SecureEnclaveKeys.recipient(forIdentity: trimmed) {
+                    keys.append(ImportableKey(
+                        secret: .secureEnclave(identity: trimmed, accessControl: accessControl),
+                        recipient: AgeRecipient(kind: .secureEnclave, encoding: recipient)
+                    ))
+                }
             }
             pendingAccessControl = nil
         }
@@ -146,6 +160,14 @@ extension AgeIdentity {
                 label: label,
                 created: created,
                 material: .secureEnclave(identity: identity, accessControl: accessControl),
+                recipient: key.recipient
+            )
+        case .secureEnclavePostQuantum(let identity, let accessControl):
+            self.init(
+                id: UUID(),
+                label: label,
+                created: created,
+                material: .secureEnclavePostQuantum(identity: identity, accessControl: accessControl),
                 recipient: key.recipient
             )
         }

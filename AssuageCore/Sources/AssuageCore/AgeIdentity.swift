@@ -21,10 +21,11 @@ public enum IdentityMaterial: Sendable, Hashable, Codable {
     /// only usable on the Mac that generated it.
     case secureEnclave(identity: String, accessControl: SecureEnclaveAccessControl)
 
-    /// A hardware post-quantum key (`AGE-PLUGIN-SE-PQ-1…`): an ML-KEM-768 key and a
-    /// P-256 key both bound to the Secure Enclave, forming an `age1tagpq…`
+    /// A hardware post-quantum key (an `AGE-PLUGIN-SE-1…` whose payload holds an
+    /// ML-KEM-768 and a P-256 enclave blob), forming an `age1tagpq…`
     /// (`mlkem768p256tag`) recipient. Device-bound, never synced, and its private
-    /// halves stay in the enclave — exactly like `secureEnclave`, but quantum-secure.
+    /// halves stay in the enclave — like `secureEnclave`, but quantum-secure. The
+    /// encoding is age-plugin-se's, so these keys import/export between the two tools.
     case secureEnclavePostQuantum(identity: String, accessControl: SecureEnclaveAccessControl)
 
     /// An imported SSH Ed25519 key. We keep only the 32-byte Ed25519 `seed`
