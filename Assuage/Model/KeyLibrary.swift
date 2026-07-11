@@ -33,6 +33,16 @@ final class KeyLibrary {
         return identity
     }
 
+    /// Generate a post-quantum (X-Wing) key, stored in the keychain like an X25519
+    /// key. Requires macOS 26 (CryptoKit's X-Wing KEM).
+    @available(macOS 26, *)
+    @discardableResult
+    func generatePostQuantum(label: String, protection: KeychainProtection = .local) throws -> AgeIdentity {
+        let identity = try AgeIdentity.generatePostQuantum(label: label, protection: protection)
+        try add(identity)
+        return identity
+    }
+
     @discardableResult
     func generateSecureEnclave(
         label: String,
@@ -84,7 +94,10 @@ final class KeyLibrary {
             context.touchIDAuthenticationAllowableReuseDuration = LATouchIDAuthenticationMaximumAllowableReuseDuration
             return try identities.map { identity in
                 // Only keychain keys need hydration, and only if not already loaded.
-                guard identity.keychainProtection != nil, identity.x25519Secret == nil else {
+                // Uses keychainSecret (not x25519Secret) so SSH and post-quantum keys
+                // aren't needlessly re-fetched — which for authenticated keys would
+                // re-prompt for Touch ID.
+                guard identity.keychainProtection != nil, identity.keychainSecret == nil else {
                     return identity
                 }
                 let secret = try store.secret(for: identity, context: context)

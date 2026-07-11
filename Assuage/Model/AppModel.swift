@@ -59,6 +59,12 @@ final class AppModel {
         try library.generateX25519(label: label, protection: protection)
     }
 
+    @available(macOS 26, *)
+    @discardableResult
+    func generatePostQuantum(label: String, protection: KeychainProtection = .local) throws -> AgeIdentity {
+        try library.generatePostQuantum(label: label, protection: protection)
+    }
+
     @discardableResult
     func generateSecureEnclave(label: String, accessControl: SecureEnclaveAccessControl) throws -> AgeIdentity {
         try library.generateSecureEnclave(label: label, accessControl: accessControl)

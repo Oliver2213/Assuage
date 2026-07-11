@@ -39,6 +39,7 @@ extension AgeIdentity {
         case .x25519: return "age X25519"
         case .secureEnclave: return "Secure Enclave (P-256)"
         case .sshEd25519: return "SSH (Ed25519)"
+        case .postQuantum: return "age post-quantum (X-Wing)"
         }
     }
 
