@@ -57,13 +57,15 @@ final class KeyLibrary {
     /// roll the in-memory list back and rethrow, so the UI never shows a key that
     /// wouldn't survive a relaunch.
     private func add(_ identity: AgeIdentity) throws {
-        identities.append(identity)
-        do {
-            try store.save(identity)
-        } catch {
-            identities.removeAll { $0.id == identity.id }
-            throw error
-        }
+        // Persist first; on failure nothing is added to the in-memory list.
+        try store.save(identity)
+        // Then keep only a secret-less copy in memory — exactly what `loadAll`
+        // returns — so a freshly generated or imported key's private half doesn't
+        // linger, and every operation re-hydrates it from the keychain on demand.
+        // That closes the gap where a just-created authenticated key could be used
+        // once without a Touch ID prompt. (A no-op for Secure Enclave keys, which
+        // hold no extractable secret.)
+        identities.append(identity.withKeychainSecret(""))
     }
 
     /// Read an identity file and return the keys it contains, ready to be reviewed
