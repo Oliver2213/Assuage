@@ -18,6 +18,8 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
         case sshEd25519
         /// Native age post-quantum X-Wing public key: `age1pq1…`
         case postQuantum
+        /// Tagged hybrid post-quantum public key (hardware / plugin), `age1tagpq…`.
+        case postQuantumHardware
     }
 
     public let kind: Kind
@@ -54,6 +56,13 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
             }
             _ = try Age.MLKEM768X25519Recipient(s)   // validates Bech32 + key length
             self.kind = .postQuantum
+            self.encoding = s
+        } else if s.hasPrefix("age1tagpq") {
+            guard #available(macOS 26, iOS 26, *) else {
+                throw AssuageError.featureNotYetImplemented("Post-quantum recipients require macOS 26 or later.")
+            }
+            _ = try Age.MLKEM768P256Recipient(s)     // validates Bech32 + key length
+            self.kind = .postQuantumHardware
             self.encoding = s
         } else if s.hasPrefix("age1") {
             _ = try Age.X25519Recipient(s)   // validates Bech32 + key length
@@ -97,6 +106,11 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
                 throw AssuageError.featureNotYetImplemented("Post-quantum recipients require macOS 26 or later.")
             }
             return try Age.MLKEM768X25519Recipient(encoding)
+        case .postQuantumHardware:
+            guard #available(macOS 26, iOS 26, *) else {
+                throw AssuageError.featureNotYetImplemented("Post-quantum recipients require macOS 26 or later.")
+            }
+            return try Age.MLKEM768P256Recipient(encoding)
         }
     }
 }

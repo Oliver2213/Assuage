@@ -97,6 +97,12 @@ extension AgeFileInfo {
             // Anonymous recipient types (X25519 and mlkem768x25519) carry no tag —
             // nothing in the header to match against.
             return false
+
+        case .postQuantumHardware:
+            // Tagged, but its private key lives in a hardware plugin (e.g.
+            // age-plugin-se) that does the decryption — we only ever encrypt to it,
+            // never hold the identity, so we can't address a file with it.
+            return false
         }
     }
 }
