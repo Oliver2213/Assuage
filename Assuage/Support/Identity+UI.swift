@@ -8,7 +8,7 @@ extension AgeIdentity {
     }
 
     var defaultName: String {
-        if case .sshEd25519 = material { return "SSH key" }
+        if material.kind == .sshEd25519 { return "SSH key" }
         switch source {
         case .secureEnclave: return "Secure Enclave key"
         case .keychain: return "age key"
@@ -16,7 +16,7 @@ extension AgeIdentity {
     }
 
     var sourceIcon: String {
-        if case .sshEd25519 = material { return "terminal" }
+        if material.kind == .sshEd25519 { return "terminal" }
         switch keychainProtection {
         case .synced: return "icloud"
         case .local: return "key"
@@ -34,17 +34,5 @@ extension AgeIdentity {
         }
     }
 
-    var kindDescription: String {
-        switch material {
-        case .x25519: return "age X25519"
-        case .secureEnclave: return "Secure Enclave (P-256)"
-        case .sshEd25519: return "SSH (Ed25519)"
-        case .postQuantum: return "age post-quantum (X-Wing)"
-        }
-    }
-
-    var accessControl: SecureEnclaveAccessControl? {
-        if case .secureEnclave(_, let accessControl) = material { return accessControl }
-        return nil
-    }
+    var kindDescription: String { material.kind.description }
 }

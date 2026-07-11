@@ -99,10 +99,24 @@ extension AgeFileInfo {
             return false
 
         case .postQuantumHardware:
-            // Tagged, but its private key lives in a hardware plugin (e.g.
-            // age-plugin-se) that does the decryption — we only ever encrypt to it,
-            // never hold the identity, so we can't address a file with it.
-            return false
+            // mlkem768p256tag carries a 4-byte tag derived from the recipient's
+            // P-256 point — checkable from public data, no enclave access.
+            guard let recipientBytes = try? Bech32().decode(identity.recipient.encoding).data,
+                  recipientBytes.count == 1184 + 65 else {
+                return false
+            }
+            let pointHash = Data(SHA256.hash(data: recipientBytes.suffix(65)).prefix(4))
+            return recipients.contains { stanza in
+                guard stanza.type == "mlkem768p256tag", stanza.args.count == 2,
+                      let tag = Data(base64RawEncoded: stanza.args[0]), tag.count == 4,
+                      let enc = Data(base64RawEncoded: stanza.args[1]) else {
+                    return false
+                }
+                let prk = HKDF<SHA256>.extract(
+                    inputKeyMaterial: SymmetricKey(data: enc + pointHash),
+                    salt: Data("age-encryption.org/mlkem768p256tag".utf8))
+                return Data(prk).prefix(4) == tag
+            }
         }
     }
 }

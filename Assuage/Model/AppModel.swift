@@ -70,6 +70,12 @@ final class AppModel {
         try library.generateSecureEnclave(label: label, accessControl: accessControl)
     }
 
+    @available(macOS 26, *)
+    @discardableResult
+    func generateSecureEnclavePostQuantum(label: String, accessControl: SecureEnclaveAccessControl) throws -> AgeIdentity {
+        try library.generateSecureEnclavePostQuantum(label: label, accessControl: accessControl)
+    }
+
     func importableKeys(at url: URL) throws -> [ImportableKey] {
         try library.importableKeys(at: url)
     }

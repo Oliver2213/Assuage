@@ -53,6 +53,16 @@ final class KeyLibrary {
         return identity
     }
 
+    /// Generate a hardware post-quantum key (Secure Enclave ML-KEM-768 + P-256).
+    /// Requires macOS 26.
+    @available(macOS 26, *)
+    @discardableResult
+    func generateSecureEnclavePostQuantum(label: String, accessControl: SecureEnclaveAccessControl) throws -> AgeIdentity {
+        let identity = try AgeIdentity.generateSecureEnclavePostQuantum(label: label, accessControl: accessControl)
+        try add(identity)
+        return identity
+    }
+
     /// Append an identity and persist it. If the keychain rejects the write we
     /// roll the in-memory list back and rethrow, so the UI never shows a key that
     /// wouldn't survive a relaunch.

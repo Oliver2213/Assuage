@@ -35,11 +35,10 @@ struct GenerateKeySheet: View {
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
 
-    /// Storage rows offered for the current algorithm. A native Secure Enclave key
-    /// is P-256, so it can't (yet) be post-quantum — hide that row for PQ.
-    private var availableStorage: [Storage] {
-        isPostQuantum ? Storage.allCases.filter { $0 != .secureEnclave } : Storage.allCases
-    }
+    /// Storage rows offered. All apply to both algorithms: a keychain key is
+    /// X25519 or X-Wing, and the Secure Enclave row is P-256 or (post-quantum)
+    /// ML-KEM-768 + P-256.
+    private var availableStorage: [Storage] { Storage.allCases }
 
     /// The keychain protection for the non-enclave rows.
     private var keychainProtection: KeychainProtection {
@@ -63,10 +62,6 @@ struct GenerateKeySheet: View {
                         Text("Post-quantum").tag(true)
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: isPostQuantum) { _, pq in
-                        // A native enclave key is P-256; it can't be post-quantum.
-                        if pq, storage == .secureEnclave { storage = .thisDevice }
-                    }
                 }
 
                 TextField("Label", text: $label, prompt: Text("Optional, e.g. “My Laptop”"))
@@ -137,7 +132,9 @@ struct GenerateKeySheet: View {
     private var explanation: LocalizedStringKey {
         switch storage {
         case .secureEnclave:
-            return "A **Secure Enclave** key (P-256): sealed by this Mac’s enclave, so you still hold it and can export it for backup, but it only works on the Mac that generated it. Compatible with age-plugin-se."
+            return isPostQuantum
+                ? "A **Secure Enclave** post-quantum key (ML-KEM-768 + P-256): quantum-secure, with both private keys sealed inside this Mac’s enclave. Only works on the Mac that generated it; wire-compatible with age-plugin-se."
+                : "A **Secure Enclave** key (P-256): sealed by this Mac’s enclave, so you still hold it and can export it for backup, but it only works on the Mac that generated it. Compatible with age-plugin-se."
         case .synced:
             return isPostQuantum
                 ? "A post-quantum key (X-Wing), synced to your other devices via iCloud Keychain. Exportable and usable with age 1.3 or later."
@@ -157,7 +154,12 @@ struct GenerateKeySheet: View {
         do {
             switch storage {
             case .secureEnclave:
-                try model.generateSecureEnclave(label: label, accessControl: accessControl)
+                if isPostQuantum {
+                    guard #available(macOS 26, *) else { return }
+                    try model.generateSecureEnclavePostQuantum(label: label, accessControl: accessControl)
+                } else {
+                    try model.generateSecureEnclave(label: label, accessControl: accessControl)
+                }
             case .synced, .thisDevice, .touchID:
                 if isPostQuantum {
                     guard #available(macOS 26, *) else { return }
