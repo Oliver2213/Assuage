@@ -32,3 +32,11 @@ IE support fine grain control over which keys are used for a given contact but h
 * Action extension?: encrypt given file or data. Might not be needed because of other ways: finder integration, share
 * iMessage app to enc / dec in a conversation. This is mostly pointless except for sms or unencrypted RCS, but maybe.
 * stretch / time goal: intents for the 27 releases, so siri knows what the app does and can access its functions on user's behalf
+
+* Archive / compression options for folder encryption (currently: folder -> `.zip` (deflate) via NSFileCoordinator, then age-encrypt; decrypt leaves the `.zip`).
+  Better ratios are available first-party and in-process (sandbox-safe, no dependency):
+  * AppleArchive framework: folder trees with LZFSE (balanced) or LZMA (~7z-tight) -> `.aar`. Small code. Downside: `.aar` is macOS-centric (expands via built-in `aa` or our app; Finder double-click support is inconsistent).
+  * Compression framework: LZFSE/LZMA/LZ4/zlib but single-stream only (no directory tree).
+  * `.7z` / `.tar.xz` *format* (Windows 7-Zip / Linux interop): needs libarchive — ships and reads+writes 7z, but it's unsupported to link (no SDK headers, App-Store-risky) and we can't shell out to `bsdtar`/`aa` under the sandbox — so this means vendoring a third-party lib. Bigger call.
+  Would offer the user a format preference (Zip = compatible default, Apple Archive = smaller). Pairs with a future auto-unpack-on-decrypt (use the same framework to expand back to a folder instead of leaving the archive).
+  **Justification note:** a good final touch, but the tighter options are macOS-centric formats — they mostly benefit Mac users. Our goal is interop / UI convenience / deep system integration, and this doesn't quite fit that, so it's harder to justify. Still nice to have.
