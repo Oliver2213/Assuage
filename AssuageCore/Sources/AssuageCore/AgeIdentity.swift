@@ -29,6 +29,15 @@ public enum IdentityMaterial: Sendable, Hashable, Codable {
     /// `seed` may be empty for an identity loaded from the keychain but not yet
     /// unlocked — the app hydrates it on demand (see `withKeychainSecret`).
     case sshEd25519(seed: String, protection: KeychainProtection)
+
+    /// A native age post-quantum X-Wing secret key (`AGE-SECRET-KEY-PQ-1…`),
+    /// exportable and usable with age 1.3+. Storage-wise it behaves exactly like
+    /// `x25519`: the secret lives in the keychain and `protection` records where
+    /// it's stored and whether it's authentication-gated.
+    ///
+    /// `secretKey` may be empty for an identity loaded from the keychain but not
+    /// yet unlocked — the app hydrates it on demand (see `withKeychainSecret`).
+    case postQuantum(secretKey: String, protection: KeychainProtection)
 }
 
 /// An age identity (private key) the app can decrypt with, plus the metadata age
@@ -52,7 +61,7 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
 
     public var source: Source {
         switch material {
-        case .x25519(_, let protection), .sshEd25519(_, let protection):
+        case .x25519(_, let protection), .sshEd25519(_, let protection), .postQuantum(_, let protection):
             return .keychain(synced: protection.isSynced)
         case .secureEnclave:
             return .secureEnclave
@@ -63,7 +72,7 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
     /// Secure Enclave keys.
     public var keychainProtection: KeychainProtection? {
         switch material {
-        case .x25519(_, let protection), .sshEd25519(_, let protection): return protection
+        case .x25519(_, let protection), .sshEd25519(_, let protection), .postQuantum(_, let protection): return protection
         case .secureEnclave: return nil
         }
     }
@@ -72,7 +81,7 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
     /// Only keychain keys (X25519 or SSH) can sync; Secure Enclave keys never do.
     public var isSynced: Bool {
         switch material {
-        case .x25519(_, let protection), .sshEd25519(_, let protection): return protection.isSynced
+        case .x25519(_, let protection), .sshEd25519(_, let protection), .postQuantum(_, let protection): return protection.isSynced
         case .secureEnclave: return false
         }
     }
@@ -82,7 +91,7 @@ public struct AgeIdentity: Sendable, Identifiable, Hashable, Codable {
     /// keychain keys.
     public var requiresPresence: Bool {
         switch material {
-        case .x25519(_, let protection), .sshEd25519(_, let protection):
+        case .x25519(_, let protection), .sshEd25519(_, let protection), .postQuantum(_, let protection):
             return protection.requiresAuthentication
         case .secureEnclave(_, let accessControl): return accessControl.requiresPresence
         }
@@ -148,7 +157,7 @@ extension AgeIdentity {
     /// the accessor the store uses to persist and probe the secret item.
     public var keychainSecret: String? {
         switch material {
-        case .x25519(let secret, _), .sshEd25519(let secret, _): return secret.isEmpty ? nil : secret
+        case .x25519(let secret, _), .sshEd25519(let secret, _), .postQuantum(let secret, _): return secret.isEmpty ? nil : secret
         case .secureEnclave: return nil
         }
     }
@@ -160,6 +169,7 @@ extension AgeIdentity {
         switch material {
         case .x25519(_, let protection): filled = .x25519(secretKey: secret, protection: protection)
         case .sshEd25519(_, let protection): filled = .sshEd25519(seed: secret, protection: protection)
+        case .postQuantum(_, let protection): filled = .postQuantum(secretKey: secret, protection: protection)
         case .secureEnclave: return self
         }
         return AgeIdentity(id: id, label: label, created: created, material: filled, recipient: recipient)
@@ -173,6 +183,7 @@ extension AgeIdentity {
         switch material {
         case .x25519: reprotected = .x25519(secretKey: secretKey, protection: protection)
         case .sshEd25519: reprotected = .sshEd25519(seed: secretKey, protection: protection)
+        case .postQuantum: reprotected = .postQuantum(secretKey: secretKey, protection: protection)
         case .secureEnclave: return self
         }
         return AgeIdentity(id: id, label: label, created: created, material: reprotected, recipient: recipient)
@@ -247,7 +258,39 @@ extension AgeIdentity {
             return SecureEnclaveIdentity(privateKey: privateKey)
         case .sshEd25519(let seed, _):
             return try Self.parseSSHEd25519(seed: seed)
+        case .postQuantum(let secret, _):
+            guard #available(macOS 26, iOS 26, *) else {
+                throw AssuageError.featureNotYetImplemented("Post-quantum keys require macOS 26 or later.")
+            }
+            return try Self.parsePostQuantum(secret)
         }
+    }
+
+    /// Rebuild the AgeKit post-quantum identity from a stored `AGE-SECRET-KEY-PQ-…`
+    /// secret string.
+    @available(macOS 26, iOS 26, *)
+    static func parsePostQuantum(_ secretKey: String) throws -> Age.MLKEM768X25519Identity {
+        do {
+            return try Age.MLKEM768X25519Identity(secretKey.trimmingCharacters(in: .whitespacesAndNewlines))
+        } catch {
+            throw AssuageError.unrecognizedIdentity(secretKey)
+        }
+    }
+
+    /// Generate a fresh post-quantum (MLKEM768-X25519 / X-Wing) identity, stored in
+    /// the keychain. Secure against a future quantum computer.
+    ///
+    /// - Parameter protection: where the secret is stored and how it's guarded.
+    @available(macOS 26, iOS 26, *)
+    public static func generatePostQuantum(label: String = "", protection: KeychainProtection = .local, created: Date = Date()) throws -> AgeIdentity {
+        let identity = try Age.MLKEM768X25519Identity.generate()
+        return AgeIdentity(
+            id: UUID(),
+            label: label,
+            created: created,
+            material: .postQuantum(secretKey: identity.string, protection: protection),
+            recipient: AgeRecipient(kind: .postQuantum, encoding: identity.recipient.string)
+        )
     }
 
     /// Generate a new Secure Enclave identity on this Mac.
@@ -301,6 +344,8 @@ extension AgeIdentity {
             if let identity = try? Self.parseSSHEd25519(seed: seed) {
                 lines.append(identity.opensshPEM())
             }
+        case .postQuantum(let secret, _):
+            lines.append(secret)
         }
         return lines.joined(separator: "\n") + "\n"
     }

@@ -50,11 +50,13 @@ extension AgeFileInfo {
         let matching = identities.filter { addresses($0) }
         if !matching.isEmpty { return .decryptable(matching: matching) }
 
-        // No provable match. An anonymous X25519 recipient might still be for one
-        // of our X25519 keys — the header can't say which.
+        // No provable match. An anonymous recipient (X25519 or mlkem768x25519) might
+        // still be for one of our keys of the same kind — the header can't say which.
         let hasAnonymousX25519 = recipients.contains { $0.kind == .x25519 }
         let holdsX25519 = identities.contains { $0.recipient.kind == .x25519 }
-        if hasAnonymousX25519 && holdsX25519 { return .undetermined }
+        let hasAnonymousPQ = recipients.contains { if case .postQuantum = $0.kind { return true }; return false }
+        let holdsPQ = identities.contains { $0.recipient.kind == .postQuantum }
+        if (hasAnonymousX25519 && holdsX25519) || (hasAnonymousPQ && holdsPQ) { return .undetermined }
 
         return .noMatchingKey
     }
@@ -91,8 +93,9 @@ extension AgeFileInfo {
                 }
             }
 
-        case .x25519:
-            // Anonymous recipient type — nothing in the header to match against.
+        case .x25519, .postQuantum:
+            // Anonymous recipient types (X25519 and mlkem768x25519) carry no tag —
+            // nothing in the header to match against.
             return false
         }
     }

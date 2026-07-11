@@ -16,6 +16,8 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
         case secureEnclave
         /// An SSH Ed25519 public key: an `ssh-ed25519 AAAA… [comment]` line.
         case sshEd25519
+        /// Native age post-quantum X-Wing public key: `age1pq1…`
+        case postQuantum
     }
 
     public let kind: Kind
@@ -45,6 +47,13 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
         if s.hasPrefix("age1se1") || s.hasPrefix("age1p256tag1") {
             _ = try P256.KeyAgreement.PublicKey(ageSecureEnclaveRecipient: s)  // validates
             self.kind = .secureEnclave
+            self.encoding = s
+        } else if s.hasPrefix("age1pq1") {
+            guard #available(macOS 26, iOS 26, *) else {
+                throw AssuageError.featureNotYetImplemented("Post-quantum recipients require macOS 26 or later.")
+            }
+            _ = try Age.MLKEM768X25519Recipient(s)   // validates Bech32 + key length
+            self.kind = .postQuantum
             self.encoding = s
         } else if s.hasPrefix("age1") {
             _ = try Age.X25519Recipient(s)   // validates Bech32 + key length
@@ -83,6 +92,11 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
             return SecureEnclaveRecipient(publicKey: publicKey, stanzaType: stanzaType)
         case .sshEd25519:
             return try Age.SSHEd25519Recipient(authorizedKey: encoding)
+        case .postQuantum:
+            guard #available(macOS 26, iOS 26, *) else {
+                throw AssuageError.featureNotYetImplemented("Post-quantum recipients require macOS 26 or later.")
+            }
+            return try Age.MLKEM768X25519Recipient(encoding)
         }
     }
 }
