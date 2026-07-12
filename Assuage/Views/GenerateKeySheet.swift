@@ -5,30 +5,11 @@ struct GenerateKeySheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
 
-    /// Where a key lives and how it's guarded — one ordered ladder from most
-    /// portable to most locked-down. The underlying algorithm is derived rather
-    /// than chosen: the keychain rows are X25519 (or X-Wing when post-quantum),
-    /// and the Secure Enclave row is a native P-256 key.
-    enum Storage: CaseIterable, Identifiable {
-        case synced, thisDevice, touchID, secureEnclave
-        var id: Self { self }
-        var title: String {
-            switch self {
-            case .synced: return "Synced across your devices (iCloud)"
-            case .thisDevice: return "This device only"
-            case .touchID: return "This device · Touch ID"
-            case .secureEnclave: return "Secure Enclave · this Mac, not exportable (P-256)"
-            }
-        }
-        /// Whether this row asks for authentication (and shows a "Require" picker).
-        var isAuthenticated: Bool { self == .touchID || self == .secureEnclave }
-    }
-
     @AppStorage(PreferenceKeys.defaultEnclaveAccessControl)
     private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
 
     @State private var isPostQuantum = false
-    @State private var storage: Storage = .touchID
+    @State private var storage: KeyStorage = .touchID
     @State private var label = ""
     @State private var keychainAuth: KeychainAuth = .biometryOrPasscode
     @State private var accessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
@@ -38,17 +19,10 @@ struct GenerateKeySheet: View {
     /// Storage rows offered. All apply to both algorithms: a keychain key is
     /// X25519 or X-Wing, and the Secure Enclave row is P-256 or (post-quantum)
     /// ML-KEM-768 + P-256.
-    private var availableStorage: [Storage] { Storage.allCases }
+    private var availableStorage: [KeyStorage] { KeyStorage.allCases }
 
     /// The keychain protection for the non-enclave rows.
-    private var keychainProtection: KeychainProtection {
-        switch storage {
-        case .synced: return .synced
-        case .thisDevice: return .local
-        case .touchID: return .authenticated(keychainAuth)
-        case .secureEnclave: return .local // unused: enclave keys take a different path
-        }
-    }
+    private var keychainProtection: KeychainProtection { storage.keychainProtection(auth: keychainAuth) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {

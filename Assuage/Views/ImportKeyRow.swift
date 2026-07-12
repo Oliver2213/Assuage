@@ -44,7 +44,7 @@ struct ImportKeyRow: View {
                     .help("Device-bound key. It stays in this Mac’s Secure Enclave and can’t be moved or synced.")
             } else {
                 Picker("Storage", selection: $draft.storage) {
-                    ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+                    ForEach(KeyStorage.keychainCases) { Text($0.title).tag($0) }
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)

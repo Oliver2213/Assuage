@@ -19,7 +19,7 @@ struct ImportKeysSheet: View {
 
     // Defaults, chosen before picking a source.
     @State private var defaultName = ""
-    @State private var defaultStorage: KeychainStorageMode = .authenticated
+    @State private var defaultStorage: KeyStorage = .touchID
     @State private var defaultAuth: KeychainAuth = .biometryOrPasscode
     @State private var deleteFileAfter = false
 
@@ -52,9 +52,9 @@ struct ImportKeysSheet: View {
             Form {
                 TextField("Default name", text: $defaultName, prompt: Text("Optional — overrides names below"))
                 Picker("Storage", selection: $defaultStorage) {
-                    ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+                    ForEach(KeyStorage.keychainCases) { Text($0.title).tag($0) }
                 }
-                if defaultStorage == .authenticated {
+                if defaultStorage == .touchID {
                     Picker("Require", selection: $defaultAuth) {
                         ForEach(KeychainAuth.allCases) { Text($0.displayName).tag($0) }
                     }
@@ -69,7 +69,7 @@ struct ImportKeysSheet: View {
             .onChange(of: defaultName) { applyDefaultNames() }
             .onChange(of: defaultStorage) { applyDefaultStorage() }
 
-            if defaultStorage == .authenticated, defaultAuth == .currentBiometry {
+            if defaultStorage == .touchID, defaultAuth == .currentBiometry {
                 Label("“Current fingerprints” ties these keys to your fingerprints as they are now — adding or removing any fingerprint permanently makes them unreadable.", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -245,7 +245,7 @@ struct ImportKeysSheet: View {
         source = nil
         drafts = []
         defaultName = ""
-        defaultStorage = .authenticated
+        defaultStorage = .touchID
         defaultAuth = .biometryOrPasscode
         deleteFileAfter = false
         duplicatesRemoved = 0
@@ -272,7 +272,7 @@ struct ImportKeysSheet: View {
         do {
             let identities = try drafts
                 .filter(\.include)
-                .map { try AgeIdentity(importing: $0.key, label: $0.name, protection: $0.storage.protection(auth: defaultAuth)) }
+                .map { try AgeIdentity(importing: $0.key, label: $0.name, protection: $0.storage.keychainProtection(auth: defaultAuth)) }
             try model.importIdentities(identities)
             if willDeleteFile, case .file(let url) = source {
                 try? FileManager.default.removeItem(at: url)

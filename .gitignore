@@ -10,3 +10,6 @@ xcuserdata/
 # Swift Package Manager
 .build/
 .swiftpm/
+
+# Scratch decrypt/paste test files (may contain keys) — not for commit
+test-data/

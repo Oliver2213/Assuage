@@ -1,16 +1,17 @@
 import SwiftUI
 import AssuageCore
 
-/// Edit an existing key: rename it, and for keychain (X25519) keys move it between
-/// local / iCloud / Touch ID storage. Secure Enclave keys are sealed to this Mac,
-/// so only their label can change.
+/// Edit an existing key: rename it, and for keychain (X25519 / X-Wing / SSH) keys
+/// move it between synced / this-device / Touch ID storage. Secure Enclave keys are
+/// sealed to this Mac, so only their label can change. Mirrors `GenerateKeySheet`'s
+/// storage ladder and explanation so the two key sheets read the same.
 struct EditKeySheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
 
     let identity: AgeIdentity
     @State private var label: String
-    @State private var storageMode: KeychainStorageMode
+    @State private var storage: KeyStorage
     @State private var keychainAuth: KeychainAuth
     @State private var isSaving = false
     @State private var errorMessage = ""
@@ -19,26 +20,21 @@ struct EditKeySheet: View {
     init(identity: AgeIdentity) {
         self.identity = identity
         _label = State(initialValue: identity.label)
-        switch identity.keychainProtection {
-        case .authenticated(let auth):
-            _storageMode = State(initialValue: .authenticated)
+        _storage = State(initialValue: KeyStorage(keychainProtection: identity.keychainProtection) ?? .touchID)
+        if case .authenticated(let auth) = identity.keychainProtection {
             _keychainAuth = State(initialValue: auth)
-        case .synced:
-            _storageMode = State(initialValue: .synced)
-            _keychainAuth = State(initialValue: .biometryOrPasscode)
-        case .local, .none:
-            _storageMode = State(initialValue: .local)
+        } else {
             _keychainAuth = State(initialValue: .biometryOrPasscode)
         }
     }
 
-    /// True for X25519 keychain keys (storage is editable); false for Secure Enclave.
+    /// True for keychain keys (storage is editable); false for Secure Enclave.
     private var isKeychainKey: Bool { identity.keychainProtection != nil }
     private var currentlyAuthenticated: Bool { identity.keychainProtection?.requiresAuthentication ?? false }
     private var trimmedLabel: String { label.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var labelChanged: Bool { trimmedLabel != identity.label }
 
-    private var newProtection: KeychainProtection { storageMode.protection(auth: keychainAuth) }
+    private var newProtection: KeychainProtection { storage.keychainProtection(auth: keychainAuth) }
     private var protectionChanged: Bool {
         isKeychainKey && newProtection != identity.keychainProtection
     }
@@ -51,6 +47,7 @@ struct EditKeySheet: View {
 
             Form {
                 TextField("Label", text: $label, prompt: Text(identity.defaultName))
+                LabeledContent("Type", value: identity.kindDescription)
                 LabeledContent("Public key") {
                     Text(identity.recipient.encoding)
                         .font(.caption.monospaced())
@@ -61,10 +58,11 @@ struct EditKeySheet: View {
                 }
 
                 if isKeychainKey {
-                    Picker("Storage", selection: $storageMode) {
-                        ForEach(KeychainStorageMode.allCases) { Text($0.title).tag($0) }
+                    Picker("Storage", selection: $storage) {
+                        ForEach(KeyStorage.keychainCases) { Text($0.title).tag($0) }
                     }
-                    if storageMode == .authenticated {
+                    .pickerStyle(.menu)
+                    if storage == .touchID {
                         Picker("Require", selection: $keychainAuth) {
                             ForEach(KeychainAuth.allCases) { Text($0.displayName).tag($0) }
                         }
@@ -78,16 +76,13 @@ struct EditKeySheet: View {
             .fixedSize(horizontal: false, vertical: true)
             .disabled(isSaving)
 
-            if !isKeychainKey {
-                Text("Secure Enclave keys are sealed to this Mac — they can’t be moved to the keychain or re-protected, so only the label can change.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if storageMode == .authenticated, keychainAuth == .currentBiometry {
-                Label("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable.", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+            Text(explanation)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if isKeychainKey, storage == .touchID, keychainAuth == .currentBiometry {
+                warning("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable.")
             } else if currentlyAuthenticated, protectionChanged {
                 Text("Changing a Touch ID–protected key’s storage asks for Touch ID to unlock its secret.")
                     .font(.caption)
@@ -106,11 +101,37 @@ struct EditKeySheet: View {
             }
         }
         .padding(20)
-        .frame(width: 440)
+        .frame(width: 460)
         .alert("Couldn’t save changes", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
+        }
+    }
+
+    private func warning(_ text: LocalizedStringKey) -> some View {
+        Label(text, systemImage: "exclamationmark.triangle.fill")
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Names the key's kind and what its (possibly changed) storage means — the same
+    /// no-surprises framing as the generate sheet, adapted to an existing key.
+    private var explanation: LocalizedStringKey {
+        let kind = identity.kindDescription
+        guard isKeychainKey else {
+            return "\(kind) — sealed to the Mac that generated it, so it can’t be moved or synced. You can export it for backup, but only its label can change here."
+        }
+        switch storage {
+        case .synced:
+            return "\(kind) — synced to your other devices via iCloud Keychain."
+        case .thisDevice:
+            return "\(kind) — stored in your keychain on this Mac only."
+        case .touchID:
+            return "\(kind) — wrapped by this Mac’s Secure Enclave, so using or exporting it asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
+        case .secureEnclave:
+            return "" // not reachable: enclave keys aren't keychain keys
         }
     }
 

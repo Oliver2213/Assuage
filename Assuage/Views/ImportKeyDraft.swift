@@ -10,7 +10,7 @@ struct ImportKeyDraft: Identifiable {
     var name: String
     /// The chosen keychain storage; resolved to a `KeychainProtection` at import
     /// time using the sheet's batch auth flavor.
-    var storage: KeychainStorageMode
+    var storage: KeyStorage
     /// True when a key with this recipient is already in the keychain.
     var alreadyExists = false
 }
