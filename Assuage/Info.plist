@@ -17,6 +17,21 @@
 			</array>
 		</dict>
 		<dict>
+			<!-- age identity files (.age-identity / .age-identities): opening one
+			     brings the app forward with the Import Keys sheet loaded. -->
+			<key>CFBundleTypeName</key>
+			<string>Age identity file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>dev.smoll.Assuage.age-identity</string>
+				<string>dev.smoll.Assuage.age-identities</string>
+			</array>
+		</dict>
+		<dict>
 			<!-- Any file or folder, so dropping one on the Dock icon (or "Open
 			     With") reaches application(_:open:), which encrypts it. Alternate
 			     rank so we never become the default handler for other files. -->
@@ -100,6 +115,40 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>age</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Age identity</string>
+			<key>UTTypeIdentifier</key>
+			<string>dev.smoll.Assuage.age-identity</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>age-identity</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Age identities</string>
+			<key>UTTypeIdentifier</key>
+			<string>dev.smoll.Assuage.age-identities</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>age-identities</string>
 				</array>
 			</dict>
 		</dict>

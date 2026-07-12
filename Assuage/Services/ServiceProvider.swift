@@ -3,6 +3,9 @@ import AppKit
 /// What a system Service asked us to do.
 enum ServiceAction: Sendable {
     case encrypt, decrypt, check
+    /// Open the Import Keys sheet loaded with an identity file (`.age-identity` /
+    /// `.age-identities`), routed from `AppDelegate`, not a Services message.
+    case importIdentities
 }
 
 /// A request arriving from the system Services / Finder menu.

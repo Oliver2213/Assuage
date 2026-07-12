@@ -132,6 +132,9 @@ final class AppModel {
     /// the dialogs open in place from anywhere — no forced navigation to Keys.
     var showGenerateSheet = false
     var showImportSheet = false
+    /// An identity file to preload into the import sheet, set when one is opened
+    /// from Finder. The sheet reads and clears it on appear.
+    var pendingImportURL: URL?
 
     /// The selected keys in the Keys list, and the keys whose Edit / Export sheets
     /// are open. Selection lets the toolbar and menu act on the chosen keys; the
@@ -205,6 +208,12 @@ final class AppModel {
             enqueue(request.files, into: &queuedDecryptFiles)
             autoCheckRequested = true
             selection = .decrypt
+        case .importIdentities:
+            // Preload the first file; the sheet takes one file (which may hold many
+            // keys). Present the existing import flow.
+            pendingImportURL = request.files.first
+            selection = .keys
+            showImportSheet = true
         }
     }
 

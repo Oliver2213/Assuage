@@ -36,6 +36,12 @@ struct ImportKeysSheet: View {
     @State private var pendingSSHSource: ImportSource?
     @State private var sshPassphrase = ""
     @State private var isPassphrasePresented = false
+
+    // A passphrase-encrypted identity file, awaiting its passphrase.
+    @State private var pendingEncryptedData: Data?
+    @State private var pendingEncryptedSource: ImportSource?
+    @State private var filePassphrase = ""
+    @State private var isFilePassphrasePresented = false
     /// How many duplicate keys within the source were collapsed on load.
     @State private var duplicatesRemoved = 0
 
@@ -127,6 +133,20 @@ struct ImportKeysSheet: View {
         } message: {
             Text(errorMessage)
         }
+        .alert("Passphrase-protected identity file", isPresented: $isFilePassphrasePresented) {
+            SecureField("Passphrase", text: $filePassphrase)
+            Button("Import", action: decryptFileAndHandle)
+            Button("Cancel", role: .cancel) { filePassphrase = "" }
+        } message: {
+            Text("This identity file is encrypted with a passphrase. Enter it to read the keys inside.")
+        }
+        .onAppear {
+            // Opened from Finder: load the handed-in identity file once.
+            if let url = model.pendingImportURL {
+                model.pendingImportURL = nil
+                load(url)
+            }
+        }
     }
 
     // MARK: Loading & editing
@@ -148,9 +168,35 @@ struct ImportKeysSheet: View {
     }
 
     private func load(_ url: URL) {
+        // A passphrase-encrypted identity file is itself an age file — prompt for
+        // its passphrase and decrypt before parsing. Otherwise it's plaintext keys.
+        if AgeFileInspector.isAgeFile(at: url) {
+            do {
+                pendingEncryptedData = try Data(contentsOf: url)
+                pendingEncryptedSource = .file(url)
+                filePassphrase = ""
+                isFilePassphrasePresented = true
+            } catch {
+                present(error.localizedDescription)
+            }
+        } else {
+            do {
+                let text = try String(contentsOf: url, encoding: .utf8)
+                handle(text: text, source: .file(url))
+            } catch {
+                present(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Decrypt a passphrase-protected identity file, then parse the keys inside it
+    /// with the normal path. A wrong passphrase surfaces as an import error.
+    private func decryptFileAndHandle() {
+        guard let data = pendingEncryptedData, let source = pendingEncryptedSource else { return }
+        defer { filePassphrase = ""; pendingEncryptedData = nil; pendingEncryptedSource = nil }
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)
-            handle(text: text, source: .file(url))
+            let plaintext = try Cipher.decrypt(data, passphrase: filePassphrase)
+            handle(text: String(decoding: plaintext, as: UTF8.self), source: source)
         } catch {
             present(error.localizedDescription)
         }

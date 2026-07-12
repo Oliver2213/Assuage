@@ -22,11 +22,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return }
-        let action: ServiceAction = files.allSatisfy(AgeFileInspector.isAgeFile) ? .decrypt : .encrypt
-        let request = ServiceRequest(action: action, text: nil, files: files)
+        let request: ServiceRequest
+        let identityFiles = files.filter(Self.isIdentityFile)
+        if !identityFiles.isEmpty {
+            // Opening an identity file goes to import, not encrypt/decrypt.
+            request = ServiceRequest(action: .importIdentities, text: nil, files: identityFiles)
+        } else {
+            let action: ServiceAction = files.allSatisfy(AgeFileInspector.isAgeFile) ? .decrypt : .encrypt
+            request = ServiceRequest(action: action, text: nil, files: files)
+        }
         Task { @MainActor in
             NSApp.activate(ignoringOtherApps: true)
             ServiceBus.shared.request = request
         }
+    }
+
+    /// Whether a file is an age identity file, by extension.
+    private static func isIdentityFile(_ url: URL) -> Bool {
+        ["age-identity", "age-identities"].contains(url.pathExtension.lowercased())
     }
 }
