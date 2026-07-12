@@ -24,4 +24,9 @@ enum PreferenceKeys {
     /// Off by default; only meaningful on macOS 26+, where post-quantum exists, so
     /// the Settings toggle is shown only there.
     static let defaultToPostQuantum = "defaultToPostQuantum"
+
+    /// Whether encrypting prompts for Touch ID first. Off by default. This confirms
+    /// intent on an unlocked Mac — encryption uses only public key material, so it's
+    /// a convenience gate, not a security boundary (a pref can't be one).
+    static let confirmTouchIDBeforeEncrypt = "confirmTouchIDBeforeEncrypt"
 }

@@ -4,6 +4,7 @@ import AssuageCore
 struct EncryptView: View {
     @Environment(AppModel.self) private var model
     @State private var viewModel = EncryptViewModel()
+    @AppStorage(PreferenceKeys.confirmTouchIDBeforeEncrypt) private var confirmTouchIDBeforeEncrypt = false
 
     private var recipients: [AgeRecipient] {
         model.identities.filter { model.encryptRecipientIDs.contains($0.id) }.map(\.recipient)
@@ -126,6 +127,7 @@ struct EncryptView: View {
 
     private func encryptMessage() {
         Task {
+            guard await confirmEncryptIntent() else { return }
             switch model.encryptMode {
             case .keys:
                 await viewModel.encryptMessage(model.encryptInput, to: recipients)
@@ -140,6 +142,7 @@ struct EncryptView: View {
     private func encryptFiles() {
         let files = model.queuedEncryptFiles
         Task {
+            guard await confirmEncryptIntent() else { return }
             switch model.encryptMode {
             case .keys:
                 await viewModel.encryptFiles(files, to: recipients)
@@ -155,5 +158,12 @@ struct EncryptView: View {
     private func clearPassphrase() {
         model.encryptPassphrase = ""
         model.encryptPassphraseConfirm = ""
+    }
+
+    /// When "Confirm with Touch ID before encrypting" is on, prompt first. An intent
+    /// gate on an unlocked Mac, not a security boundary — encryption is public-key only.
+    private func confirmEncryptIntent() async -> Bool {
+        guard confirmTouchIDBeforeEncrypt else { return true }
+        return await Authentication.authorize(reason: String(localized: "Confirm to encrypt."))
     }
 }
