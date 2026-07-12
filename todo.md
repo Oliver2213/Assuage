@@ -2,8 +2,8 @@
 
 * [x] Clipboard import (encrypt/decrypt from clipboard content)
 
-* Wipe private key material from memory once it's persisted. After generate/import the in-memory identity still holds its secret (private) half, so (a) an authenticated key can be used right after creation *without* a Touch ID prompt, and (b) the secret lingers in memory while unused. Fix: once `store.save` confirms the secret is written to the keychain, replace the in-memory identity with a secret-less copy (as `loadAll` already returns), so every operation re-hydrates on demand — forcing the auth prompt and keeping no private material around when idle. Applies to `KeyLibrary.add` / `importIdentities`.
-
+* UI add menu button next to add age key in encrypt view: add ssh keys from code forge, add recipients file.
+* assuage binary using the swift core, and a stanza you can copy from settings somewhere to alias it to /Apps/.... IE the user can just have this app installed and use it in the cli too.
 * age-agent! Was reading the age plugin spec and it briefly mentions an outline for them
   A shim binary age-plugin-assuagent or something calls out / starts up the main app.
   Users should be able to create... Idk. "agent identities" or something, which represent a set of their keys.
@@ -13,7 +13,6 @@
 
 * Stretch / harder for me to test directly:: if you have a keys window open, you should be able to drag it to an encrypt or decrypt list, our standard UI view for that.
 
-* Do we support passphrase encrypted age files as identities when decrypting? Do we support importing an encrypted identity (with a passphrase)?
 * QuickLook **Thumbnail** extension: a lock-badge thumbnail for `.age` files
 * Menu-bar extra (NSStatusItem): "Encrypt clipboard / Decrypt clipboard" in one click — pairs with clipboard import
 * Recipient address book: saved named public keys you don't own, so you can encrypt to "Alice" without pasting her key each time. Import from file/clipboard, plus **recipient groups** for multi-recipient encryption
@@ -31,7 +30,6 @@ IE support fine grain control over which keys are used for a given contact but h
 * mail kit extension to provide signing / encryption to mail
   This is probably a later one after contacts, at least to add integrated "given an email address, can we sign or encrypt to it" functionality the extension lets us add.
 * share extension: quickly encrypt a file or text to a given key or person, then return it for sharing
-* Action extension?: encrypt given file or data. Might not be needed because of other ways: finder integration, share
 * iMessage app to enc / dec in a conversation. This is mostly pointless except for sms or unencrypted RCS, but maybe.
 * stretch / time goal: intents for the 27 releases, so siri knows what the app does and can access its functions on user's behalf
 
@@ -48,5 +46,6 @@ IE support fine grain control over which keys are used for a given contact but h
   * **No longer blocked:** age-plugin-se v0.2.0 implements it (commit 520957b "Add support for post-quantum keys", ~/src/age-plugin-se). Their standard: the spec's `mlkem768p256tag` recipient (`age1tagpq…`; recipient = ML-KEM-768 encaps key 1184 ‖ uncompressed P-256 point 65 = 1249 bytes; enc = ML-KEM ct 1088 ‖ P-256 65 = 1153), with the ML-KEM-768 key stored **in the Secure Enclave** via CryptoKit's `SecureEnclave.MLKEM768` (macOS 26). age spec section: https://github.com/C2SP/C2SP/blob/main/age.md
   * **Encrypt-to (software): DONE** — `MLKEM768P256Recipient` in AgeKit + `age1tagpq` parsing in the app; verified against age-plugin-se on Secure Enclave ML-KEM hardware.
   * **Generate + decrypt (hardware): DONE** — `SecureEnclavePostQuantum` generates a `SecureEnclave.MLKEM768` + P-256 key and decrypts via `MLKEM768P256Identity` (decap in the enclave); the generate sheet re-enables "Post-quantum + Secure Enclave". Recipient/stanza are wire-compatible with age-plugin-se; identity encoding is our own (`AGE-PLUGIN-SE-PQ-`).
-  * **Remaining follow-ups:** (a) runtime-verify the enclave generate/decrypt round trip in the app (needs a Touch ID prompt, so not in the automated tests); (b) identity *portability* — import an age-plugin-se `AGE-PLUGIN-SE-` PQ identity / export ours in their format (their identity container, not the spec).
+  * **Identity portability: DONE** — our PQ identity uses age-plugin-se's exact encoding (`AGE-PLUGIN-SE-`, P-256-first two-blob container), so their `keygen --pq` identity imports into Assuage and ours exports to them. Verified both directions (import derives their recipient; our export re-imports) without a prompt.
+  * **Remaining follow-up:** runtime-verify the enclave generate/decrypt round trip in the app (needs a Touch ID prompt, so not in the automated tests).
   * Verify against age-plugin-se (~/src/age-plugin-se, `keygen --pq`) once on capable hardware; also the testkit vectors (https://age-encryption.org/testkit).
