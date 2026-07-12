@@ -110,7 +110,7 @@ struct GenerateKeySheet: View {
         switch storage {
         case .secureEnclave:
             return isPostQuantum
-                ? "A **Secure Enclave** post-quantum key (ML-KEM-768 + P-256): quantum-secure, with both private keys sealed inside this Mac’s enclave. Only works on the Mac that generated it; wire-compatible with age-plugin-se."
+                ? "A **Secure Enclave** post-quantum key: a hybrid of ML-KEM-768 (the post-quantum part, resistant to a future quantum computer) and P-256 (a classical elliptic-curve key) — pairing them stays secure even if one is later broken. Both private keys are sealed inside this Mac’s enclave, so the key only works on the Mac that generated it. Wire-compatible with age-plugin-se."
                 : "A **Secure Enclave** key (P-256): sealed by this Mac’s enclave, so you still hold it and can export it for backup, but it only works on the Mac that generated it. Compatible with age-plugin-se."
         case .synced:
             return isPostQuantum

@@ -18,7 +18,7 @@ struct EncryptView: View {
             VStack(alignment: .leading, spacing: 16) {
                 InfoBanner("**Encrypt anything.** Type or paste a message, choose one or more recipients, and encrypt. Drop files or folders onto the well to encrypt them in place — a folder is zipped first. Also available from **Services** and Finder’s right-click menu.")
 
-                MultilineTextField(title: "Message", placeholder: "Secret message…", text: $model.encryptInput)
+                MultilineTextField(title: "Message", placeholder: "Message or data…", text: $model.encryptInput)
 
                 Picker("Encrypt to", selection: $model.encryptMode) {
                     Text("Recipients").tag(AppModel.CredentialMode.keys)
