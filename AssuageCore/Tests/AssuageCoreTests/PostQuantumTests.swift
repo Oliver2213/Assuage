@@ -53,6 +53,25 @@ struct PostQuantumTests {
         #expect(info.stanzaTypes.contains("mlkem768p256tag"))
     }
 
+    @Test("An exported software post-quantum identity re-imports and decrypts")
+    func softwarePostQuantumImportRoundTrips() throws {
+        guard #available(macOS 26, iOS 26, *) else { return }
+        let identity = try AgeIdentity.generatePostQuantum(label: "pq")
+        let encrypted = try Cipher.encrypt(plaintext, to: [identity.recipient])
+
+        // The exported identity file re-imports to the same recipient…
+        let imported = AgeIdentity.importableKeys(from: identity.ageFormatted())
+        guard let key = imported.first(where: { $0.recipient.kind == .postQuantum }) else {
+            Issue.record("exported X-Wing identity did not re-import as post-quantum")
+            return
+        }
+        #expect(key.recipient.encoding == identity.recipient.encoding)
+
+        // …and the committed identity decrypts a file made for it.
+        let reimported = try AgeIdentity(importing: key, label: "pq", protection: .local)
+        #expect(try Cipher.decrypt(encrypted, with: [reimported]) == plaintext)
+    }
+
     @Test("A stranger's post-quantum identity does not decrypt the file")
     func wrongIdentityFails() throws {
         guard #available(macOS 26, iOS 26, *) else { return }

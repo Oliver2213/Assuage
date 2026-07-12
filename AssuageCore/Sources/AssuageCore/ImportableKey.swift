@@ -5,6 +5,8 @@ import AgeKit
 public enum ImportableSecret: Sendable, Hashable {
     /// A native age X25519 secret (`AGE-SECRET-KEY-1…`).
     case x25519(secretKey: String)
+    /// A native age post-quantum X-Wing secret (`AGE-SECRET-KEY-PQ-1…`).
+    case postQuantum(secretKey: String)
     /// An SSH Ed25519 key, reduced to its base64 32-byte seed.
     case sshEd25519(seed: String)
     /// A Secure Enclave key (`AGE-PLUGIN-SE-1…`). The blob is device-bound, so it
@@ -53,7 +55,16 @@ extension AgeIdentity {
                 }
                 continue
             }
-            if trimmed.hasPrefix("AGE-SECRET-KEY-1"), let parsed = try? parseX25519(trimmed) {
+            if trimmed.hasPrefix("AGE-SECRET-KEY-PQ-") {
+                // Software X-Wing secret. Only importable on macOS 26+ (the CryptoKit
+                // KEM); deriving the recipient also validates the key.
+                if #available(macOS 26, iOS 26, *), let parsed = try? parsePostQuantum(trimmed) {
+                    keys.append(ImportableKey(
+                        secret: .postQuantum(secretKey: trimmed),
+                        recipient: AgeRecipient(kind: .postQuantum, encoding: parsed.recipient.string)
+                    ))
+                }
+            } else if trimmed.hasPrefix("AGE-SECRET-KEY-1"), let parsed = try? parseX25519(trimmed) {
                 keys.append(ImportableKey(
                     secret: .x25519(secretKey: parsed.string),
                     recipient: AgeRecipient(kind: .x25519, encoding: parsed.recipient.string)
@@ -143,6 +154,15 @@ extension AgeIdentity {
         switch key.secret {
         case .x25519(let secretKey):
             try self.init(importingX25519: secretKey, label: label, created: created, protection: protection)
+        case .postQuantum(let secretKey):
+            // Already validated (it produced `key.recipient`), so build directly.
+            self.init(
+                id: UUID(),
+                label: label,
+                created: created,
+                material: .postQuantum(secretKey: secretKey, protection: protection),
+                recipient: key.recipient
+            )
         case .sshEd25519(let seed):
             // The seed is already validated (it produced `key.recipient`), so build directly.
             self.init(
