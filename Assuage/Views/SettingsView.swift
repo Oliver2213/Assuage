@@ -22,9 +22,24 @@ struct SettingsView: View {
     private var allowClipboardExport = false
     @AppStorage(PreferenceKeys.recipientCommentLabels)
     private var recipientCommentLabels = false
+    @AppStorage(PreferenceKeys.defaultToPostQuantum)
+    private var defaultToPostQuantum = false
 
     var body: some View {
         Form {
+            // Post-quantum only exists on macOS 26+, so only offer the default there.
+            if #available(macOS 26, *) {
+                Section {
+                    Toggle("Default new keys to post-quantum", isOn: $defaultToPostQuantum)
+                } header: {
+                    Text("Post-Quantum")
+                } footer: {
+                    Text("When on, new keys start on the post-quantum type (X-Wing / ML-KEM); you can still switch per key when generating. Post-quantum keys require macOS 26 to create, and recipients need age 1.3 or later (or another up-to-date age tool) to decrypt them.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section {
                 Picker("Default protection for new keys", selection: $defaultEnclaveAccessControl) {
                     ForEach(SecureEnclaveAccessControl.allCases, id: \.self) { control in

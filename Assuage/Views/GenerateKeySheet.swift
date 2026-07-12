@@ -7,6 +7,8 @@ struct GenerateKeySheet: View {
 
     @AppStorage(PreferenceKeys.defaultEnclaveAccessControl)
     private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
+    @AppStorage(PreferenceKeys.defaultToPostQuantum)
+    private var defaultToPostQuantum = false
 
     @State private var isPostQuantum = false
     @State private var storage: KeyStorage = .touchID
@@ -70,35 +72,33 @@ struct GenerateKeySheet: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if storage == .touchID, keychainAuth == .currentBiometry {
-                warning("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable. Export a backup if you'd want it back.")
+                WarningLabel("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable. Export a backup if you'd want it back.")
             }
             if storage == .secureEnclave, !model.secureEnclaveAvailable {
-                warning("This Mac doesn’t have a Secure Enclave.")
+                WarningLabel("This Mac doesn’t have a Secure Enclave.")
             }
 
             HStack {
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
-                Button("Generate") { generate() }
+                Button("Generate", action: generate)
                     .buttonStyle(.borderedProminent)
                     .disabled(storage == .secureEnclave && !model.secureEnclaveAvailable)
             }
         }
         .padding(20)
-        .frame(width: 460)
-        .onAppear { accessControl = defaultEnclaveAccessControl }
+        .frame(minWidth: 460)
+        .onAppear {
+            accessControl = defaultEnclaveAccessControl
+            // Post-quantum requires macOS 26; the pref is only settable there, but
+            // guard anyway so a stale value can't select an unavailable type.
+            if #available(macOS 26, *) { isPostQuantum = defaultToPostQuantum }
+        }
         .alert("Couldn’t generate key", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-    }
-
-    private func warning(_ text: LocalizedStringKey) -> some View {
-        Label(text, systemImage: "exclamationmark.triangle.fill")
-            .font(.caption)
-            .foregroundStyle(.orange)
-            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Names the exact key kind (curve/algorithm in parentheses) and what the

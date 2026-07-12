@@ -82,7 +82,7 @@ struct EditKeySheet: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if isKeychainKey, storage == .touchID, keychainAuth == .currentBiometry {
-                warning("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable.")
+                WarningLabel("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable.")
             } else if currentlyAuthenticated, protectionChanged {
                 Text("Changing a Touch ID–protected key’s storage asks for Touch ID to unlock its secret.")
                     .font(.caption)
@@ -101,19 +101,12 @@ struct EditKeySheet: View {
             }
         }
         .padding(20)
-        .frame(width: 460)
+        .frame(minWidth: 460)
         .alert("Couldn’t save changes", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-    }
-
-    private func warning(_ text: LocalizedStringKey) -> some View {
-        Label(text, systemImage: "exclamationmark.triangle.fill")
-            .font(.caption)
-            .foregroundStyle(.orange)
-            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Names the key's kind and what its (possibly changed) storage means — the same

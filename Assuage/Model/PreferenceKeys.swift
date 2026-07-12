@@ -19,4 +19,9 @@ enum PreferenceKeys {
     /// Whether a copied/exported recipients file precedes each public key with a
     /// `# name` comment. Off by default — a bare recipients list, one per line.
     static let recipientCommentLabels = "recipientCommentLabels"
+
+    /// Whether newly generated keys default to post-quantum (X-Wing / ML-KEM).
+    /// Off by default; only meaningful on macOS 26+, where post-quantum exists, so
+    /// the Settings toggle is shown only there.
+    static let defaultToPostQuantum = "defaultToPostQuantum"
 }
