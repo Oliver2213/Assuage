@@ -3,11 +3,22 @@ import Foundation
 /// Single source of truth for the app's identity: name, versioning, bundle ID,
 /// and how this build was distributed.
 ///
-/// "Cypherdex" is a working name — keeping it here (and deriving everything else
-/// live from `Bundle.main`) means a rename touches one line. Anything user-facing
-/// that would otherwise hardcode the name should read `AppInfo.name` instead.
+/// Everything is derived live from `Bundle.main`, so renaming the Xcode target
+/// flows through with no code change. Anything user-facing that would otherwise
+/// hardcode the name should read `AppInfo.name` instead.
 enum AppInfo {
-    static let name = "Cypherdex"
+    /// The app's display name, read from the bundle: `CFBundleDisplayName`, falling
+    /// back to `CFBundleName`, then the process name. Never a hardcoded literal.
+    static let name: String = {
+        let bundle = Bundle.main
+        if let display = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String, !display.isEmpty {
+            return display
+        }
+        if let name = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String, !name.isEmpty {
+            return name
+        }
+        return ProcessInfo.processInfo.processName
+    }()
     static let author = "Blake Oliver"
     static let website = URL(string: "https://smoll.dev/cypherdex")!
     static let tagline = "Native age encryption for macOS"
