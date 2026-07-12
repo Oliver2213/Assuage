@@ -40,7 +40,9 @@ public enum Cipher {
         let binary = try Armoring.normalizedBinary(ciphertext)
         let output = OutputStream.toMemory()
         output.open()
-        try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+        try mappingDecryptErrors {
+            try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+        }
         // Read the accumulated bytes only after closing, so the final flushed
         // chunk is included in the snapshot.
         output.close()
@@ -136,12 +138,7 @@ public enum Cipher {
         progress: ProgressHandler? = nil
     ) throws {
         let identity = try scryptIdentity(passphrase)
-        let binary: Data
-        if let peek = try? Data(contentsOf: source, options: .mappedIfSafe), Armoring.isArmored(peek) {
-            binary = try Armoring.normalizedBinary(peek)
-        } else {
-            binary = try Data(contentsOf: source, options: .mappedIfSafe)
-        }
+        let binary = try loadAgeFile(at: source)
         try atomicWrite(to: destination) { temp in
             guard let output = OutputStream(url: temp, append: false) else {
                 throw AssuageError.ioFailure
@@ -194,20 +191,16 @@ public enum Cipher {
         progress: ProgressHandler? = nil
     ) throws {
         let identity = try identities.makeAgeIdentity()
-        // Load-and-de-armor when armored; otherwise stream straight off disk.
-        let binary: Data
-        if let peek = try? Data(contentsOf: source, options: .mappedIfSafe), Armoring.isArmored(peek) {
-            binary = try Armoring.normalizedBinary(peek)
-        } else {
-            binary = try Data(contentsOf: source, options: .mappedIfSafe)
-        }
+        let binary = try loadAgeFile(at: source)
         try atomicWrite(to: destination) { temp in
             guard let output = OutputStream(url: temp, append: false) else {
                 throw AssuageError.ioFailure
             }
             output.open()
             defer { output.close() }
-            try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+            try mappingDecryptErrors {
+                try decryptCore(binary: binary, identity: identity, into: output, progress: progress)
+            }
         }
     }
 
@@ -265,6 +258,38 @@ public enum Cipher {
     }
 
     // MARK: - Core
+
+    /// Read an age file off disk into the binary bytes the decoder wants: de-armored
+    /// when armored, streamed straight through when it's a binary age file. A file
+    /// that is neither is rejected up front with `.invalidAgeFile`, so dropping a
+    /// key file or some unrelated document gives a clear message instead of a raw
+    /// parse error deep in the decoder.
+    private static func loadAgeFile(at source: URL) throws -> Data {
+        let data = try Data(contentsOf: source, options: .mappedIfSafe)
+        if Armoring.isArmored(data) { return try Armoring.normalizedBinary(data) }
+        guard Armoring.looksLikeBinary(data) else { throw AssuageError.invalidAgeFile }
+        return data
+    }
+
+    /// Translate AgeKit's decrypt-time errors into the app's vocabulary: a wrong or
+    /// absent matching identity becomes `.noMatchingIdentity`, a damaged header
+    /// becomes `.unreadableAgeFile`. `AssuageError`s pass through unchanged, and so
+    /// does anything else — notably a Secure Enclave authentication cancellation,
+    /// which must keep its own meaning rather than masquerade as a bad file.
+    private static func mappingDecryptErrors<T>(_ body: () throws -> T) throws -> T {
+        do {
+            return try body()
+        } catch let error as AssuageError {
+            throw error
+        } catch let error as Age.DecryptError {
+            switch error {
+            case .noIdentities, .incorrectIdentity:
+                throw AssuageError.noMatchingIdentity
+            case .badHeaderMAC, .computingHeaderMAC, .nonceRead:
+                throw AssuageError.unreadableAgeFile
+            }
+        }
+    }
 
     private static func encryptToMemory(
         source: InputStream,
@@ -331,9 +356,14 @@ public enum Cipher {
         // A read buffer of exactly one chunk means each `read` drains the current
         // decrypted chunk and pulls the next. AgeKit's reader signals end-of-stream
         // by throwing `.unexpectedEOF` on the read *after* the final chunk (it has
-        // no "return 0" EOF), so we treat that specific error as a clean end while
-        // letting real failures (bad MAC → `.decryptFailure`, `.trailingData`)
-        // propagate.
+        // no "return 0" EOF), so we treat that specific error as a clean end.
+        //
+        // Any other error here is corrupted/truncated payload: the header already
+        // parsed and the file key unwrapped (wrong key / bad header MAC throw from
+        // `Age.decrypt` above, before this loop), so a failure mid-stream — e.g. a
+        // binary age file pasted as text, which mangles the payload but leaves the
+        // ASCII header intact — means recognizable-but-damaged age content. Surface it
+        // as `.unreadableAgeFile` rather than AgeKit's raw stream error.
         while true {
             var out = Data(count: chunkSize)
             let n: Int
@@ -341,7 +371,7 @@ public enum Cipher {
                 n = try reader.read(&out)
             } catch {
                 if isCleanEndOfStream(error) { break }
-                throw error
+                throw AssuageError.unreadableAgeFile
             }
             if n == 0 { break }
             try destination.writeFully(out.prefix(n))

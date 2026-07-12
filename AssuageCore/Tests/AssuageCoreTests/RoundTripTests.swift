@@ -83,4 +83,38 @@ struct RoundTripTests {
         let plaintext = try Cipher.decrypt(ciphertext, with: [identity])
         #expect(plaintext == message)
     }
+
+    @Test("Text that isn't an age file at all is reported as not-an-age-file")
+    func junkInputRejected() throws {
+        let identity = AgeIdentity.generateX25519()
+        #expect(throws: AssuageError.invalidAgeFile) {
+            _ = try Cipher.decrypt(Data("just some pasted text".utf8), with: [identity])
+        }
+    }
+
+    @Test("A binary age file pasted as text reads as recognized-but-damaged, not a raw stream error")
+    func binaryPastedAsTextRejected() throws {
+        let identity = AgeIdentity.generateX25519()
+        let ciphertext = try Cipher.encrypt(Data("paste me wrong".utf8), to: [identity.recipient])
+
+        // Simulate pasting the binary output into a text field: the ASCII header
+        // survives the UTF-8 round-trip but the binary payload is mangled, exactly
+        // as `Data(text.utf8)` does in the decrypt UI. The intro is still there, so
+        // it's recognized as age content that simply couldn't be read.
+        let pasted = Data(String(decoding: ciphertext, as: UTF8.self).utf8)
+        #expect(pasted != ciphertext)
+        #expect(throws: AssuageError.unreadableAgeFile) {
+            _ = try Cipher.decrypt(pasted, with: [identity])
+        }
+    }
+
+    @Test("A stranger's identity reports that none of your identities match")
+    func noMatchingIdentityMessage() throws {
+        let owner = AgeIdentity.generateX25519()
+        let stranger = AgeIdentity.generateX25519()
+        let ciphertext = try Cipher.encrypt(Data("nope".utf8), to: [owner.recipient])
+        #expect(throws: AssuageError.noMatchingIdentity) {
+            _ = try Cipher.decrypt(ciphertext, with: [stranger])
+        }
+    }
 }

@@ -18,8 +18,14 @@ public enum AssuageError: Error, Sendable, Equatable {
     /// A passphrase decrypt failed: the passphrase is wrong, or the file isn't
     /// passphrase-encrypted.
     case incorrectPassphrase
-    /// The input was not a well-formed age file (bad armor, truncated header, …).
+    /// The input is not an age file at all — no armor header and no binary intro.
     case invalidAgeFile
+    /// The input is recognizably age content (armored header or binary intro) but
+    /// couldn't be read: damaged, incomplete, or a binary file pasted as text.
+    case unreadableAgeFile
+    /// None of the supplied identities is a recipient of the file (the list wasn't
+    /// empty — see `noIdentities` for that).
+    case noMatchingIdentity
     /// An underlying stream read/write failed.
     case ioFailure
     /// A Secure Enclave operation was requested on a Mac without one.
@@ -64,7 +70,11 @@ extension AssuageError: LocalizedError {
         case .incorrectPassphrase:
             return "The passphrase is incorrect, or this file isn\u{2019}t passphrase-encrypted."
         case .invalidAgeFile:
-            return "This doesn\u{2019}t look like a valid age file."
+            return "This doesn\u{2019}t look like an age file. Paste armored age text, or drop the encrypted file."
+        case .unreadableAgeFile:
+            return "This looks like encrypted age file contents, but they couldn\u{2019}t be read \u{2014} the data may be incomplete or damaged. If you pasted a binary age file as text, copy it in armored form or drop the file instead."
+        case .noMatchingIdentity:
+            return "None of your selected identities can decrypt this file."
         case .ioFailure:
             return "A read or write operation failed."
         case .secureEnclaveUnavailable:

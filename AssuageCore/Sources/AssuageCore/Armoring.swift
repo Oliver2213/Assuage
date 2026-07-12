@@ -9,6 +9,8 @@ import Foundation
 enum Armoring {
     static let header = "-----BEGIN AGE ENCRYPTED FILE-----"
     static let footer = "-----END AGE ENCRYPTED FILE-----"
+    /// The fixed magic that begins every binary age file (and every dearmored payload).
+    static let binaryIntro = "age-encryption.org/v1\n"
     private static let columns = 64
 
     /// Does this data look like an armored age file?
@@ -16,6 +18,12 @@ enum Armoring {
         // The header is ASCII; check within a small prefix, tolerating leading whitespace.
         guard let prefix = String(data: data.prefix(128), encoding: .utf8) else { return false }
         return prefix.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix(header)
+    }
+
+    /// Does this data begin like a binary (unarmored) age file? Lets us accept
+    /// unarmored age bytes pasted as text, and reject input that clearly isn't age.
+    static func looksLikeBinary(_ data: Data) -> Bool {
+        data.starts(with: Data(binaryIntro.utf8))
     }
 
     /// Wrap binary age bytes as an armored string (ends with a trailing newline).
@@ -43,17 +51,24 @@ enum Armoring {
             if insideBody { base64 += line }
         }
         guard insideBody, let data = Data(base64Encoded: base64) else {
-            throw AssuageError.invalidAgeFile
+            throw AssuageError.unreadableAgeFile
         }
         return data
     }
 
     /// Return the binary age bytes for `data`, de-armoring first if necessary.
+    ///
+    /// Input that is neither armored nor a binary age file is rejected up front
+    /// with `.invalidAgeFile`, so pasted junk fails with a clear message instead
+    /// of a raw stream error deep inside the decoder.
     static func normalizedBinary(_ data: Data) throws -> Data {
-        guard isArmored(data) else { return data }
-        guard let text = String(data: data, encoding: .utf8) else {
-            throw AssuageError.invalidAgeFile
+        if isArmored(data) {
+            guard let text = String(data: data, encoding: .utf8) else {
+                throw AssuageError.unreadableAgeFile
+            }
+            return try dearmor(text)
         }
-        return try dearmor(text)
+        guard looksLikeBinary(data) else { throw AssuageError.invalidAgeFile }
+        return data
     }
 }
