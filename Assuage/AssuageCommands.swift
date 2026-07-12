@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// ⌘I *opens* the import sheet; committing the import is ⇧⌘I, scoped to the sheet
 /// itself (see `ImportKeysSheet`) so it can't fire from elsewhere.
-struct CypherdexCommands: Commands {
+struct AssuageCommands: Commands {
     /// The active window's model (each window has its own), so commands act on
     /// whichever window is frontmost. `nil` when no window is focused.
     @FocusedValue(\.appModel) private var model: AppModel?

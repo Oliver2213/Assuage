@@ -20,7 +20,7 @@ enum AppInfo {
         return ProcessInfo.processInfo.processName
     }()
     static let author = "Blake Oliver"
-    static let website = URL(string: "https://smoll.dev/cypherdex")!
+    static let website = URL(string: "https://codeberg.org/coffee_nebula/Assuage/")!
     static let tagline = "Native age encryption for macOS"
     static let copyright = "© 2026 Blake Oliver"
 

@@ -39,12 +39,12 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Encrypt with Cypherdex</string>
+				<string>Encrypt with Assuage</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>encryptService</string>
 			<key>NSPortName</key>
-			<string>Cypherdex</string>
+			<string>Assuage</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
@@ -55,12 +55,12 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Decrypt with Cypherdex</string>
+				<string>Decrypt with Assuage</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>decryptService</string>
 			<key>NSPortName</key>
-			<string>Cypherdex</string>
+			<string>Assuage</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>
@@ -71,12 +71,12 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Check if Cypherdex Can Decrypt</string>
+				<string>Check if Assuage Can Decrypt</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>checkService</string>
 			<key>NSPortName</key>
-			<string>Cypherdex</string>
+			<string>Assuage</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>

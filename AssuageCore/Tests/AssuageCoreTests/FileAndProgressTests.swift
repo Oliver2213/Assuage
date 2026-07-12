@@ -10,7 +10,7 @@ struct FileAndProgressTests {
         let url: URL
         init() {
             url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("cypherdex-tests-\(UUID().uuidString)", isDirectory: true)
+                .appendingPathComponent("assuage-tests-\(UUID().uuidString)", isDirectory: true)
             try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
         deinit { try? FileManager.default.removeItem(at: url) }

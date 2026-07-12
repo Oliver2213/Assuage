@@ -25,7 +25,7 @@ final class ServiceBus {
 /// Receives text / files from the system Services menu and Finder. Registered as
 /// `NSApplication.shared.servicesProvider`; method names match `NSMessage` in
 /// Info.plist. A crypto tool shouldn't silently transform other apps' data, so
-/// each service brings Cypherdex forward with the content loaded, rather than
+/// each service brings the app forward with the content loaded, rather than
 /// returning to the pasteboard.
 final class ServiceProvider: NSObject {
     @objc func encryptService(

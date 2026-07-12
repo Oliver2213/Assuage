@@ -438,7 +438,7 @@ extension AgeIdentity {
 
 extension Sequence where Element == AgeIdentity {
     /// A recipients file: each identity's public recipient on its own line — the
-    /// plain format age reads with `-R`, and that Cypherdex re-imports. With
+    /// plain format age reads with `-R`, and that the app re-imports. With
     /// `includeNames`, a labeled key is preceded by a `# label` comment for the
     /// humans reading it; unlabeled keys have none. age ignores comment lines.
     ///

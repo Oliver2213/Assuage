@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct CypherdexApp: App {
+struct AssuageApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     /// The one key library, shared by every window.
     @State private var library = KeyLibrary()
@@ -11,7 +11,7 @@ struct CypherdexApp: App {
             WindowRoot(library: library)
         }
         .commands {
-            CypherdexCommands()
+            AssuageCommands()
         }
 
         Settings {

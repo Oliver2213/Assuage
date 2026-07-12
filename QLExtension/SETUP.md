@@ -1,11 +1,11 @@
 # Quick Look preview extension — Xcode setup
 
 Generic target name (`QLExtension`) so an app rename doesn't touch it. All code
-lives in `QLExtension/` (a **top-level** folder, sibling to `CypherdexCore/`);
+lives in `QLExtension/` (a **top-level** folder, sibling to `AssuageCore/`);
 you create the target, I wrote everything else.
 
-> **Why not under `Cypherdex/`?** This project uses synchronized folder groups
-> (`objectVersion 77`): every file physically under `Cypherdex/` is auto-added to
+> **Why not under `Assuage/`?** This project uses synchronized folder groups
+> (`objectVersion 77`): every file physically under `Assuage/` is auto-added to
 > the *app* target. Nesting the extension there would silently compile its
 > `QLPreviewingController` code into the app. Keeping `QLExtension/` at the top
 > level gives it its own synchronized group. For the same reason, the extension's
@@ -17,20 +17,20 @@ you create the target, I wrote everything else.
 - Select the **macOS** tab, scroll to **Application Extension**, pick
   **Quick Look Preview Extension**, Next.
 - Product name: **`QLExtension`**.
-- **Embed in Application: Cypherdex.** If this popup looks dimmed/greyed, that's
+- **Embed in Application: Assuage.** If this popup looks dimmed/greyed, that's
   normal — with a single app in the project it's auto-selected and not editable.
   Just click **Finish**.
 
 Xcode generates a `QLExtension` group with a `PreviewViewController.swift`, a
 `.storyboard`, an `Info.plist`, and an entitlements file, and — this is the
 embedding — adds an **"Embed Foundation Extensions"** build phase to the
-**Cypherdex** app target.
+**Assuage** app target.
 
 ### If it didn't embed
 Embedding for app extensions is *not* the "Embed" dropdown in the app's
 Frameworks list (that stays "Do Not Embed" / dimmed for a `.appex` — expected).
 It's a build phase. Verify:
-- Select the **Cypherdex app target ▸ Build Phases**. There should be an
+- Select the **Assuage app target ▸ Build Phases**. There should be an
   **"Embed Foundation Extensions"** phase listing **`QLExtension.appex`**.
 - If the phase is missing: **+ ▸ New Copy Files Phase**, set **Destination = Plug‑ins**,
   then **+** and add `QLExtension.appex`.
@@ -54,21 +54,21 @@ My `Info.plist` uses `NSExtensionPrincipalClass = $(PRODUCT_MODULE_NAME).Preview
 (no storyboard key), so it works regardless of the target name.
 
 ## 4. Link the core library
-`QLExtension` ▸ **General ▸ Frameworks and Libraries ▸ +** ▸ add **`CypherdexCore`**.
+`QLExtension` ▸ **General ▸ Frameworks and Libraries ▸ +** ▸ add **`AssuageCore`**.
 
 ## 5. Share the info-view files with the extension
 **File Inspector ▸ Target Membership**, check **`QLExtension`** for each (they
-stay in the app target too — don't uncheck Cypherdex):
-- `Cypherdex/Views/AgeFileInfoView.swift`
-- `Cypherdex/Support/AgeFileInfo+UI.swift`
-- `Cypherdex/Support/DecryptionCapability+UI.swift`
-- `Cypherdex/Support/Identity+UI.swift`
+stay in the app target too — don't uncheck Assuage):
+- `Assuage/Views/AgeFileInfoView.swift`
+- `Assuage/Support/AgeFileInfo+UI.swift`
+- `Assuage/Support/DecryptionCapability+UI.swift`
+- `Assuage/Support/Identity+UI.swift`
 
-They import only `SwiftUI` + `CypherdexCore`, so they compile cleanly in the
+They import only `SwiftUI` + `AssuageCore`, so they compile cleanly in the
 extension.
 
 ## 6. Build & test
-- Build and run **Cypherdex** once (embeds + registers the extension).
+- Build and run **Assuage** once (embeds + registers the extension).
 - In Finder, select a `.age` file and press **space**.
 - Force a refresh during development: `qlmanage -r && qlmanage -r cache`.
 

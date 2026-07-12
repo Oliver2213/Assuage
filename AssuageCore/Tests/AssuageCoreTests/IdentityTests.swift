@@ -42,7 +42,7 @@ struct IdentityTests {
             Issue.record("expected x25519 material"); return
         }
         let text = """
-        # Cypherdex age identity
+        # Assuage age identity
         # created: 2026-01-01
         \(secretA)
 

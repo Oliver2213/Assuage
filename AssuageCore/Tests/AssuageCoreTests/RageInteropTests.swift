@@ -107,7 +107,7 @@ final class ScratchDir {
     let url: URL
     init() {
         url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cypherdex-interop-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("assuage-interop-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
     deinit { try? FileManager.default.removeItem(at: url) }

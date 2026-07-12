@@ -24,14 +24,14 @@
 			containerPortal = 6A940B0E2FF8139800E3560A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 6A940B152FF8139800E3560A;
-			remoteInfo = Cypherdex;
+			remoteInfo = Assuage;
 		};
 		6A940B2E2FF8139900E3560A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 6A940B0E2FF8139800E3560A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 6A940B152FF8139800E3560A;
-			remoteInfo = Cypherdex;
+			remoteInfo = Assuage;
 		};
 		6A940DB12FFE6A9100E3560A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -261,7 +261,7 @@
 			packageProductDependencies = (
 				6AF2C4452FFEF77E0088140F /* AssuageCore */,
 			);
-			productName = Cypherdex;
+			productName = Assuage;
 			productReference = 6A940B162FF8139800E3560A /* Assuage.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -285,7 +285,7 @@
 			packageProductDependencies = (
 				6AF2C4412FFEF7310088140F /* AssuageCore */,
 			);
-			productName = CypherdexTests;
+			productName = AssuageTests;
 			productReference = 6A940B232FF8139900E3560A /* AssuageTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -306,7 +306,7 @@
 				6A940B302FF8139900E3560A /* AssuageUITests */,
 			);
 			name = AssuageUITests;
-			productName = CypherdexUITests;
+			productName = AssuageUITests;
 			productReference = 6A940B2D2FF8139900E3560A /* AssuageUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
@@ -805,7 +805,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = Cypherdex;
+				TEST_TARGET_NAME = Assuage;
 				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Debug;
@@ -830,7 +830,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_TARGET_NAME = Cypherdex;
+				TEST_TARGET_NAME = Assuage;
 				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Release;

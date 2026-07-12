@@ -8,7 +8,7 @@ struct RoundTripTests {
     @Test("Binary round trip to a single recipient")
     func binaryRoundTrip() throws {
         let identity = AgeIdentity.generateX25519()
-        let message = Data("Hello, Cypherdex!".utf8)
+        let message = Data("Hello, Assuage!".utf8)
 
         let ciphertext = try Cipher.encrypt(message, to: [identity.recipient])
         #expect(ciphertext != message)
