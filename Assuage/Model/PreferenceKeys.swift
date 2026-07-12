@@ -29,4 +29,8 @@ enum PreferenceKeys {
     /// intent on an unlocked Mac — encryption uses only public key material, so it's
     /// a convenience gate, not a security boundary (a pref can't be one).
     static let confirmTouchIDBeforeEncrypt = "confirmTouchIDBeforeEncrypt"
+
+    /// How public keys are shown in the UI (abbreviated vs full). Display only —
+    /// copy and export always use the full key.
+    static let publicKeyDisplay = "publicKeyDisplay"
 }

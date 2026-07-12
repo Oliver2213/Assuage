@@ -28,11 +28,7 @@ struct IdentityRow: View {
             }
 
             LabeledContent("Public key") {
-                Text(identity.recipient.encoding)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                PublicKeyText(recipient: identity.recipient)
             }
             LabeledContent("Created", value: identity.created.formatted(date: .abbreviated, time: .shortened))
             LabeledContent("Storage", value: identity.sourceDescription)

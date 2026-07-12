@@ -17,12 +17,8 @@ struct ImportKeyRow: View {
                 TextField("Name", text: $draft.name, prompt: Text("Name"))
                     .textFieldStyle(.roundedBorder)
                 HStack(spacing: 6) {
-                    Text(draft.key.recipient.encoding)
-                        .font(.caption.monospaced())
+                    PublicKeyText(recipient: draft.key.recipient)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .textSelection(.enabled)
                     if draft.alreadyExists {
                         Label("Already in your keychain", systemImage: "checkmark.seal")
                             .labelStyle(.titleAndIcon)

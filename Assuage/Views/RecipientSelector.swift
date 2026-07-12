@@ -28,10 +28,7 @@ struct RecipientSelector: View {
                     Image(systemName: "person.crop.circle.badge.plus")
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
-                    Text(recipient.encoding)
-                        .font(.caption.monospaced())
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    PublicKeyText(recipient: recipient)
                     Spacer()
                     Button("Remove recipient", systemImage: "xmark.circle.fill") {
                         extraRecipients.removeAll { $0 == recipient }

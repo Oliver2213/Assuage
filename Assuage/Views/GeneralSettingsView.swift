@@ -13,9 +13,20 @@ struct GeneralSettingsView: View {
     private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
     @AppStorage(PreferenceKeys.defaultToPostQuantum)
     private var defaultToPostQuantum = false
+    @AppStorage(PreferenceKeys.publicKeyDisplay)
+    private var publicKeyDisplay: PublicKeyDisplay = .abbreviated
 
     var body: some View {
         Form {
+            Section {
+                Picker("Show public keys as", selection: $publicKeyDisplay) {
+                    ForEach(PublicKeyDisplay.allCases) { Text($0.title).tag($0) }
+                }
+                .help("How public keys appear in lists. Copying or exporting always uses the full key.")
+            } header: {
+                Text("Display")
+            }
+
             Section {
                 Picker("Require Touch ID to export a key", selection: $exportAuthPolicy) {
                     ForEach(ExportAuthPolicy.allCases) { policy in

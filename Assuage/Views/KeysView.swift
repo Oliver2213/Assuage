@@ -37,6 +37,11 @@ struct KeysView: View {
                             model.editingKey = key
                         }
                     }
+                    // ⌘C copies the selected keys' recipients (always the full keys).
+                    .onCopyCommand {
+                        guard !model.selectedKeys.isEmpty else { return [] }
+                        return [NSItemProvider(object: model.recipientsFile(for: model.selectedKeys) as NSString)]
+                    }
                     Divider()
                     Text("Keys live in your keychain. A local key stays on this Mac; a synced key shares to your other devices via iCloud Keychain; a Touch ID–protected key stays on this Mac and is sealed by the Secure Enclave, so its secret can’t be read at rest without authenticating. Secure Enclave keys never sync — they only work on the Mac that created them. You can export any key for backup, but an exported Secure Enclave key still only works on that Mac.")
                         .font(.caption)

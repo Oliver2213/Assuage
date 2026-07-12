@@ -12,11 +12,8 @@ struct IdentityLabel: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(identity.displayName)
-                Text(identity.recipient.encoding)
-                    .font(.caption.monospaced())
+                PublicKeyText(recipient: identity.recipient)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
             }
         }
     }
