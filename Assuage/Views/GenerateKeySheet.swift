@@ -7,8 +7,8 @@ struct GenerateKeySheet: View {
 
     @AppStorage(PreferenceKeys.defaultEnclaveAccessControl)
     private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
-    @AppStorage(PreferenceKeys.defaultToPostQuantum)
-    private var defaultToPostQuantum = false
+    @AppStorage(PreferenceKeys.defaultKeyType)
+    private var defaultKeyType: DefaultKeyType = .standard
 
     @State private var isPostQuantum = false
     @State private var storage: KeyStorage = .touchID
@@ -90,9 +90,12 @@ struct GenerateKeySheet: View {
         .frame(minWidth: 460)
         .onAppear {
             accessControl = defaultEnclaveAccessControl
-            // Post-quantum requires macOS 26; the pref is only settable there, but
+            // Post-quantum requires macOS 26; the picker is only shown there, but
             // guard anyway so a stale value can't select an unavailable type.
-            if #available(macOS 26, *) { isPostQuantum = defaultToPostQuantum }
+            if #available(macOS 26, *) {
+                isPostQuantum = defaultKeyType.isPostQuantum
+                if defaultKeyType == .postQuantumSecureEnclave { storage = .secureEnclave }
+            }
         }
         .alert("Couldn’t generate key", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}

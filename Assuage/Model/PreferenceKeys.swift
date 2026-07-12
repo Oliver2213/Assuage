@@ -20,10 +20,10 @@ enum PreferenceKeys {
     /// `# name` comment. Off by default — a bare recipients list, one per line.
     static let recipientCommentLabels = "recipientCommentLabels"
 
-    /// Whether newly generated keys default to post-quantum (X-Wing / ML-KEM).
-    /// Off by default; only meaningful on macOS 26+, where post-quantum exists, so
-    /// the Settings toggle is shown only there.
-    static let defaultToPostQuantum = "defaultToPostQuantum"
+    /// The key type new keys start on (see `DefaultKeyType`): standard, or a
+    /// post-quantum variant. The post-quantum options only exist on macOS 26+, so
+    /// the Settings picker is shown only there.
+    static let defaultKeyType = "defaultKeyType"
 
     /// Whether encrypting prompts for Touch ID first. Off by default. This confirms
     /// intent on an unlocked Mac — encryption uses only public key material, so it's

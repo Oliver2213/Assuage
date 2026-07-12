@@ -11,8 +11,8 @@ struct GeneralSettingsView: View {
     private var confirmTouchIDBeforeEncrypt = false
     @AppStorage(PreferenceKeys.defaultEnclaveAccessControl)
     private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
-    @AppStorage(PreferenceKeys.defaultToPostQuantum)
-    private var defaultToPostQuantum = false
+    @AppStorage(PreferenceKeys.defaultKeyType)
+    private var defaultKeyType: DefaultKeyType = .standard
     @AppStorage(PreferenceKeys.publicKeyDisplay)
     private var publicKeyDisplay: PublicKeyDisplay = .abbreviated
 
@@ -49,12 +49,14 @@ struct GeneralSettingsView: View {
             // Post-quantum only exists on macOS 26+, so only offer the default there.
             if #available(macOS 26, *) {
                 Section {
-                    Toggle("Default new keys to post-quantum", isOn: $defaultToPostQuantum)
-                        .help("New keys start on the post-quantum type. You can still switch per key when generating.")
+                    Picker("Default new keys to", selection: $defaultKeyType) {
+                        ForEach(DefaultKeyType.allCases) { Text($0.title).tag($0) }
+                    }
+                    .help("The type new keys start on. You can still switch per key when generating.")
                 } header: {
-                    Text("Post-Quantum")
+                    Text("Key Type")
                 } footer: {
-                    Text("When on, new keys start on the post-quantum type (X-Wing / ML-KEM); you can still switch per key when generating. Post-quantum keys require macOS 26 to create, and recipients need age 1.3 or later (or another up-to-date age tool) to use them.")
+                    Text("New keys start on this type; you can still switch per key when generating. Software post-quantum (X-Wing) is exportable and needs age 1.3 or later to use; Secure Enclave post-quantum (ML-KEM-768 + P-256) is hardware-bound to this Mac. Both require macOS 26 to create.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
