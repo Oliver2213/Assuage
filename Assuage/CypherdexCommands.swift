@@ -47,6 +47,7 @@ struct CypherdexCommands: Commands {
 
         CommandGroup(replacing: .help) {
             Link("age Encryption Website", destination: URL(string: "https://age-encryption.org")!)
+            Link("Community Cryptography Standards Project", destination: URL(string: "https://c2sp.org")!)
         }
     }
 }

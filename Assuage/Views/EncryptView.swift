@@ -95,6 +95,13 @@ struct EncryptView: View {
             .padding(20)
         }
         .navigationTitle("Encrypt")
+        .toolbar {
+            ToolbarItem {
+                Button("Encrypt", systemImage: "lock", action: encryptMessage)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .disabled(model.encryptInput.isEmpty || !canEncrypt || viewModel.isRunning)
+            }
+        }
         .alert("Couldn’t encrypt", isPresented: $viewModel.isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {

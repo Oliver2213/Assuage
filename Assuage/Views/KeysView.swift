@@ -18,6 +18,7 @@ struct KeysView: View {
                 } actions: {
                     Button("Generate age Keypair…", systemImage: "plus") { model.showGenerateSheet = true }
                         .buttonStyle(.borderedProminent)
+                    Button("Import Identity…", systemImage: "square.and.arrow.down") { model.showImportSheet = true }
                 }
             } else {
                 @Bindable var model = model

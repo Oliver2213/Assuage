@@ -113,6 +113,13 @@ struct DecryptView: View {
             .padding(20)
         }
         .navigationTitle("Decrypt")
+        .toolbar {
+            ToolbarItem {
+                Button("Decrypt", systemImage: "lock.open", action: decrypt)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .disabled(model.decryptInput.isEmpty || !canDecrypt || viewModel.isRunning)
+            }
+        }
         .onAppear {
             if model.decryptIdentityIDs.isEmpty { selectAllIdentities() }
             runAutoCheckIfNeeded()
