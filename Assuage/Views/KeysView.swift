@@ -4,7 +4,7 @@ import AssuageCore
 struct KeysView: View {
     @Environment(AppModel.self) private var model
 
-    @State private var identityToDelete: AgeIdentity?
+    @State private var identitiesToDelete: [AgeIdentity] = []
     @State private var isDeleteConfirmationPresented = false
     @AppStorage(PreferenceKeys.requireAuthToDelete) private var requireAuthToDelete = false
 
@@ -25,8 +25,16 @@ struct KeysView: View {
                 VStack(spacing: 0) {
                     List(selection: $model.selectedKeyIDs) {
                         ForEach(model.identities) { identity in
-                            IdentityRow(identity: identity) { requestDelete(identity) }
+                            IdentityRow(identity: identity) { requestDelete([identity]) }
                                 .tag(identity.id)
+                        }
+                    }
+                    .contextMenu(forSelectionType: UUID.self) { ids in
+                        selectionMenu(for: model.identities.filter { ids.contains($0.id) })
+                    } primaryAction: { ids in
+                        // Double-click a single row to edit it.
+                        if ids.count == 1, let key = model.identities.first(where: { ids.contains($0.id) }) {
+                            model.editingKey = key
                         }
                     }
                     Divider()
@@ -53,37 +61,81 @@ struct KeysView: View {
                 .disabled(model.selectedKeys.isEmpty)
                 Button("Export Identities…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: model.selectedKeys) }
                     .disabled(model.selectedKeys.isEmpty)
+                Button("Delete…", systemImage: "trash", role: .destructive) { requestDelete(model.selectedKeys) }
+                    .disabled(model.selectedKeys.isEmpty)
                 Button("Import Identity…", systemImage: "square.and.arrow.down") { model.showImportSheet = true }
                 Button("Generate…", systemImage: "plus") { model.showGenerateSheet = true }
             }
         }
         .confirmationDialog(
-            "Delete “\(identityToDelete?.displayName ?? "")”?",
-            isPresented: $isDeleteConfirmationPresented,
-            presenting: identityToDelete
-        ) { identity in
-            Button("Delete Key", role: .destructive) { performDelete(identity) }
+            deleteConfirmationTitle,
+            isPresented: $isDeleteConfirmationPresented
+        ) {
+            Button(identitiesToDelete.count == 1 ? "Delete Key" : "Delete \(identitiesToDelete.count) Keys",
+                   role: .destructive) { performDelete() }
             Button("Cancel", role: .cancel) {}
-        } message: { _ in
-            Text("This can’t be undone. Export the key first if you might need it again.")
+        } message: {
+            Text(identitiesToDelete.count == 1
+                 ? "This can’t be undone. Export the key first if you might need it again."
+                 : "This can’t be undone. Export the keys first if you might need them again.")
         }
     }
 
-    private func requestDelete(_ identity: AgeIdentity) {
-        identityToDelete = identity
+    /// The multi-select actions for the right-clicked selection. Labels adapt to a
+    /// single key vs. several; `contextMenu(forSelectionType:)` selects the clicked
+    /// row first, so the visible checkboxes always match what an action affects.
+    @ViewBuilder
+    private func selectionMenu(for keys: [AgeIdentity]) -> some View {
+        if !keys.isEmpty {
+            let one = keys.count == 1
+            Button("Encrypt to \(one ? "This Recipient" : "These \(keys.count) Recipients")", systemImage: "lock") {
+                model.composeEncrypt(to: keys)
+            }
+            Button("Decrypt with \(one ? "This Identity" : "These \(keys.count) Identities")", systemImage: "lock.open") {
+                model.composeDecrypt(with: keys)
+            }
+            Divider()
+            Button("Copy \(one ? "Recipient" : "Recipients")", systemImage: "doc.on.doc") {
+                model.copyRecipients(for: keys)
+            }
+            Button("Export \(one ? "Public Key…" : "Public Keys…")", systemImage: "square.and.arrow.up") {
+                model.exportRecipients(for: keys)
+            }
+            Button("Export \(one ? "Identity…" : "Identities…")", systemImage: "key") {
+                model.exportingKeys = ExportRequest(identities: keys)
+            }
+            if one {
+                Divider()
+                Button("Edit…", systemImage: "pencil") { model.editingKey = keys.first }
+            }
+            Divider()
+            Button("Delete…", systemImage: "trash", role: .destructive) { requestDelete(keys) }
+        }
+    }
+
+    private var deleteConfirmationTitle: String {
+        identitiesToDelete.count == 1
+            ? "Delete “\(identitiesToDelete.first?.displayName ?? "")”?"
+            : "Delete \(identitiesToDelete.count) keys?"
+    }
+
+    private func requestDelete(_ identities: [AgeIdentity]) {
+        guard !identities.isEmpty else { return }
+        identitiesToDelete = identities
         isDeleteConfirmationPresented = true
     }
 
-    /// Authenticate first when the preference asks for it, then delete.
-    private func performDelete(_ identity: AgeIdentity) {
+    /// Authenticate once when the preference asks for it, then delete every target.
+    private func performDelete() {
+        let targets = identitiesToDelete
         Task {
             if requireAuthToDelete {
-                let ok = await Authentication.authorize(
-                    reason: String(localized: "Authenticate to delete the key “\(identity.displayName)”.")
-                )
-                guard ok else { return }
+                let reason = targets.count == 1
+                    ? String(localized: "Authenticate to delete the key “\(targets[0].displayName)”.")
+                    : String(localized: "Authenticate to delete \(targets.count) keys.")
+                guard await Authentication.authorize(reason: reason) else { return }
             }
-            model.delete(identity)
+            for identity in targets { model.delete(identity) }
         }
     }
 }

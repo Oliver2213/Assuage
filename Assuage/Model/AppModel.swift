@@ -166,16 +166,16 @@ final class AppModel {
     /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
     var autoCheckRequested = false
 
-    /// Prefill the Encrypt panel to encrypt to a single recipient.
-    func composeEncrypt(to identity: AgeIdentity) {
-        encryptRecipientIDs = [identity.id]
+    /// Prefill the Encrypt panel to encrypt to these recipients.
+    func composeEncrypt(to identities: [AgeIdentity]) {
+        encryptRecipientIDs = Set(identities.map(\.id))
         encryptExtraRecipients = []
         selection = .encrypt
     }
 
-    /// Prefill the Decrypt panel to try a single identity.
-    func composeDecrypt(with identity: AgeIdentity) {
-        decryptIdentityIDs = [identity.id]
+    /// Prefill the Decrypt panel to try these identities.
+    func composeDecrypt(with identities: [AgeIdentity]) {
+        decryptIdentityIDs = Set(identities.map(\.id))
         selection = .decrypt
     }
 

@@ -1,8 +1,9 @@
 import SwiftUI
 import AssuageCore
 
-/// A detailed row for one identity, with visible actions, a matching context
-/// menu, and shortcuts to compose an encrypt/decrypt with this key.
+/// A detailed row for one identity, with inline actions for copying, exporting,
+/// editing, and deleting it. Multi-select actions live in the list's context menu
+/// (see `KeysView`).
 struct IdentityRow: View {
     @Environment(AppModel.self) private var model
     let identity: AgeIdentity
@@ -56,22 +57,6 @@ struct IdentityRow: View {
         }
         .padding(.vertical, 6)
         .contentShape(.rect)
-        .contextMenu {
-            Button("Encrypt to This Recipient", systemImage: "lock") {
-                model.composeEncrypt(to: identity)
-            }
-            Button("Decrypt with This Identity", systemImage: "lock.open") {
-                model.composeDecrypt(with: identity)
-            }
-            Divider()
-            Button("Copy Recipient", systemImage: "doc.on.doc") { copyRecipient() }
-            Button("Export Public Key…", systemImage: "square.and.arrow.up") { model.exportRecipients(for: [identity]) }
-            Button("Export Identity…", systemImage: "key") { model.exportingKeys = ExportRequest(identities: [identity]) }
-            Divider()
-            Button("Edit…", systemImage: "pencil") { model.editingKey = identity }
-            Divider()
-            Button("Delete…", systemImage: "trash", role: .destructive, action: onRequestDelete)
-        }
     }
 
     // MARK: Actions
