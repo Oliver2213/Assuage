@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// Menu-bar commands: panel navigation (⌘1–⌘3 in the View menu) plus the
-/// key-management actions (⌘K generate, ⌘I import in the File menu). All drive
-/// `AppModel` state directly, so they work no matter which panel is showing.
+/// Menu-bar commands: panel navigation (⌘1–⌘3), the Encrypt/Decrypt sub-tabs
+/// (⌘⇧1 / ⌘⇧2) and their run action (⌘↩ in the Actions menu), plus key management
+/// (⌘K generate, ⌘I import in the File menu). All drive `AppModel` state directly.
+///
+/// The run action is a menu command, not a button shortcut, because a focused
+/// multiline field would otherwise swallow ⌘↩ before a toolbar button saw it.
 ///
 /// ⌘I *opens* the import sheet; committing the import is ⇧⌘I, scoped to the sheet
 /// itself (see `ImportKeysSheet`) so it can't fire from elsewhere.
@@ -43,11 +46,45 @@ struct AssuageCommands: Commands {
                     .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
                     .disabled(model == nil)
             }
+            Divider()
+            if let model {
+                // Toggles (not Buttons) so the current mode shows a checkmark.
+                Toggle("Encrypt Mode", isOn: Binding(
+                    get: { model.operation == .encrypt },
+                    set: { if $0 { model.operation = .encrypt } }
+                ))
+                .keyboardShortcut("1", modifiers: [.command, .shift])
+                .disabled(!model.selection.hasOperations)
+                Toggle("Decrypt Mode", isOn: Binding(
+                    get: { model.operation == .decrypt },
+                    set: { if $0 { model.operation = .decrypt } }
+                ))
+                .keyboardShortcut("2", modifiers: [.command, .shift])
+                .disabled(!model.selection.hasOperations)
+            }
+        }
+
+        // The visible compose panel's primary action. ⌘↩ resolves to whichever of
+        // Encrypt / Decrypt matches the current sub-tab; only that one is enabled.
+        CommandMenu("Actions") {
+            Button("Encrypt") { model?.runComposeAction = true }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(!canRun(.encrypt))
+            Button("Decrypt") { model?.runComposeAction = true }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(!canRun(.decrypt))
         }
 
         CommandGroup(replacing: .help) {
             Link("age Encryption Website", destination: URL(string: "https://age-encryption.org")!)
             Link("Community Cryptography Standards Project", destination: URL(string: "https://c2sp.org")!)
         }
+    }
+
+    /// Whether ⌘↩ should run `operation`: only on a compose panel whose sub-tab
+    /// currently shows it.
+    private func canRun(_ operation: AppModel.Operation) -> Bool {
+        guard let model else { return false }
+        return model.selection.hasOperations && model.operation == operation
     }
 }

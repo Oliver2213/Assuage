@@ -7,22 +7,19 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var model = model
-        NavigationSplitView {
-            List(selection: $model.selection) {
-                ForEach(AppModel.Panel.allCases) { panel in
-                    Label(panel.title, systemImage: panel.systemImage)
-                        .tag(panel)
-                }
+        // Sidebar on macOS/iPad, bottom tabs on iPhone — one structure.
+        TabView(selection: $model.selection) {
+            Tab(AppModel.Panel.files.title, systemImage: AppModel.Panel.files.systemImage, value: AppModel.Panel.files) {
+                NavigationStack { FilesView() }
             }
-            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
-            .navigationTitle(AppInfo.name)
-        } detail: {
-            switch model.selection ?? .encrypt {
-            case .encrypt: EncryptView()
-            case .decrypt: DecryptView()
-            case .keys: KeysView()
+            Tab(AppModel.Panel.text.title, systemImage: AppModel.Panel.text.systemImage, value: AppModel.Panel.text) {
+                NavigationStack { TextView() }
+            }
+            Tab(AppModel.Panel.keys.title, systemImage: AppModel.Panel.keys.systemImage, value: AppModel.Panel.keys) {
+                NavigationStack { KeysView() }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .sheet(isPresented: $model.showGenerateSheet) { GenerateKeySheet() }
         .sheet(isPresented: $model.showImportSheet) { ImportKeysSheet() }
         .sheet(item: $model.editingKey) { EditKeySheet(identity: $0) }

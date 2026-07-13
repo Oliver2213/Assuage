@@ -1,7 +1,10 @@
 import SwiftUI
 import AssuageCore
 
+/// Decrypt one kind of input, chosen by `scope`: pasted age text (Text panel) or a
+/// queue of `.age` files (Files panel). Identity/passphrase controls are shared.
 struct DecryptView: View {
+    let scope: ComposeScope
     @Environment(AppModel.self) private var model
     @State private var viewModel = DecryptViewModel()
     /// Header info for the queued files, refreshed when the queue changes.
@@ -22,17 +25,18 @@ struct DecryptView: View {
         @Bindable var viewModel = viewModel
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                InfoBanner("**Decrypt with your identities.** Paste armored age text or queue files. **Check** tells you whether one of your keys can open something without decrypting it. Works from **Services** and Finder too.")
+                InfoBanner(banner)
 
-                MultilineTextField(
-                    title: "Encrypted text",
-                    placeholder: "-----BEGIN AGE ENCRYPTED FILE-----…",
-                    text: $model.decryptInput,
-                    font: .caption.monospaced()
-                )
-
-                if let inputInfo {
-                    AgeFileInfoView(info: inputInfo, decryptability: decryptability(of: inputInfo))
+                if scope == .text {
+                    MultilineTextField(
+                        title: "Encrypted text",
+                        placeholder: "-----BEGIN AGE ENCRYPTED FILE-----…",
+                        text: $model.decryptInput,
+                        font: .caption.monospaced()
+                    )
+                    if let inputInfo {
+                        AgeFileInfoView(info: inputInfo, decryptability: decryptability(of: inputInfo))
+                    }
                 }
 
                 Picker("Decrypt with", selection: $model.decryptMode) {
@@ -63,18 +67,21 @@ struct DecryptView: View {
                     }
                 }
 
-                HStack(spacing: 12) {
-                    Button("Decrypt", systemImage: "lock.open", action: decrypt)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(model.decryptInput.isEmpty || !canDecrypt || viewModel.isRunning)
-                    if model.decryptMode == .keys {
-                        Button("Check", systemImage: "questionmark.circle", action: check)
-                            .disabled(model.decryptInput.isEmpty || identities.isEmpty || viewModel.isRunning)
+                if scope == .text {
+                    HStack(spacing: 12) {
+                        Button("Decrypt", systemImage: "lock.open", action: decrypt)
+                            .buttonStyle(.borderedProminent)
+                            .help("Decrypt (⌘Return)")
+                            .disabled(model.decryptInput.isEmpty || !canDecrypt || viewModel.isRunning)
+                        if model.decryptMode == .keys {
+                            Button("Check", systemImage: "questionmark.circle", action: check)
+                                .disabled(model.decryptInput.isEmpty || identities.isEmpty || viewModel.isRunning)
+                        }
+                        if viewModel.isRunning {
+                            ProgressStrip(progress: viewModel.progress).frame(maxWidth: 260)
+                        }
+                        Spacer()
                     }
-                    if viewModel.isRunning {
-                        ProgressStrip(progress: viewModel.progress).frame(maxWidth: 260)
-                    }
-                    Spacer()
                 }
 
                 if let statusMessage = viewModel.statusMessage {
@@ -83,42 +90,36 @@ struct DecryptView: View {
                         .foregroundStyle(viewModel.statusIsGood ? .green : .orange)
                 }
 
-                if let output = viewModel.output {
+                if scope == .text, let output = viewModel.output {
                     CipherOutputView(title: "Decrypted", output: output, binarySaveName: "decrypted", sensitive: true)
                 }
 
-                QueuedFilesSection(
-                    caption: "Writes each decrypted file next to the encrypted one.",
-                    files: $model.queuedDecryptFiles,
-                    runVerb: "Decrypt",
-                    runIcon: "lock.open",
-                    dropPrompt: "Drop files to decrypt",
-                    dropIcon: "arrow.up.doc",
-                    isRunEnabled: canDecrypt && !viewModel.isRunning,
-                    onRun: decryptFiles
-                )
+                if scope == .files {
+                    QueuedFilesSection(
+                        caption: "Writes each decrypted file next to the encrypted one.",
+                        files: $model.queuedDecryptFiles,
+                        runVerb: "Decrypt",
+                        runIcon: "lock.open",
+                        dropPrompt: "Drop files to decrypt",
+                        dropIcon: "arrow.up.doc",
+                        isRunEnabled: canDecrypt && !viewModel.isRunning,
+                        onRun: decryptFiles
+                    )
 
-                ForEach(model.queuedDecryptFiles, id: \.self) { url in
-                    if let info = fileInfos[url] {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(url.lastPathComponent)
-                                .font(.caption.weight(.medium))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            AgeFileInfoView(info: info, decryptability: decryptability(of: info))
+                    ForEach(model.queuedDecryptFiles, id: \.self) { url in
+                        if let info = fileInfos[url] {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(url.lastPathComponent)
+                                    .font(.caption.weight(.medium))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                AgeFileInfoView(info: info, decryptability: decryptability(of: info))
+                            }
                         }
                     }
                 }
             }
             .padding(20)
-        }
-        .navigationTitle("Decrypt")
-        .toolbar {
-            ToolbarItem {
-                Button("Decrypt", systemImage: "lock.open", action: decrypt)
-                    .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(model.decryptInput.isEmpty || !canDecrypt || viewModel.isRunning)
-            }
         }
         .onAppear {
             if model.decryptIdentityIDs.isEmpty { selectAllIdentities() }
@@ -129,10 +130,28 @@ struct DecryptView: View {
         .onChange(of: model.autoCheckRequested) { _, requested in
             if requested { runAutoCheckIfNeeded() }
         }
+        .onChange(of: model.runComposeAction) { _, run in
+            guard run, model.selection == scope.panel, model.operation == .decrypt else { return }
+            model.runComposeAction = false
+            runPrimaryAction()
+        }
         .alert("Couldn’t decrypt", isPresented: $viewModel.isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(viewModel.errorMessage)
+        }
+    }
+
+    private var banner: LocalizedStringKey {
+        scope == .text
+            ? "**Decrypt text.** Paste armored age text and decrypt with your identities (or a passphrase). **Check** tells you whether one of your keys can open it, without decrypting."
+            : "**Decrypt files.** Drop **.age** files to decrypt each next to the original. Also from **Services** and Finder."
+    }
+
+    private func runPrimaryAction() {
+        switch scope {
+        case .text: decrypt()
+        case .files: decryptFiles()
         }
     }
 
@@ -152,6 +171,7 @@ struct DecryptView: View {
     }
 
     private func decrypt() {
+        guard !model.decryptInput.isEmpty, canDecrypt, !viewModel.isRunning else { return }
         Task {
             switch model.decryptMode {
             case .keys:
@@ -174,6 +194,7 @@ struct DecryptView: View {
 
     private func decryptFiles() {
         let files = model.queuedDecryptFiles
+        guard !files.isEmpty, canDecrypt, !viewModel.isRunning else { return }
         Task {
             switch model.decryptMode {
             case .keys:

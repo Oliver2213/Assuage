@@ -8,26 +8,38 @@ import AssuageCore
 @MainActor
 @Observable
 final class AppModel {
-    /// The primary panels, shown in the sidebar.
+    /// The primary panels — the kind of thing you're working on — shown in the
+    /// sidebar on macOS and as tabs on iOS. Ordered most-used first.
     enum Panel: String, Hashable, CaseIterable, Identifiable {
-        case encrypt, decrypt, keys
+        case files, text, keys
         var id: Self { self }
 
         var title: String {
             switch self {
-            case .encrypt: return "Encrypt"
-            case .decrypt: return "Decrypt"
+            case .files: return "Files"
+            case .text: return "Text"
             case .keys: return "Keys"
             }
         }
 
         var systemImage: String {
             switch self {
-            case .encrypt: return "lock"
-            case .decrypt: return "lock.open"
+            case .files: return "folder"
+            case .text: return "text.alignleft"
             case .keys: return "key"
             }
         }
+
+        /// Whether this panel has Encrypt / Decrypt sub-tabs.
+        var hasOperations: Bool { self == .files || self == .text }
+    }
+
+    /// The operation sub-tab within the Files and Text panels.
+    enum Operation: String, CaseIterable, Identifiable {
+        case encrypt, decrypt
+        var id: Self { self }
+        var title: String { self == .encrypt ? "Encrypt" : "Decrypt" }
+        var systemImage: String { self == .encrypt ? "lock" : "lock.open" }
     }
 
     /// Whether a panel encrypts/decrypts to key recipients or a single passphrase.
@@ -118,7 +130,9 @@ final class AppModel {
 
     // MARK: Per-window UI state
 
-    var selection: Panel? = .encrypt
+    var selection: Panel = .files
+    /// The Encrypt / Decrypt sub-tab for the Files and Text panels.
+    var operation: Operation = .encrypt
 
     // Passphrase mode: kept here so it survives panel switches like the other
     // inputs. Cleared after a successful op (see the Encrypt/Decrypt views).
@@ -168,18 +182,23 @@ final class AppModel {
     var decryptIdentityIDs: Set<UUID> = []
     /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
     var autoCheckRequested = false
+    /// Flipped by the Actions-menu ⌘↩ command to run the visible compose view's
+    /// primary action; the active Encrypt / Decrypt view consumes it.
+    var runComposeAction = false
 
-    /// Prefill the Encrypt panel to encrypt to these recipients.
+    /// Prefill the Text panel to encrypt to these recipients.
     func composeEncrypt(to identities: [AgeIdentity]) {
         encryptRecipientIDs = Set(identities.map(\.id))
         encryptExtraRecipients = []
-        selection = .encrypt
+        operation = .encrypt
+        selection = .text
     }
 
-    /// Prefill the Decrypt panel to try these identities.
+    /// Prefill the Text panel to try these identities.
     func composeDecrypt(with identities: [AgeIdentity]) {
         decryptIdentityIDs = Set(identities.map(\.id))
-        selection = .decrypt
+        operation = .decrypt
+        selection = .text
     }
 
     /// The id of the most recent request already routed into this window, so the
@@ -196,18 +215,21 @@ final class AppModel {
 
         switch request.action {
         case .encrypt:
+            operation = .encrypt
             if let text = request.text, !text.isEmpty { encryptInput = text }
             enqueue(request.files, into: &queuedEncryptFiles)
-            selection = .encrypt
+            selection = request.files.isEmpty ? .text : .files
         case .decrypt:
+            operation = .decrypt
             if let text = request.text, !text.isEmpty { decryptInput = text }
             enqueue(request.files, into: &queuedDecryptFiles)
-            selection = .decrypt
+            selection = request.files.isEmpty ? .text : .files
         case .check:
+            operation = .decrypt
             if let text = request.text, !text.isEmpty { decryptInput = text }
             enqueue(request.files, into: &queuedDecryptFiles)
             autoCheckRequested = true
-            selection = .decrypt
+            selection = request.files.isEmpty ? .text : .files
         case .importIdentities:
             // Preload the first file; the sheet takes one file (which may hold many
             // keys). Present the existing import flow.

@@ -124,6 +124,13 @@ struct ExportKeySheet: View {
         }
         .padding(20)
         .frame(width: 520)
+        .onAppear {
+            // Default to encrypting the export to the very keys being exported, so a
+            // backup is protected and re-importable by their owner out of the box.
+            if selectedRecipientIDs.isEmpty {
+                selectedRecipientIDs = Set(identities.map(\.id))
+            }
+        }
         .alert("Couldn’t export", isPresented: $isErrorPresented) {
             Button("OK", role: .cancel) {}
         } message: {
