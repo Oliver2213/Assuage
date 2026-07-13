@@ -11,7 +11,9 @@ extension DecryptionCapability {
             if identities.count == 1 {
                 return String(localized: "You can decrypt this — matches “\(identities[0].displayName)”")
             }
-            return String(localized: "You can decrypt this — ^[\(identities.count) of your keys](inflect: true) match")
+            // Only reached for 2+ keys, so "keys … match" is always plural — no
+            // inflection needed (and `^[…](inflect:)` wouldn't render in this Label).
+            return String(localized: "You can decrypt this — \(identities.count) of your keys match")
         case .undetermined:
             return String(localized: "You may be able to decrypt this")
         case .passphraseRequired:
