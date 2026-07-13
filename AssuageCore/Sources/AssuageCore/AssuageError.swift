@@ -37,6 +37,11 @@ public enum AssuageError: Error, Sendable, Equatable {
     case unsupportedSSHKeyType(String)
     /// An SSH private key is passphrase-protected and no passphrase was supplied.
     case sshPassphraseRequired
+    /// A note signer name broke the signed-note rules: empty, or containing a
+    /// space or a `+`.
+    case invalidSignerName(String)
+    /// A string expected to be a signed note couldn't be parsed as one.
+    case malformedSignedNote
 }
 
 extension AssuageError {
@@ -85,6 +90,10 @@ extension AssuageError: LocalizedError {
             return "\(type) SSH keys aren\u{2019}t supported \u{2014} only ssh-ed25519."
         case .sshPassphraseRequired:
             return "This SSH key is passphrase-protected. Enter its passphrase to import it."
+        case .invalidSignerName(let name):
+            return "\u{201C}\(name)\u{201D} isn\u{2019}t a valid signer name \u{2014} it can\u{2019}t be empty or contain spaces or a \u{201C}+\u{201D}."
+        case .malformedSignedNote:
+            return "This doesn\u{2019}t look like a signed note."
         }
     }
 }
