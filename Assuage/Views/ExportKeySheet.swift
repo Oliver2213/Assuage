@@ -17,7 +17,7 @@ struct ExportKeySheet: View {
 
     @State private var mode: Mode = .recipients
     @State private var selectedRecipientIDs: Set<UUID> = []
-    @State private var extraRecipients: [AgeRecipient] = []
+    @State private var extraRecipients: [NamedRecipient] = []
     @State private var passphrase = ""
     @State private var passphraseConfirm = ""
     @State private var workFactor = Cipher.defaultWorkFactor
@@ -27,7 +27,7 @@ struct ExportKeySheet: View {
     @State private var isErrorPresented = false
 
     private var recipients: [AgeRecipient] {
-        model.identities.filter { selectedRecipientIDs.contains($0.id) }.map(\.recipient) + extraRecipients
+        model.identities.filter { selectedRecipientIDs.contains($0.id) }.map(\.recipient) + extraRecipients.map(\.recipient)
     }
     private var passphraseMismatch: Bool {
         !passphrase.isEmpty && !passphraseConfirm.isEmpty && passphrase != passphraseConfirm
@@ -71,14 +71,11 @@ struct ExportKeySheet: View {
 
             switch mode {
             case .recipients:
-                GroupBox("Recipients") {
-                    RecipientSelector(
-                        identities: model.identities,
-                        selectedIdentityIDs: $selectedRecipientIDs,
-                        extraRecipients: $extraRecipients
-                    )
-                    .padding(4)
-                }
+                RecipientSelector(
+                    identities: model.identities,
+                    selectedIdentityIDs: $selectedRecipientIDs,
+                    extraRecipients: $extraRecipients
+                )
                 Text("The exported file is encrypted to these recipients — only they can open it, and any of them can re-import the keys.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

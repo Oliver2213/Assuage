@@ -1,15 +1,19 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import AssuageCore
 
-/// Chooses recipients: a checkbox grid over the user's own keys plus ad-hoc
-/// public keys pasted in as `age1…` strings.
+/// Chooses recipients: a titled checkbox table over the user's own keys, plus a
+/// table of ad-hoc recipients added by pasting an `age1…` string, loading a
+/// recipients file, or fetching a code-forge URL.
 struct RecipientSelector: View {
     let identities: [AgeIdentity]
     @Binding var selectedIdentityIDs: Set<UUID>
-    @Binding var extraRecipients: [AgeRecipient]
+    @Binding var extraRecipients: [NamedRecipient]
 
     @State private var field = ""
     @State private var parseError: String?
+    @State private var showURLSheet = false
+    @State private var showFileImporter = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -20,23 +24,11 @@ struct RecipientSelector: View {
             }
 
             if !identities.isEmpty {
-                IdentityCheckTable(identities: identities, selection: $selectedIdentityIDs)
+                IdentityCheckTable(identities: identities, selection: $selectedIdentityIDs, title: "Choose identities")
             }
 
-            ForEach(extraRecipients) { recipient in
-                HStack(spacing: 6) {
-                    Image(systemName: "person.crop.circle.badge.plus")
-                        .foregroundStyle(.tint)
-                        .accessibilityHidden(true)
-                    PublicKeyText(recipient: recipient)
-                    Spacer()
-                    Button("Remove recipient", systemImage: "xmark.circle.fill") {
-                        extraRecipients.removeAll { $0 == recipient }
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                }
+            if !extraRecipients.isEmpty {
+                RecipientTable(recipients: $extraRecipients, title: "Extra recipients")
             }
 
             HStack {
@@ -45,6 +37,15 @@ struct RecipientSelector: View {
                     .onSubmit(add)
                 Button("Add", action: add)
                     .disabled(field.trimmingCharacters(in: .whitespaces).isEmpty)
+                Menu {
+                    Button("Recipients File…", systemImage: "doc.text") { showFileImporter = true }
+                    Button("Code Forge URL…", systemImage: "link") { showURLSheet = true }
+                } label: {
+                    Label("Add from…", systemImage: "plus")
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                .help("Add recipients from a file or a code-forge URL")
             }
 
             if let parseError {
@@ -53,20 +54,54 @@ struct RecipientSelector: View {
                     .foregroundStyle(.red)
             }
         }
+        .sheet(isPresented: $showURLSheet) {
+            RecipientURLSheet { addUnique($0) }
+        }
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.text, .plainText, .data], allowsMultipleSelection: false) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                loadRecipientsFile(url)
+            }
+        }
     }
 
+    /// Add the single recipient typed into the field.
     private func add() {
         let raw = field.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return }
         do {
             let recipient = try AgeRecipient(parsing: raw)
-            if !extraRecipients.contains(recipient) {
-                extraRecipients.append(recipient)
-            }
+            addUnique([NamedRecipient(recipient: recipient, name: nil)])
             field = ""
             parseError = nil
         } catch {
             parseError = error.localizedDescription
+        }
+    }
+
+    private func loadRecipientsFile(_ url: URL) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            let loaded = NamedRecipient.parse(recipientsFile: text)
+            guard !loaded.isEmpty else {
+                parseError = String(localized: "No recipients found in that file.")
+                return
+            }
+            addUnique(loaded)
+            parseError = nil
+        } catch {
+            parseError = error.localizedDescription
+        }
+    }
+
+    /// Append recipients not already present — skipping the user's own keys (shown
+    /// in the table above) and duplicates already in the list.
+    private func addUnique(_ recipients: [NamedRecipient]) {
+        let owned = Set(identities.map(\.recipient))
+        for item in recipients
+        where !owned.contains(item.recipient) && !extraRecipients.contains(where: { $0.recipient == item.recipient }) {
+            extraRecipients.append(item)
         }
     }
 }

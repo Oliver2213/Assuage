@@ -12,7 +12,7 @@ struct EncryptView: View {
 
     private var recipients: [AgeRecipient] {
         model.identities.filter { model.encryptRecipientIDs.contains($0.id) }.map(\.recipient)
-            + model.encryptExtraRecipients
+            + model.encryptExtraRecipients.map(\.recipient)
     }
 
     var body: some View {
@@ -35,14 +35,11 @@ struct EncryptView: View {
 
                 switch model.encryptMode {
                 case .keys:
-                    GroupBox("Recipients") {
-                        RecipientSelector(
-                            identities: model.identities,
-                            selectedIdentityIDs: $model.encryptRecipientIDs,
-                            extraRecipients: $model.encryptExtraRecipients
-                        )
-                        .padding(4)
-                    }
+                    RecipientSelector(
+                        identities: model.identities,
+                        selectedIdentityIDs: $model.encryptRecipientIDs,
+                        extraRecipients: $model.encryptExtraRecipients
+                    )
                 case .passphrase:
                     GroupBox("Passphrase") {
                         VStack(alignment: .leading, spacing: 8) {

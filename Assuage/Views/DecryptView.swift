@@ -48,17 +48,16 @@ struct DecryptView: View {
 
                 switch model.decryptMode {
                 case .keys:
-                    GroupBox("Try these identities") {
-                        if model.identities.isEmpty {
+                    if model.identities.isEmpty {
+                        GroupBox("Try these identities") {
                             Text("No identities yet — generate or import one in the Keys tab.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(4)
-                        } else {
-                            IdentityCheckTable(identities: model.identities, selection: $model.decryptIdentityIDs, showsPresence: true)
-                                .padding(4)
                         }
+                    } else {
+                        IdentityCheckTable(identities: model.identities, selection: $model.decryptIdentityIDs, title: "Try these identities", showsPresence: true)
                     }
                 case .passphrase:
                     GroupBox("Passphrase") {

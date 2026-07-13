@@ -176,8 +176,8 @@ final class AppModel {
     var queuedDecryptFiles: [URL] = []
     /// Identities selected as recipients on the Encrypt panel.
     var encryptRecipientIDs: Set<UUID> = []
-    /// Ad-hoc recipients pasted on the Encrypt panel.
-    var encryptExtraRecipients: [AgeRecipient] = []
+    /// Ad-hoc recipients added on the Encrypt panel (pasted, or loaded from a file).
+    var encryptExtraRecipients: [NamedRecipient] = []
     /// Identities to try on the Decrypt panel.
     var decryptIdentityIDs: Set<UUID> = []
     /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
