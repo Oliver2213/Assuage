@@ -6,5 +6,10 @@
 	<array>
 		<string>$(AppIdentifierPrefix)dev.smoll.Assuage</string>
 	</array>
+	<!-- Hardened Runtime → Address Book: lets this (non-sandboxed, hardened) app
+	     request Contacts access. Without it, TCC denies the request without ever
+	     prompting. This is NOT App Sandbox — the app stays unsandboxed. -->
+	<key>com.apple.security.personal-information.addressbook</key>
+	<true/>
 </dict>
 </plist>
