@@ -45,7 +45,6 @@ struct IdentityRow: View {
                     .labelStyle(.iconOnly)
                 Button("Delete", systemImage: "trash", role: .destructive, action: onRequestDelete)
                     .labelStyle(.iconOnly)
-                    .foregroundStyle(.red)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)

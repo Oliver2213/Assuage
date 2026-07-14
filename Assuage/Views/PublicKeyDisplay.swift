@@ -8,8 +8,8 @@ enum PublicKeyDisplay: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .abbreviated: return "Abbreviated"
-        case .full: return "Full"
+        case .abbreviated: "Abbreviated"
+        case .full: "Full"
         }
     }
 }

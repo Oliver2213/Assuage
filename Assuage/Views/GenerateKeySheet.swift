@@ -109,19 +109,19 @@ struct GenerateKeySheet: View {
     private var explanation: LocalizedStringKey {
         switch storage {
         case .secureEnclave:
-            return isPostQuantum
+            isPostQuantum
                 ? "A **Secure Enclave** post-quantum key: a hybrid of ML-KEM-768 (the post-quantum part, resistant to a future quantum computer) and P-256 (a classical elliptic-curve key) — pairing them stays secure even if one is later broken. Both private keys are sealed inside this Mac’s enclave, so the key only works on the Mac that generated it. Wire-compatible with age-plugin-se."
                 : "A **Secure Enclave** key (P-256): sealed by this Mac’s enclave, so you still hold it and can export it for backup, but it only works on the Mac that generated it. Compatible with age-plugin-se."
         case .synced:
-            return isPostQuantum
+            isPostQuantum
                 ? "A post-quantum key (X-Wing), synced to your other devices via iCloud Keychain. Exportable and usable with age 1.3 or later."
                 : "A standard age key (X25519), synced to your other devices via iCloud Keychain. Exportable and usable with any age tool."
         case .thisDevice:
-            return isPostQuantum
+            isPostQuantum
                 ? "A post-quantum key (X-Wing), stored in your keychain on this Mac only. Exportable and usable with age 1.3 or later."
                 : "A standard age key (X25519), stored in your keychain on this Mac only. Readable whenever your keychain is unlocked; exportable and usable with any age tool."
         case .touchID:
-            return isPostQuantum
+            isPostQuantum
                 ? "A post-quantum key (X-Wing), wrapped by this Mac’s **Secure Enclave** — using or exporting it asks for Touch ID. Stays on this Mac (protected keys can’t sync). Usable with age 1.3 or later."
                 : "A standard age key (X25519), wrapped by this Mac’s **Secure Enclave** — using or exporting it asks for Touch ID. Stays on this Mac (protected keys can’t sync). Usable with any age tool."
         }

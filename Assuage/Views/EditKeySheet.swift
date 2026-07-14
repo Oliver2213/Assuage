@@ -108,15 +108,15 @@ struct EditKeySheet: View {
         guard isKeychainKey else {
             return "\(kind) — sealed to the Mac that generated it, so it can’t be moved or synced. You can export it for backup, but only its label can change here."
         }
-        switch storage {
+        return switch storage {
         case .synced:
-            return "\(kind) — synced to your other devices via iCloud Keychain."
+            "\(kind) — synced to your other devices via iCloud Keychain."
         case .thisDevice:
-            return "\(kind) — stored in your keychain on this Mac only."
+            "\(kind) — stored in your keychain on this Mac only."
         case .touchID:
-            return "\(kind) — wrapped by this Mac’s Secure Enclave, so using or exporting it asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
+            "\(kind) — wrapped by this Mac’s Secure Enclave, so using or exporting it asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
         case .secureEnclave:
-            return "" // not reachable: enclave keys aren't keychain keys
+            "" // not reachable: enclave keys aren't keychain keys
         }
     }
 

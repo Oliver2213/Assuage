@@ -89,13 +89,13 @@ struct EditSigningKeySheet: View {
     private var explanation: LocalizedStringKey {
         switch storage {
         case .synced:
-            return "Synced to your other devices via iCloud Keychain."
+            "Synced to your other devices via iCloud Keychain."
         case .thisDevice:
-            return "Stored in your keychain on this Mac only."
+            "Stored in your keychain on this Mac only."
         case .touchID:
-            return "Wrapped by this Mac’s Secure Enclave, so signing asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
+            "Wrapped by this Mac’s Secure Enclave, so signing asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
         case .secureEnclave:
-            return ""
+            ""
         }
     }
 

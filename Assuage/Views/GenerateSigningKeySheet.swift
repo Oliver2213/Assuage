@@ -69,13 +69,13 @@ struct GenerateSigningKeySheet: View {
     private var explanation: LocalizedStringKey {
         switch storage {
         case .synced:
-            return "An Ed25519 **signing key** for signed notes, synced to your other devices via iCloud Keychain. Its public **verifier key** is what others use to check your signatures."
+            "An Ed25519 **signing key** for signed notes, synced to your other devices via iCloud Keychain. Its public **verifier key** is what others use to check your signatures."
         case .thisDevice:
-            return "An Ed25519 **signing key** for signed notes, stored in your keychain on this Mac only. Its public **verifier key** is what others use to check your signatures."
+            "An Ed25519 **signing key** for signed notes, stored in your keychain on this Mac only. Its public **verifier key** is what others use to check your signatures."
         case .touchID:
-            return "An Ed25519 **signing key** for signed notes, wrapped by this Mac’s Secure Enclave — signing asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
+            "An Ed25519 **signing key** for signed notes, wrapped by this Mac’s Secure Enclave — signing asks for Touch ID. Stays on this Mac (protected keys can’t sync)."
         case .secureEnclave:
-            return "" // not offered: an arbitrary Ed25519 seed can't be sealed in the enclave
+            "" // not offered: an arbitrary Ed25519 seed can't be sealed in the enclave
         }
     }
 
