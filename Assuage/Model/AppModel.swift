@@ -272,10 +272,10 @@ final class AppModel {
     /// The text those kept signatures were made over, to tell whether the text has
     /// since been edited (kept signatures are only valid while it hasn't).
     var signPastedText: String?
-    /// Whether to keep the pasted signatures alongside a new one.
+    /// Whether to keep the pasted signatures alongside the new ones.
     var keepOtherSignatures = true
-    /// The signing key chosen to sign with.
-    var signIdentityID: UUID?
+    /// The signing keys chosen to sign with — the note gets one signature per key.
+    var signIdentityIDs: Set<UUID> = []
     /// The signed note produced by the last Sign action.
     var signOutput: String?
     /// The note pasted into the Verify sub-tab.
@@ -285,19 +285,19 @@ final class AppModel {
     /// while it's unchanged), so they can be retained on the next signature.
     var signTextUnchanged: Bool { signPastedText != nil && signInput == signPastedText }
 
-    /// Sign `signInput` with the chosen key, keeping the pasted signatures when the
-    /// toggle is on and the text is unchanged. Hydrates the key first (prompting for
-    /// Touch ID if it's protected). Returns the serialized signed note.
+    /// Sign `signInput` with every chosen key — one signature each — keeping the
+    /// pasted signatures when the toggle is on and the text is unchanged. Hydrates
+    /// the keys first as a batch, so a set of Touch ID–protected keys prompts once.
+    /// Returns the serialized signed note.
     func signNote() async throws -> String {
-        guard let id = signIdentityID, let signer = signingKeys.first(where: { $0.id == id }) else {
-            throw AssuageError.noIdentities
-        }
+        let chosen = signingKeys.filter { signIdentityIDs.contains($0.id) }
+        guard !chosen.isEmpty else { throw AssuageError.noIdentities }
         let kept = (keepOtherSignatures && signTextUnchanged) ? signKeptSignatures : []
-        let hydrated = try await library.hydratedSigners(for: [signer])
-        guard let seeded = hydrated.first else { throw AssuageError.noIdentities }
-        let identity = try seeded.signingIdentity()
+        let hydrated = try await library.hydratedSigners(for: chosen)
         var note = SignedNote(text: signInput, signatures: kept)
-        try note.sign(with: identity, keepingExisting: true)
+        for seeded in hydrated {
+            try note.sign(with: seeded.signingIdentity(), keepingExisting: true)
+        }
         return note.serialized
     }
 

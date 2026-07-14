@@ -37,7 +37,7 @@ struct SignView: View {
 
                 signerControl
 
-                if model.signIdentityID != nil {
+                if !model.signingKeys.isEmpty {
                     HStack(spacing: 12) {
                         Button("Sign Note", systemImage: "signature", action: sign)
                             .buttonStyle(.borderedProminent)
@@ -67,7 +67,10 @@ struct SignView: View {
             Text(errorMessage)
         }
         .onAppear {
-            if model.signIdentityID == nil { model.signIdentityID = model.signingKeys.first?.id }
+            // Default to the first key so a single-key user can just sign.
+            if model.signIdentityIDs.isEmpty, let first = model.signingKeys.first {
+                model.signIdentityIDs = [first.id]
+            }
         }
         .onChange(of: model.runComposeAction) { _, run in
             guard run, model.selection == .notes, model.noteOperation == .sign else { return }
@@ -76,11 +79,11 @@ struct SignView: View {
         }
     }
 
-    /// The signing-key picker, or a prompt to make one when there are none.
+    /// The signing-key chooser, or a prompt to make one when there are none.
     @ViewBuilder private var signerControl: some View {
         @Bindable var model = model
         if model.signingKeys.isEmpty {
-            GroupBox("Signing key") {
+            GroupBox("Sign with") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("You don’t have a signing key yet.")
                         .foregroundStyle(.secondary)
@@ -90,17 +93,12 @@ struct SignView: View {
                 .padding(4)
             }
         } else {
-            Picker("Sign with", selection: $model.signIdentityID) {
-                ForEach(model.signingKeys) { signer in
-                    Text(signer.name).tag(Optional(signer.id))
-                }
-            }
-            .pickerStyle(.menu)
+            SigningKeyCheckTable(signingKeys: model.signingKeys, selection: $model.signIdentityIDs, title: "Sign with")
         }
     }
 
     private var canSign: Bool {
-        !model.signInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && model.signIdentityID != nil
+        !model.signInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !model.signIdentityIDs.isEmpty
     }
 
     /// When a full signed note is pasted, split its signatures out of the text field

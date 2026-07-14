@@ -43,6 +43,15 @@ nonisolated struct SigningKey: Identifiable, Codable, Hashable, Sendable {
     var isSynced: Bool { protection.isSynced }
     var requiresPresence: Bool { protection.requiresAuthentication }
 
+    /// A human description of where the seed lives, for display in the UI.
+    var storageDescription: String {
+        switch protection {
+        case .synced: return "Synced across your devices (iCloud)"
+        case .local: return "This device only"
+        case .authenticated(let auth): return "This device · \(auth.displayName)"
+        }
+    }
+
     /// The keychain secret (the base64 seed), or `nil` when not hydrated — the same
     /// accessor shape `KeychainStore` uses for age keys.
     var keychainSecret: String? { seed.isEmpty ? nil : seed }

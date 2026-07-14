@@ -123,6 +123,6 @@ struct AssuageCommands: Commands {
     /// a signing key ready.
     private var canSign: Bool {
         guard let model, model.selection == .notes, model.noteOperation == .sign else { return false }
-        return !model.signInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && model.signIdentityID != nil
+        return !model.signInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !model.signIdentityIDs.isEmpty
     }
 }

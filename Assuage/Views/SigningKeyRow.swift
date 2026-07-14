@@ -36,7 +36,7 @@ struct SigningKeyRow: View {
             }
             LabeledContent("Key ID", value: signer.keyIDHex)
             LabeledContent("Created", value: signer.created.formatted(date: .abbreviated, time: .shortened))
-            LabeledContent("Storage", value: storageDescription)
+            LabeledContent("Storage", value: signer.storageDescription)
 
             HStack(spacing: 8) {
                 Button("Copy Verifier Key", systemImage: "doc.on.doc") { model.copyVerifierKey(for: signer) }
@@ -77,14 +77,6 @@ struct SigningKeyRow: View {
                 errorMessage = error.localizedDescription
                 isErrorPresented = true
             }
-        }
-    }
-
-    private var storageDescription: String {
-        switch signer.protection {
-        case .synced: return "Synced across your devices (iCloud)"
-        case .local: return "This device only"
-        case .authenticated(let auth): return "This device · \(auth.displayName)"
         }
     }
 }
