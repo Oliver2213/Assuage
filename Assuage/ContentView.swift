@@ -21,6 +21,9 @@ struct ContentView: View {
             Tab(AppModel.Panel.keys.title, systemImage: AppModel.Panel.keys.systemImage, value: AppModel.Panel.keys) {
                 NavigationStack { KeysView() }
             }
+            Tab(AppModel.Panel.people.title, systemImage: AppModel.Panel.people.systemImage, value: AppModel.Panel.people) {
+                NavigationStack { PeopleView() }
+            }
         }
         .tabViewStyle(.sidebarAdaptable)
         .sheet(isPresented: $model.showGenerateSheet) { GenerateKeySheet() }

@@ -24,6 +24,9 @@ public struct AgeRecipient: Sendable, Hashable, Identifiable, Codable {
 
     public let kind: Kind
 
+    /// Whether this recipient is post-quantum (software X-Wing or tagged hardware).
+    public var isPostQuantum: Bool { kind == .postQuantum || kind == .postQuantumHardware }
+
     /// The canonical recipient string. Usually a bech32 `age1…` encoding, but for
     /// an SSH recipient it's the full `authorized_keys` line (with any comment) —
     /// so this is not always an `age1…` token.

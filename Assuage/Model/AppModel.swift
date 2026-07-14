@@ -11,7 +11,7 @@ final class AppModel {
     /// The primary panels — the kind of thing you're working on — shown in the
     /// sidebar on macOS and as tabs on iOS. Ordered most-used first.
     enum Panel: String, Hashable, CaseIterable, Identifiable {
-        case files, text, notes, keys
+        case files, text, notes, keys, people
         var id: Self { self }
 
         var title: String {
@@ -20,6 +20,7 @@ final class AppModel {
             case .text: return "Text"
             case .notes: return "Notes"
             case .keys: return "Keys"
+            case .people: return "Contacts and other recipients"
             }
         }
 
@@ -29,6 +30,7 @@ final class AppModel {
             case .text: return "text.alignleft"
             case .notes: return "note.text"
             case .keys: return "key"
+            case .people: return "person.2"
             }
         }
 

@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSContactsUsageDescription</key>
+	<string>Assuage reads the public keys and code-forge links saved on your contacts so you can encrypt to people by name, and verify signed notes from people you know. It adds a key to a contact only when you ask, and never deletes contacts.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
