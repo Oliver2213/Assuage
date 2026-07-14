@@ -13,6 +13,8 @@ struct VerifyView: View {
 
     var body: some View {
         @Bindable var model = model
+        // Parse once per body pass rather than on each read of `note` below.
+        let note = self.note
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 InfoBanner("**Verify a note.** Paste a signed note to check who signed it. A signature verifies against a signing key you hold; anyone else shows as an unknown signer.")
