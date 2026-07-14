@@ -43,25 +43,39 @@ Assuage work with the wider age ecosystem and vice versa.
 ### Implemented
 
 **Encryption / decryption**
-- Encrypt text or files to **one or more recipients** (age X25519 and Secure Enclave).
+- Encrypt text or files to **one or more recipients** across every supported key type.
 - **Mixed recipients** on a single file (e.g. a software key *and* a Secure Enclave key).
+- **Passphrase (scrypt)** encryption and decryption, for text or files, when you'd
+  rather not manage keys.
 - **Binary or ASCII-armored** output.
-- Decrypt with one or more identities; armored input is detected automatically.
+- Decrypt with one or more identities (or a passphrase); armored input is detected
+  automatically.
 - **Streaming with progress**: bytes processed / total / throughput, for large files.
+- **Folders**: a folder is zipped before encryption and restored on decrypt.
 - **"Check if decryptable"**: reads only the age header to determine whether one of
   your keys is a recipient — without decrypting the payload.
 
 **Keys**
-- Generate **age X25519** keypairs (software) or **Secure Enclave** keypairs (the
-  private key is generated in, and never leaves, the enclave).
+- Generate keypairs of several types:
+  - **age X25519** — the standard age key, exportable and usable with any age tool.
+  - **age post-quantum (X-Wing)** — a hybrid ML-KEM-768 + X25519 key, exportable and
+    usable with age 1.3 or later (requires macOS 26).
+  - **Secure Enclave (P-256)** — the private key is generated in, and never leaves,
+    the enclave; wire-compatible with `age-plugin-se`.
+  - **Secure Enclave post-quantum (ML-KEM-768 + P-256)** — both private halves sealed
+    in the enclave, so device-bound and quantum-secure (requires macOS 26).
 - Secure Enclave **access-control chosen per key at generation**: none, passcode,
   any/current biometry, and biometry-and/or-passcode combinations. Using a
   presence-protected key prompts for Touch ID / passcode at decrypt time.
-- Import identities from age key files; export the full identity or **public key only**,
-  formatted the way age formats generated keys (a comment header with the app name,
-  creation date, access control, and public key, then the private key line).
-- **Keychain persistence** (data-protection keychain, `ThisDeviceOnly`) so keys
-  survive relaunch and never sync off the Mac.
+- **Import** age identities and **SSH Ed25519** private keys (including
+  passphrase-protected OpenSSH keys); SSH keys become recipients and identities like
+  any other. Export the full identity or **public key only**, formatted the way age
+  formats generated keys (a comment header with the app name, creation date, access
+  control, and public key, then the private key line); SSH keys export as OpenSSH.
+- **Keychain persistence** with a **storage choice per key**: synced across your
+  devices via iCloud Keychain, this Mac only, or **Touch ID–protected** (wrapped by
+  the Secure Enclave, so it isn't decryptable at rest even while the keychain is
+  unlocked). Enclave keys never sync.
 
 **System integration** (all via first-party app extensions — see Trust model)
 - **Services** for **Encrypt**, **Decrypt**, and **Check** that accept selected
@@ -86,13 +100,9 @@ Assuage work with the wider age ecosystem and vice versa.
 
 - **Contacts association**: attach an age public key to a system contact and pick a
   person (filtered to those with keys) as a recipient.
-- **SSH recipients**: use ssh-ed25519 / ssh-rsa public keys as recipients.
 - **Shamir Secret Sharing** (`age-plugin-sss`): threshold identities (need *k* of *n*
   keys to decrypt), with nested/subkey policies. Requires a subprocess, so it's gated
   on a decision about bundling.
-- **Passphrase (scrypt)**: AgeKit can encrypt to a passphrase but its `ScryptIdentity`
-  initialiser is internal, so decryption is currently unreachable — deferred to avoid
-  an encrypt-but-can't-decrypt trap.
 - **App Sandbox / Mac App Store variant**: the app currently runs non-sandboxed to
   work on files anywhere. A sandboxed variant (security-scoped bookmarks + entitlements)
   is planned, potentially shipping first for discoverability.
@@ -112,10 +122,10 @@ Depends on AgeKit. Platform floor macOS 15.
 
 | Type | Responsibility |
 | --- | --- |
-| `Cipher` | Encrypt / decrypt / inspect. Text and file APIs; armored or binary; streaming with a `ProgressHandler`. `canDecrypt` inspects the header only. |
-| `AgeRecipient` | A validated public recipient (`age1…` or `age1se1…`). Construction validates the encoding, so the value is always well-formed. |
+| `Cipher` | Encrypt / decrypt / inspect. Text and file APIs; armored or binary; recipient keys or a passphrase; streaming with a `ProgressHandler`. `canDecrypt` inspects the header only. |
+| `AgeRecipient` | A validated public recipient (`age1…`, `age1se1…`, `age1tagpq…`, or an `ssh-ed25519` line). Construction validates the encoding, so the value is always well-formed. |
 | `AgeIdentity` | An identity: `id`, `label`, `created`, `material`, derived `recipient`. |
-| `IdentityMaterial` | `.x25519(secretKey, storedAt:)` or `.secureEnclave(identity, accessControl:)`. Location lives *in the case*, so an identity can't claim a source it doesn't have (no nullable secret paired with a separate flag that could disagree). `source` is derived. |
+| `IdentityMaterial` | The private material, with *where it lives* encoded in the case: `.x25519` / `.postQuantum` / `.sshEd25519` (keychain-backed) or `.secureEnclave` / `.secureEnclavePostQuantum` (enclave-backed). An identity can't claim a source it doesn't have (no nullable secret paired with a separate flag that could disagree); `source` and `storage` are derived. |
 | `SecureEnclaveRecipient` / `SecureEnclaveIdentity` | Native re-implementation of age-plugin-se's `piv-p256` / `p256tag` stanza crypto (P-256 ECDH + HKDF + ChaChaPoly). |
 | `SecureEnclaveKeys` | Generate / load Secure Enclave keys; availability check. |
 | `SecureEnclaveAccessControl` | Presence policy → `SecAccessControl`, mirroring age-plugin-se. |
@@ -153,11 +163,20 @@ progress to the main actor via an `AsyncStream`; domain types are `Sendable`.
 ## Cryptographic details
 
 - **age X25519**: standard age recipients (`age1…`) / identities (`AGE-SECRET-KEY-1…`).
+- **age post-quantum (X-Wing)**: hybrid ML-KEM-768 + X25519 recipients / identities
+  (`AGE-SECRET-KEY-PQ-1…`), matching age 1.3's built-in post-quantum keys.
 - **Secure Enclave**: recipients `age1se1…`, identities `AGE-PLUGIN-SE-1…`. P-256
   key-agreement key generated in the enclave; the identity string encodes the
   device-bound key blob. Wrapping matches age-plugin-se exactly (HKDF label
   `piv-p256`, all-zero 12-byte nonce, 4-byte public-key tag for cheap
   recipient-matching before touching the enclave).
+- **Secure Enclave post-quantum**: `age1tagpq…` (`mlkem768p256tag`) recipients whose
+  payload pairs an ML-KEM-768 key with a P-256 enclave blob, again wire-compatible
+  with age-plugin-se.
+- **SSH Ed25519**: `ssh-ed25519 AAAA…` recipients; identities are the OpenSSH private
+  key (only the 32-byte seed is retained after import). RSA / ssh-agent are out of scope.
+- **Passphrase (scrypt)**: a passphrase stanza (age's default work factor) as the sole
+  recipient, per the age spec.
 - **Armor**: `-----BEGIN AGE ENCRYPTED FILE-----` … base64 wrapped at 64 columns.
 - **Header inspection**: `Cipher.canDecrypt` runs the unwrap + header-MAC check but
   never reads plaintext, so it reveals recipient membership without decrypting.
