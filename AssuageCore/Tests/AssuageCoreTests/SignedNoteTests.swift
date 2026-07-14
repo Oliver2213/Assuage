@@ -63,6 +63,16 @@ struct SignedNoteTests {
         #expect(results.first?.status == .verified(name: "PeterNeumann"))
     }
 
+    @Test("A pasted note without a trailing newline still parses its signatures")
+    func parsesWithoutTrailingNewline() throws {
+        let key = try VerifierKey(parsing: Self.verifierKey)
+        // What the clipboard typically yields: no newline after the last line.
+        let pasted = String(Self.signedNote.reversed().drop { $0 == "\n" }.reversed())
+        let note = SignedNote(parsing: pasted)
+        #expect(note.signatures.count == 1)
+        #expect(note.verify(with: [key]).first?.status == .verified(name: "PeterNeumann"))
+    }
+
     // MARK: Verifier / signer key encoding
 
     @Test("A verifier key round-trips through its encoding")
@@ -123,6 +133,22 @@ struct SignedNoteTests {
         // Both verify — each signed the same text, independently.
         let results = note.verify(with: [alice.verifierKey, bob.verifierKey])
         #expect(results.allSatisfy { if case .verified = $0.status { return true } else { return false } })
+    }
+
+    @Test("Rebuilding from text and kept signatures preserves and re-verifies them")
+    func rebuildWithKeptSignatures() throws {
+        // Mirrors the Sign UI: the text and the pasted signatures are held apart,
+        // then a new signer co-signs while keeping the others.
+        let alice = try SigningIdentity.generate(name: "alice")
+        let bob = try SigningIdentity.generate(name: "bob")
+        var original = SignedNote(text: "shared\n")
+        try original.sign(with: alice, keepingExisting: false)
+
+        var rebuilt = SignedNote(text: original.text, signatures: original.signatures)
+        try rebuilt.sign(with: bob, keepingExisting: true)
+        #expect(rebuilt.signatures.count == 2)
+        #expect(rebuilt.verify(with: [alice.verifierKey, bob.verifierKey])
+            .allSatisfy { if case .verified = $0.status { return true } else { return false } })
     }
 
     @Test("Not keeping signatures drops the others")

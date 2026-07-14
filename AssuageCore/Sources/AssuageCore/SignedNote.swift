@@ -45,8 +45,16 @@ public struct SignedNote: Sendable, Hashable {
     /// added if absent (the only normalization — nothing else is touched), so the
     /// note is spec-valid once signed.
     public init(text: String) {
+        self.init(text: text, signatures: [])
+    }
+
+    /// Build a note from text and existing signatures — e.g. when the UI holds the
+    /// editable text apart from signatures pulled out of a pasted note. The
+    /// signatures are retained as given; it's the caller's job not to keep ones made
+    /// over different text (they'd fail to verify).
+    public init(text: String, signatures: [Signature]) {
         self.text = text.hasSuffix("\n") ? text : text + "\n"
-        self.signatures = []
+        self.signatures = signatures
     }
 
     /// Parse a pasted note. If it has a well-formed signature block, the text and
@@ -71,9 +79,10 @@ public struct SignedNote: Sendable, Hashable {
     /// isn't a valid `— <name> <base64>` signature line (meaning this wasn't a
     /// signature block at all).
     private static func parseSignatureBlock(_ block: String) -> [Signature]? {
-        // A real block ends in a newline; drop it, then require every line to parse.
-        guard block.hasSuffix("\n") else { return nil }
-        let lines = block.dropLast().components(separatedBy: "\n")
+        // Split into signature lines. A well-formed note ends every line (including
+        // the last) in a newline, but pasted notes often drop the final one, so
+        // tolerate a missing trailing newline and any trailing blank lines.
+        let lines = block.components(separatedBy: "\n").filter { !$0.isEmpty }
         guard !lines.isEmpty else { return nil }
         var signatures: [Signature] = []
         for line in lines {
@@ -82,7 +91,7 @@ public struct SignedNote: Sendable, Hashable {
             guard let space = rest.firstIndex(of: " ") else { return nil }
             let name = String(rest[..<space])
             let base64 = String(rest[rest.index(after: space)...])
-            guard (try? VerifierKey.validate(name: name)) != nil,
+            guard VerifierKey.isValidName(name),
                   let bytes = Data(base64Encoded: base64), bytes.count > 4
             else { return nil }
             signatures.append(Signature(name: name, bytes: bytes))

@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Menu-bar commands: panel navigation (⌘1–⌘3), the Encrypt/Decrypt sub-tabs
-/// (⌘⇧1 / ⌘⇧2) and their run action (⌘↩ in the Actions menu), plus key management
-/// (⌘K generate, ⌘I import in the File menu). All drive `AppModel` state directly.
+/// Menu-bar commands: panel navigation (⌘1–⌘4), the sub-tabs (⌘⇧1 / ⌘⇧2 —
+/// Encrypt/Decrypt, Sign/Verify, or Encryption/Signing per panel) and their run
+/// action (⌘↩ in the Actions menu), plus key management (⌘K generate age keypair,
+/// ⌘⇧K generate signing key, ⌘I import in the File menu). All drive `AppModel`.
 ///
 /// The run action is a menu command, not a button shortcut, because a focused
 /// multiline field would otherwise swallow ⌘↩ before a toolbar button saw it.
@@ -65,6 +66,17 @@ struct AssuageCommands: Commands {
                         set: { if $0 { model.keyCategory = .signing } }
                     ))
                     .keyboardShortcut("2", modifiers: [.command, .shift])
+                } else if model.selection == .notes {
+                    Toggle("Sign", isOn: Binding(
+                        get: { model.noteOperation == .sign },
+                        set: { if $0 { model.noteOperation = .sign } }
+                    ))
+                    .keyboardShortcut("1", modifiers: [.command, .shift])
+                    Toggle("Verify", isOn: Binding(
+                        get: { model.noteOperation == .verify },
+                        set: { if $0 { model.noteOperation = .verify } }
+                    ))
+                    .keyboardShortcut("2", modifiers: [.command, .shift])
                 } else {
                     Toggle("Encrypt Mode", isOn: Binding(
                         get: { model.operation == .encrypt },
@@ -89,6 +101,9 @@ struct AssuageCommands: Commands {
             Button("Decrypt") { model?.runComposeAction = true }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(!canRun(.decrypt))
+            Button("Sign") { model?.runComposeAction = true }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(!canSign)
         }
 
         CommandGroup(replacing: .help) {
@@ -102,5 +117,12 @@ struct AssuageCommands: Commands {
     private func canRun(_ operation: AppModel.Operation) -> Bool {
         guard let model else { return false }
         return model.selection.hasOperations && model.operation == operation
+    }
+
+    /// Whether ⌘↩ should sign: only on the Notes panel's Sign sub-tab, with text and
+    /// a signing key ready.
+    private var canSign: Bool {
+        guard let model, model.selection == .notes, model.noteOperation == .sign else { return false }
+        return !model.signInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && model.signIdentityID != nil
     }
 }

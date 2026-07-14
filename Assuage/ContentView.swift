@@ -15,6 +15,9 @@ struct ContentView: View {
             Tab(AppModel.Panel.text.title, systemImage: AppModel.Panel.text.systemImage, value: AppModel.Panel.text) {
                 NavigationStack { TextView() }
             }
+            Tab(AppModel.Panel.notes.title, systemImage: AppModel.Panel.notes.systemImage, value: AppModel.Panel.notes) {
+                NavigationStack { NotesView() }
+            }
             Tab(AppModel.Panel.keys.title, systemImage: AppModel.Panel.keys.systemImage, value: AppModel.Panel.keys) {
                 NavigationStack { KeysView() }
             }

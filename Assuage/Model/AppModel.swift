@@ -11,13 +11,14 @@ final class AppModel {
     /// The primary panels — the kind of thing you're working on — shown in the
     /// sidebar on macOS and as tabs on iOS. Ordered most-used first.
     enum Panel: String, Hashable, CaseIterable, Identifiable {
-        case files, text, keys
+        case files, text, notes, keys
         var id: Self { self }
 
         var title: String {
             switch self {
             case .files: return "Files"
             case .text: return "Text"
+            case .notes: return "Notes"
             case .keys: return "Keys"
             }
         }
@@ -26,6 +27,7 @@ final class AppModel {
             switch self {
             case .files: return "folder"
             case .text: return "text.alignleft"
+            case .notes: return "note.text"
             case .keys: return "key"
             }
         }
@@ -40,6 +42,13 @@ final class AppModel {
         var id: Self { self }
         var title: String { self == .encrypt ? "Encrypt" : "Decrypt" }
         var systemImage: String { self == .encrypt ? "lock" : "lock.open" }
+    }
+
+    /// The Sign / Verify sub-tab within the Notes panel.
+    enum NoteOperation: String, CaseIterable, Identifiable {
+        case sign, verify
+        var id: Self { self }
+        var title: String { self == .sign ? "Sign" : "Verify" }
     }
 
     /// The kind of key shown in the Keys panel's sub-tabs.
@@ -185,6 +194,8 @@ final class AppModel {
     var operation: Operation = .encrypt
     /// The Encryption / Signing sub-tab for the Keys panel.
     var keyCategory: KeyCategory = .encryption
+    /// The Sign / Verify sub-tab for the Notes panel.
+    var noteOperation: NoteOperation = .sign
 
     // Passphrase mode: kept here so it survives panel switches like the other
     // inputs. Cleared after a successful op (see the Encrypt/Decrypt views).
@@ -249,8 +260,46 @@ final class AppModel {
     /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
     var autoCheckRequested = false
     /// Flipped by the Actions-menu ⌘↩ command to run the visible compose view's
-    /// primary action; the active Encrypt / Decrypt view consumes it.
+    /// primary action; the active Encrypt / Decrypt / Sign view consumes it.
     var runComposeAction = false
+
+    // Notes (Sign / Verify) compose state, kept per-window like the others.
+    /// The note text being signed. When a signed note is pasted here, its signatures
+    /// are pulled into `signKeptSignatures` and this is left holding just the text.
+    var signInput = ""
+    /// Signatures pulled out of a pasted note, offered to keep when re-signing.
+    var signKeptSignatures: [SignedNote.Signature] = []
+    /// The text those kept signatures were made over, to tell whether the text has
+    /// since been edited (kept signatures are only valid while it hasn't).
+    var signPastedText: String?
+    /// Whether to keep the pasted signatures alongside a new one.
+    var keepOtherSignatures = true
+    /// The signing key chosen to sign with.
+    var signIdentityID: UUID?
+    /// The signed note produced by the last Sign action.
+    var signOutput: String?
+    /// The note pasted into the Verify sub-tab.
+    var verifyInput = ""
+
+    /// Whether the kept signatures still match the current text (they're only valid
+    /// while it's unchanged), so they can be retained on the next signature.
+    var signTextUnchanged: Bool { signPastedText != nil && signInput == signPastedText }
+
+    /// Sign `signInput` with the chosen key, keeping the pasted signatures when the
+    /// toggle is on and the text is unchanged. Hydrates the key first (prompting for
+    /// Touch ID if it's protected). Returns the serialized signed note.
+    func signNote() async throws -> String {
+        guard let id = signIdentityID, let signer = signingKeys.first(where: { $0.id == id }) else {
+            throw AssuageError.noIdentities
+        }
+        let kept = (keepOtherSignatures && signTextUnchanged) ? signKeptSignatures : []
+        let hydrated = try await library.hydratedSigners(for: [signer])
+        guard let seeded = hydrated.first else { throw AssuageError.noIdentities }
+        let identity = try seeded.signingIdentity()
+        var note = SignedNote(text: signInput, signatures: kept)
+        try note.sign(with: identity, keepingExisting: true)
+        return note.serialized
+    }
 
     /// Prefill the Text panel to encrypt to these recipients.
     func composeEncrypt(to identities: [AgeIdentity]) {
