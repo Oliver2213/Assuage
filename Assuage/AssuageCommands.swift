@@ -19,6 +19,9 @@ struct AssuageCommands: Commands {
             Button("Generate age Keypair…") { model?.showGenerateSheet = true }
                 .keyboardShortcut("k", modifiers: .command)
                 .disabled(model == nil)
+            Button("Generate Signing Key…") { model?.showGenerateSigningKeySheet = true }
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+                .disabled(model == nil)
             Button("Import Identity…") { model?.showImportSheet = true }
                 .keyboardShortcut("i", modifiers: .command)
                 .disabled(model == nil)
@@ -48,19 +51,32 @@ struct AssuageCommands: Commands {
             }
             Divider()
             if let model {
-                // Toggles (not Buttons) so the current mode shows a checkmark.
-                Toggle("Encrypt Mode", isOn: Binding(
-                    get: { model.operation == .encrypt },
-                    set: { if $0 { model.operation = .encrypt } }
-                ))
-                .keyboardShortcut("1", modifiers: [.command, .shift])
-                .disabled(!model.selection.hasOperations)
-                Toggle("Decrypt Mode", isOn: Binding(
-                    get: { model.operation == .decrypt },
-                    set: { if $0 { model.operation = .decrypt } }
-                ))
-                .keyboardShortcut("2", modifiers: [.command, .shift])
-                .disabled(!model.selection.hasOperations)
+                // ⌘⇧1 / ⌘⇧2 switch the current panel's sub-tab: Encrypt/Decrypt on
+                // Files and Text, Encryption/Signing on Keys. Toggles (not Buttons)
+                // so the active sub-tab shows a checkmark.
+                if model.selection == .keys {
+                    Toggle("Encryption Keys", isOn: Binding(
+                        get: { model.keyCategory == .encryption },
+                        set: { if $0 { model.keyCategory = .encryption } }
+                    ))
+                    .keyboardShortcut("1", modifiers: [.command, .shift])
+                    Toggle("Signing Keys", isOn: Binding(
+                        get: { model.keyCategory == .signing },
+                        set: { if $0 { model.keyCategory = .signing } }
+                    ))
+                    .keyboardShortcut("2", modifiers: [.command, .shift])
+                } else {
+                    Toggle("Encrypt Mode", isOn: Binding(
+                        get: { model.operation == .encrypt },
+                        set: { if $0 { model.operation = .encrypt } }
+                    ))
+                    .keyboardShortcut("1", modifiers: [.command, .shift])
+                    Toggle("Decrypt Mode", isOn: Binding(
+                        get: { model.operation == .decrypt },
+                        set: { if $0 { model.operation = .decrypt } }
+                    ))
+                    .keyboardShortcut("2", modifiers: [.command, .shift])
+                }
             }
         }
 

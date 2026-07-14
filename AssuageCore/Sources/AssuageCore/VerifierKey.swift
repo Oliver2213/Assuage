@@ -83,6 +83,11 @@ public struct VerifierKey: Sendable, Hashable, Codable, Identifiable {
         return Array(SHA256.hash(data: input).prefix(4))
     }
 
+    /// Whether `name` is a valid signer name — for live UI validation. See `validate`.
+    public static func isValidName(_ name: String) -> Bool {
+        (try? validate(name: name)) != nil
+    }
+
     /// Validate a signer name against the spec: non-empty, no Unicode whitespace,
     /// no `+` (the field separator).
     static func validate(name: String) throws {

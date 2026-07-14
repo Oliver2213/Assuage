@@ -58,15 +58,7 @@ struct EditKeySheet: View {
                 }
 
                 if isKeychainKey {
-                    Picker("Storage", selection: $storage) {
-                        ForEach(KeyStorage.keychainCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.menu)
-                    if storage == .touchID {
-                        Picker("Require", selection: $keychainAuth) {
-                            ForEach(KeychainAuth.allCases) { Text($0.displayName).tag($0) }
-                        }
-                    }
+                    StoragePicker(storage: $storage, auth: $keychainAuth)
                 } else {
                     LabeledContent("Storage", value: identity.sourceDescription)
                 }
@@ -82,7 +74,7 @@ struct EditKeySheet: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if isKeychainKey, storage == .touchID, keychainAuth == .currentBiometry {
-                WarningLabel("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable.")
+                CurrentBiometryWarning()
             } else if currentlyAuthenticated, protectionChanged {
                 Text("Changing a Touch ID–protected key’s storage asks for Touch ID to unlock its secret.")
                     .font(.caption)

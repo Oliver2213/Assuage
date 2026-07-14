@@ -42,6 +42,13 @@ final class AppModel {
         var systemImage: String { self == .encrypt ? "lock" : "lock.open" }
     }
 
+    /// The kind of key shown in the Keys panel's sub-tabs.
+    enum KeyCategory: String, CaseIterable, Identifiable {
+        case encryption, signing
+        var id: Self { self }
+        var title: String { self == .encryption ? "Encryption" : "Signing" }
+    }
+
     /// Whether a panel encrypts/decrypts to key recipients or a single passphrase.
     /// A scrypt (passphrase) stanza must be the sole recipient per the age spec,
     /// so the two are mutually exclusive.
@@ -86,6 +93,49 @@ final class AppModel {
     @discardableResult
     func generateSecureEnclavePostQuantum(label: String, accessControl: SecureEnclaveAccessControl) throws -> AgeIdentity {
         try library.generateSecureEnclavePostQuantum(label: label, accessControl: accessControl)
+    }
+
+    // MARK: Signing keys (shared library)
+
+    /// Every note-signing key the user holds.
+    var signingKeys: [SigningKey] { library.signingKeys }
+
+    /// The verifier keys the app trusts for verification (the user's own, for now).
+    var verifierKeys: [VerifierKey] { library.verifierKeys }
+
+    @discardableResult
+    func generateSigningKey(name: String, protection: KeychainProtection = .local) throws -> SigningKey {
+        try library.generateSigningKey(name: name, protection: protection)
+    }
+
+    func changeSignerProtection(of key: SigningKey, to protection: KeychainProtection) async throws {
+        try await library.changeSignerProtection(of: key, to: protection)
+    }
+
+    func hydratedSigners(for keys: [SigningKey]) async throws -> [SigningKey] {
+        try await library.hydratedSigners(for: keys)
+    }
+
+    /// Delete a signing key, then drop it from this window's selection.
+    func deleteSigner(_ key: SigningKey) {
+        library.deleteSigner(key)
+        selectedKeyIDs.remove(key.id)
+    }
+
+    func copyVerifierKey(for key: SigningKey) { library.copyVerifierKey(for: key) }
+    func exportVerifierKey(for key: SigningKey) { library.exportVerifierKey(for: key) }
+
+    /// Hydrate a signing key's seed (prompting for Touch ID if it's protected) and
+    /// save its private key as an encoded signer key (`PRIVATE+KEY+…`) for backup.
+    /// The caller applies the soft export-auth gate first (see `SigningKeyRow`).
+    func exportSigningKey(_ key: SigningKey) async throws {
+        let hydrated = try await library.hydratedSigners(for: [key])
+        guard let seeded = hydrated.first else { return }
+        let identity = try seeded.signingIdentity()
+        let base = key.name
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: " ", with: "-")
+        SavePanel.save(text: identity.encodedSignerKey + "\n", suggestedName: "\(base)-signing-key.txt")
     }
 
     func importableKeys(at url: URL) throws -> [ImportableKey] {
@@ -133,6 +183,8 @@ final class AppModel {
     var selection: Panel = .files
     /// The Encrypt / Decrypt sub-tab for the Files and Text panels.
     var operation: Operation = .encrypt
+    /// The Encryption / Signing sub-tab for the Keys panel.
+    var keyCategory: KeyCategory = .encryption
 
     // Passphrase mode: kept here so it survives panel switches like the other
     // inputs. Cleared after a successful op (see the Encrypt/Decrypt views).
@@ -145,7 +197,10 @@ final class AppModel {
     /// Sheet presentation, driven from the menu bar as well as the Keys panel so
     /// the dialogs open in place from anywhere — no forced navigation to Keys.
     var showGenerateSheet = false
+    var showGenerateSigningKeySheet = false
     var showImportSheet = false
+    /// The signing key whose Edit sheet is open, if any.
+    var editingSigner: SigningKey?
     /// An identity file to preload into the import sheet, set when one is opened
     /// from Finder. The sheet reads and clears it on appear.
     var pendingImportURL: URL?
@@ -166,6 +221,17 @@ final class AppModel {
     /// The lone selected identity, or nil when zero or several are selected.
     var singleSelectedKey: AgeIdentity? {
         selectedKeys.count == 1 ? selectedKeys.first : nil
+    }
+
+    /// The selected signing keys, in list order. The Keys list holds both kinds in
+    /// one selection; this resolves the signing-key subset.
+    var selectedSigners: [SigningKey] {
+        signingKeys.filter { selectedKeyIDs.contains($0.id) }
+    }
+
+    /// The lone selected signing key, or nil when zero or several are selected.
+    var singleSelectedSigner: SigningKey? {
+        selectedSigners.count == 1 ? selectedSigners.first : nil
     }
 
     // Compose state, kept per-window so it survives panel switches and can be

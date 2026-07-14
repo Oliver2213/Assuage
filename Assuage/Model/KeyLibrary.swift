@@ -6,7 +6,7 @@ import AssuageCore
 /// them. Shared across all windows via a single instance in the environment, so
 /// every window shows and edits the same set of keys.
 ///
-/// Identities persist in the keychain (see `IdentityStore`): X25519 keys locally,
+/// Identities persist in the keychain (see `KeychainStore`): X25519 keys locally,
 /// synced via iCloud Keychain, or hardware-protected behind Touch ID; Secure
 /// Enclave keys are always device-local. Keychain secrets are loaded lazily —
 /// `hydratedSecrets(for:)` fetches them just before decrypt/export.
@@ -17,10 +17,20 @@ final class KeyLibrary {
     /// stays in sync with the keychain.
     private(set) var identities: [AgeIdentity] = []
 
-    private let store = IdentityStore()
+    /// Every note-signing key the user holds. Kept alongside the age identities but
+    /// separate — a signing key has no age recipient and never encrypts or decrypts.
+    private(set) var signingKeys: [SigningKey] = []
+
+    private let store = KeychainStore<AgeIdentity>(
+        metaService: "dev.smoll.Assuage.identities.meta",
+        secretService: "dev.smoll.Assuage.identities.secret")
+    private let signerStore = KeychainStore<SigningKey>(
+        metaService: "dev.smoll.Assuage.signers.meta",
+        secretService: "dev.smoll.Assuage.signers.secret")
 
     init() {
         identities = store.loadAll()
+        signingKeys = signerStore.loadAll()
     }
 
     /// Whether this Mac can create Secure Enclave keys.
@@ -152,6 +162,76 @@ final class KeyLibrary {
     func delete(_ identity: AgeIdentity) {
         identities.removeAll { $0.id == identity.id }
         store.delete(identity)
+    }
+
+    // MARK: Signing keys
+
+    /// The verifier keys for every signing key the user holds — the trust source we
+    /// have today, so a note the user signed shows as verified.
+    var verifierKeys: [VerifierKey] { signingKeys.compactMap(\.verifierKey) }
+
+    @discardableResult
+    func generateSigningKey(name: String, protection: KeychainProtection = .local) throws -> SigningKey {
+        let key = try SigningKey.generate(name: name, protection: protection)
+        try addSigner(key)
+        return key
+    }
+
+    /// Persist a signing key, then keep only a seedless copy in memory — matching
+    /// how `add` handles age keys, so a freshly made authenticated key can't be used
+    /// once without its Touch ID prompt.
+    private func addSigner(_ key: SigningKey) throws {
+        try signerStore.save(key)
+        signingKeys.append(key.withSeed(""))
+    }
+
+    /// Move a signing key to a new protection (local / synced / Touch ID). Reads the
+    /// seed — prompting if it's currently Touch ID–protected — off the main actor,
+    /// then rewrites both items. The name (and thus the verifier key) is unchanged.
+    func changeSignerProtection(of key: SigningKey, to protection: KeychainProtection) async throws {
+        let signerStore = self.signerStore
+        let seed = try await Task.detached {
+            try signerStore.secret(for: key, context: LAContext())
+        }.value
+        let updated = key.withProtection(protection, seed: seed)
+        try signerStore.replace(updated)
+        if let index = signingKeys.firstIndex(where: { $0.id == key.id }) {
+            signingKeys[index] = updated.withSeed("")
+        }
+    }
+
+    func deleteSigner(_ key: SigningKey) {
+        signingKeys.removeAll { $0.id == key.id }
+        signerStore.delete(key)
+    }
+
+    /// Copy a signing key's public verifier key to the clipboard.
+    func copyVerifierKey(for key: SigningKey) {
+        Pasteboard.copy(key.verifierKeyEncoding, sensitive: false)
+    }
+
+    /// Save a signing key's public verifier key to a file.
+    func exportVerifierKey(for key: SigningKey) {
+        let base = key.name
+            .replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: " ", with: "-")
+        SavePanel.save(text: key.verifierKeyEncoding + "\n", suggestedName: "\(base)-verifier.txt")
+    }
+
+    /// Fetch the seeds for signing keys so they can sign or export. Runs off the
+    /// main actor (the fetch blocks while an auth prompt is up) and shares one
+    /// `LAContext` so a batch of protected keys asks for Touch ID once.
+    func hydratedSigners(for keys: [SigningKey]) async throws -> [SigningKey] {
+        let signerStore = self.signerStore
+        return try await Task.detached {
+            let context = LAContext()
+            context.touchIDAuthenticationAllowableReuseDuration = LATouchIDAuthenticationMaximumAllowableReuseDuration
+            return try keys.map { key in
+                guard key.keychainSecret == nil else { return key }
+                let secret = try signerStore.secret(for: key, context: context)
+                return key.withSeed(secret)
+            }
+        }.value
     }
 
     // MARK: Recipients (public keys)

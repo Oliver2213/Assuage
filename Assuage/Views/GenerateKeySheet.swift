@@ -72,7 +72,7 @@ struct GenerateKeySheet: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if storage == .touchID, keychainAuth == .currentBiometry {
-                WarningLabel("“Current fingerprints” ties this key to your fingerprints as they are now — adding or removing any fingerprint permanently makes it unreadable. Export a backup if you'd want it back.")
+                CurrentBiometryWarning(includeBackupHint: true)
             }
             if storage == .secureEnclave, !model.secureEnclaveAvailable {
                 WarningLabel("This Mac doesn’t have a Secure Enclave.")

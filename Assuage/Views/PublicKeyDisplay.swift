@@ -14,13 +14,18 @@ enum PublicKeyDisplay: String, CaseIterable, Identifiable {
     }
 }
 
-extension AgeRecipient {
-    /// The recipient shortened for the abbreviated style: the first 12 characters
+extension PublicKeyDisplay {
+    /// Shorten a public key for the abbreviated style: the first 12 characters
     /// (enough to keep the type prefix, e.g. `age1pq1…`) plus the last 4, joined by
-    /// an ellipsis. Short recipients are returned whole.
-    var abbreviatedDisplay: String {
-        let s = encoding
-        guard s.count > 20 else { return s }
-        return "\(s.prefix(12))…\(s.suffix(4))"
+    /// an ellipsis. Short keys are returned whole. The single source for both age
+    /// recipients and note verifier keys.
+    static func abbreviate(_ key: String) -> String {
+        guard key.count > 20 else { return key }
+        return "\(key.prefix(12))…\(key.suffix(4))"
     }
+}
+
+extension AgeRecipient {
+    /// The recipient shortened for the abbreviated style. See `PublicKeyDisplay.abbreviate`.
+    var abbreviatedDisplay: String { PublicKeyDisplay.abbreviate(encoding) }
 }
