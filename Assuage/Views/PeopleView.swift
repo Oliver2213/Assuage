@@ -3,35 +3,36 @@ import AppKit
 import Contacts
 import AssuageCore
 
-/// The "Contacts and other recipients" panel: a filtered, searchable view over the
-/// people you can encrypt to or verify notes from, read from Contacts. Read-only for
-/// now — adding keys to a contact and encrypting to people come in later commits.
+/// The "Contacts and other recipients" panel: a searchable, filterable table of the
+/// people you can encrypt to or verify notes from, read from Contacts, with an
+/// inspector detailing the selected contact. A table (not a nested split view) keeps
+/// this as page content — the app's only sidebar stays the tab sidebar.
 struct PeopleView: View {
     @Environment(PeopleLibrary.self) private var people
     @State private var filter: PeopleFilter = .withKeys
     @State private var search = ""
+    @State private var selection: Set<Person.ID> = []
+    @State private var showInspector = true
     @State private var editingPerson: Person?
 
     var body: some View {
-        content
-            .navigationTitle("Contacts and other recipients")
-            .task {
-                if people.hasAccess, people.people.isEmpty { await people.load() }
+        Group {
+            if people.hasAccess {
+                table
+            } else if people.authorization == .notDetermined {
+                accessPrompt
+            } else {
+                accessDenied
             }
-            .sheet(item: $editingPerson, content: EditPersonSheet.init)
-    }
-
-    @ViewBuilder private var content: some View {
-        if people.hasAccess {
-            authorized
-        } else if people.authorization == .notDetermined {
-            accessPrompt
-        } else {
-            accessDenied
         }
+        .navigationTitle("Contacts and other recipients")
+        .task {
+            if people.hasAccess, people.people.isEmpty { await people.load() }
+        }
+        .sheet(item: $editingPerson, content: EditPersonSheet.init)
     }
 
-    // MARK: Authorized
+    // MARK: Table
 
     private var filtered: [Person] {
         people.people
@@ -39,7 +40,12 @@ struct PeopleView: View {
             .filter { search.isEmpty || $0.name.localizedStandardContains(search) }
     }
 
-    @ViewBuilder private var authorized: some View {
+    private var selectedPerson: Person? {
+        guard selection.count == 1, let id = selection.first else { return nil }
+        return filtered.first { $0.id == id }
+    }
+
+    @ViewBuilder private var table: some View {
         Group {
             if people.people.isEmpty, people.isLoading {
                 ProgressView("Loading contacts…")
@@ -47,24 +53,73 @@ struct PeopleView: View {
             } else if filtered.isEmpty {
                 emptyResults
             } else {
-                List {
-                    ForEach(filtered) { person in
-                        PersonRow(person: person)
-                            .contextMenu { menu(for: person) }
+                Table(filtered, selection: $selection) {
+                    TableColumn("Name") { person in
+                        Label(person.name.isEmpty ? "Unnamed contact" : person.name,
+                              systemImage: "person.crop.circle.fill")
+                            .labelStyle(.titleAndIcon)
                     }
+                    TableColumn("Email") { person in
+                        Text(person.emails.first?.address ?? "—").foregroundStyle(.secondary)
+                    }
+                    TableColumn("Keys") { person in
+                        capabilityTags(for: person)
+                    }
+                }
+                .contextMenu(forSelectionType: Person.ID.self) { ids in
+                    if let person = person(for: ids) { menu(for: person) }
+                } primaryAction: { ids in
+                    if let person = person(for: ids) { editingPerson = person }
                 }
             }
         }
         .searchable(text: $search, prompt: "Search contacts")
+        // Drop any selection a filter/search change has hidden.
+        .onChange(of: filtered) { selection.formIntersection(filtered.map(\.id)) }
         .toolbar {
             Menu {
                 Picker("Show", selection: $filter) {
                     ForEach(PeopleFilter.allCases) { Text($0.title).tag($0) }
                 }
+                .pickerStyle(.inline)
             } label: {
                 Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
             }
         }
+        .inspector(isPresented: $showInspector) {
+            if let selectedPerson {
+                PersonDetail(person: selectedPerson) { editingPerson = selectedPerson }
+            } else {
+                ContentUnavailableView("No Contact Selected", systemImage: "person.crop.circle",
+                                       description: Text("Select a contact to see their keys and what you can do with them."))
+            }
+        }
+    }
+
+    /// Capability chips for the Keys column: a plain age key, post-quantum, SSH, a note
+    /// verifier key, and a forge link we could fetch keys from.
+    @ViewBuilder private func capabilityTags(for person: Person) -> some View {
+        let tags = [
+            person.ageRecipients.contains { !$0.isPostQuantum } ? "Age" : nil,
+            person.canEncryptPostQuantum ? "PQ" : nil,
+            person.sshRecipients.isEmpty ? nil : "SSH",
+            person.canVerifyNotes ? "Verifier" : nil,
+            person.forgeURLs.isEmpty ? nil : "Link",
+        ].compactMap { $0 }
+        HStack(spacing: 4) {
+            ForEach(tags, id: \.self) { tag in
+                Text(tag)
+                    .font(.caption)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(.quaternary, in: Capsule())
+            }
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    private func person(for ids: Set<Person.ID>) -> Person? {
+        ids.first.flatMap { id in people.people.first { $0.id == id } }
     }
 
     @ViewBuilder private var emptyResults: some View {
