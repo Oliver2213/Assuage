@@ -57,6 +57,17 @@ public enum ContactKeyField {
         Kind(rawValue: label) != nil
     }
 
+    /// Parse a *raw* pasted public key — an age recipient, an SSH `authorized_keys`
+    /// line, or a note verifier key — into a `Decoded`, or `nil` if unrecognized.
+    /// Shared by every "add a key" path (paste, file, forge URL).
+    public static func parse(_ raw: String) -> Decoded? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if let recipient = try? AgeRecipient(parsing: trimmed) { return .recipient(recipient) }
+        if let verifier = try? VerifierKey(parsing: trimmed) { return .verifier(verifier) }
+        return nil
+    }
+
     // MARK: - Encoding
 
     private static func entry(kind: Kind, payload: String) -> (label: String, value: String) {

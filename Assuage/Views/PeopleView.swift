@@ -10,6 +10,7 @@ struct PeopleView: View {
     @Environment(PeopleLibrary.self) private var people
     @State private var filter: PeopleFilter = .withKeys
     @State private var search = ""
+    @State private var editingPerson: Person?
 
     var body: some View {
         content
@@ -17,6 +18,7 @@ struct PeopleView: View {
             .task {
                 if people.hasAccess, people.people.isEmpty { await people.load() }
             }
+            .sheet(item: $editingPerson, content: EditPersonSheet.init)
     }
 
     @ViewBuilder private var content: some View {
@@ -34,7 +36,7 @@ struct PeopleView: View {
     private var filtered: [Person] {
         people.people
             .filter(filter.matches)
-            .filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }
+            .filter { search.isEmpty || $0.name.localizedStandardContains(search) }
     }
 
     @ViewBuilder private var authorized: some View {
@@ -67,7 +69,7 @@ struct PeopleView: View {
 
     @ViewBuilder private var emptyResults: some View {
         if !search.isEmpty {
-            ContentUnavailableView.search(text: search)
+            ContentUnavailableView.search
         } else if filter == .withKeys {
             ContentUnavailableView {
                 Label("No recipients with keys yet", systemImage: "person.2")
@@ -81,9 +83,11 @@ struct PeopleView: View {
     }
 
     @ViewBuilder private func menu(for person: Person) -> some View {
+        Button("Edit Keys…", systemImage: "pencil") { editingPerson = person }
         Button("Copy Public Keys", systemImage: "doc.on.doc") { copyPublicKeys(person) }
             .disabled(person.recipients.isEmpty)
         if case .contact(let id) = person.source {
+            Divider()
             Button("Show in Contacts", systemImage: "person.crop.circle") { openInContacts(id) }
         }
     }

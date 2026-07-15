@@ -57,6 +57,22 @@ struct ContactKeyFieldTests {
         #expect(ContactKeyField.decode(value: value) == nil)
     }
 
+    @Test("parse routes raw pasted keys to recipient or verifier")
+    func parseRawKeys() throws {
+        let age = AgeIdentity.generateX25519().recipient
+        #expect(ContactKeyField.parse(age.encoding) == .recipient(age))
+
+        let ssh = try AgeRecipient(parsing: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA31YVvFNTIcaUhzeS+N33UOBnSPEYnM3CJ4k/S+yVg9 me@host")
+        // Leading/trailing whitespace is tolerated.
+        #expect(ContactKeyField.parse("  \(ssh.encoding)\n") == .recipient(ssh))
+
+        let verifier = try SigningIdentity.generate(name: "example.com/bob").verifierKey
+        #expect(ContactKeyField.parse(verifier.encoded) == .verifier(verifier))
+
+        #expect(ContactKeyField.parse("not a key") == nil)
+        #expect(ContactKeyField.parse("   ") == nil)
+    }
+
     @Test("Our own key labels are recognized, others aren't")
     func labelRecognition() {
         #expect(ContactKeyField.isKeyLabel("age-public-key"))
