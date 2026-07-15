@@ -20,7 +20,7 @@ final class AppModel {
             case .text: return "Text"
             case .notes: return "Notes"
             case .keys: return "Keys"
-            case .people: return "Contacts and other recipients"
+            case .people: return "Contacts"
             }
         }
 
@@ -312,6 +312,17 @@ final class AppModel {
         encryptExtraRecipientIDs = []
         operation = .encrypt
         selection = .text
+    }
+
+    /// Prefill the Files or Text panel to encrypt to these ad-hoc recipients — the keys
+    /// of a contact, all checked, with no owned identity pre-selected.
+    func composeEncrypt(to recipients: [NamedRecipient], scope: ComposeScope) {
+        encryptRecipientIDs = []
+        encryptExtraRecipients = recipients
+        encryptExtraRecipientIDs = Set(recipients.map(\.id))
+        encryptMode = .keys
+        operation = .encrypt
+        selection = scope.panel
     }
 
     /// Prefill the Text panel to try these identities.

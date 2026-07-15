@@ -10,6 +10,8 @@ struct PersonDetail: View {
     let person: Person
     /// Open the key editor for this contact.
     var onEdit: () -> Void
+    /// Start encrypting text or files to this contact.
+    var onEncrypt: (ComposeScope) -> Void
 
     var body: some View {
         ScrollView {
@@ -24,6 +26,13 @@ struct PersonDetail: View {
         }
         .navigationTitle(person.name.isEmpty ? "Contact" : person.name)
         .toolbar {
+            Menu {
+                Button("Text…", systemImage: "text.alignleft") { onEncrypt(.text) }
+                Button("Files…", systemImage: "folder") { onEncrypt(.files) }
+            } label: {
+                Label("Encrypt to \(person.name.isEmpty ? "Contact" : person.name)", systemImage: "lock")
+            }
+            .disabled(!person.canEncrypt)
             if case .contact(let id) = person.source {
                 Button("Open in Contacts", systemImage: "person.crop.circle") { openInContacts(id) }
             }

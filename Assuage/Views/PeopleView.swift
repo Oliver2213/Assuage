@@ -3,12 +3,14 @@ import AppKit
 import Contacts
 import AssuageCore
 
-/// The "Contacts and other recipients" panel: a searchable, filterable table of the
-/// people you can encrypt to or verify notes from, read from Contacts, with an
-/// inspector detailing the selected contact. A table (not a nested split view) keeps
-/// this as page content — the app's only sidebar stays the tab sidebar.
+/// The Contacts panel: a searchable, filterable table of the people you can encrypt
+/// to or verify notes from, read from Contacts, with an inspector detailing the
+/// selected contact and an action to start a message encrypted to them. A table (not
+/// a nested split view) keeps this as page content — the app's only sidebar stays the
+/// tab sidebar.
 struct PeopleView: View {
     @Environment(PeopleLibrary.self) private var people
+    @Environment(AppModel.self) private var model
     @State private var filter: PeopleFilter = .withKeys
     @State private var search = ""
     @State private var selection: Set<Person.ID> = []
@@ -25,7 +27,7 @@ struct PeopleView: View {
                 accessDenied
             }
         }
-        .navigationTitle("Contacts and other recipients")
+        .navigationTitle("Contacts")
         .task {
             if people.hasAccess, people.people.isEmpty { await people.load() }
         }
@@ -88,7 +90,8 @@ struct PeopleView: View {
         }
         .inspector(isPresented: $showInspector) {
             if let selectedPerson {
-                PersonDetail(person: selectedPerson) { editingPerson = selectedPerson }
+                PersonDetail(person: selectedPerson, onEdit: { editingPerson = selectedPerson },
+                             onEncrypt: { encryptTo(selectedPerson, scope: $0) })
             } else {
                 ContentUnavailableView("No Contact Selected", systemImage: "person.crop.circle",
                                        description: Text("Select a contact to see their keys and what you can do with them."))
@@ -138,6 +141,12 @@ struct PeopleView: View {
     }
 
     @ViewBuilder private func menu(for person: Person) -> some View {
+        let name = person.name.isEmpty ? "Contact" : person.name
+        Button("Encrypt Text to \(name)…", systemImage: "text.alignleft") { encryptTo(person, scope: .text) }
+            .disabled(!person.canEncrypt)
+        Button("Encrypt Files to \(name)…", systemImage: "folder") { encryptTo(person, scope: .files) }
+            .disabled(!person.canEncrypt)
+        Divider()
         Button("Edit Keys…", systemImage: "pencil") { editingPerson = person }
         Button("Copy Public Keys", systemImage: "doc.on.doc") { copyPublicKeys(person) }
             .disabled(person.recipients.isEmpty)
@@ -173,6 +182,13 @@ struct PeopleView: View {
     }
 
     // MARK: Actions
+
+    /// Take the Text or Files encrypt panel to this contact's keys, all checked and
+    /// named after them.
+    private func encryptTo(_ person: Person, scope: ComposeScope) {
+        model.composeEncrypt(to: person.recipients.map { NamedRecipient(recipient: $0, name: person.name, contactID: person.id) },
+                             scope: scope)
+    }
 
     private func copyPublicKeys(_ person: Person) {
         Pasteboard.copy(person.recipients.map(\.encoding).joined(separator: "\n"), sensitive: false)

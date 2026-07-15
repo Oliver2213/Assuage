@@ -95,7 +95,7 @@ struct ContactPickerSheet: View {
 
     private func add() {
         guard let id = selection, let person = people.people.first(where: { $0.id == id }) else { return }
-        onAdd(person.recipients.map { NamedRecipient(recipient: $0, name: person.name) })
+        onAdd(person.recipients.map { NamedRecipient(recipient: $0, name: person.name, contactID: person.id) })
         dismiss()
     }
 
