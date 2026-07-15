@@ -257,6 +257,8 @@ final class AppModel {
     var encryptRecipientIDs: Set<UUID> = []
     /// Ad-hoc recipients added on the Encrypt panel (pasted, or loaded from a file).
     var encryptExtraRecipients: [NamedRecipient] = []
+    /// Which of `encryptExtraRecipients` are checked to actually encrypt to.
+    var encryptExtraRecipientIDs: Set<String> = []
     /// Identities to try on the Decrypt panel.
     var decryptIdentityIDs: Set<UUID> = []
     /// Set when a "Check" service arrives so the Decrypt panel runs a check once.
@@ -307,6 +309,7 @@ final class AppModel {
     func composeEncrypt(to identities: [AgeIdentity]) {
         encryptRecipientIDs = Set(identities.map(\.id))
         encryptExtraRecipients = []
+        encryptExtraRecipientIDs = []
         operation = .encrypt
         selection = .text
     }

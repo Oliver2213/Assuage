@@ -11,8 +11,9 @@ struct EncryptView: View {
     @AppStorage(PreferenceKeys.confirmTouchIDBeforeEncrypt) private var confirmTouchIDBeforeEncrypt = false
 
     private var recipients: [AgeRecipient] {
-        model.identities.filter { model.encryptRecipientIDs.contains($0.id) }.map(\.recipient)
-            + model.encryptExtraRecipients.map(\.recipient)
+        (model.identities.filter { model.encryptRecipientIDs.contains($0.id) }.map(\.recipient)
+            + model.encryptExtraRecipients.filter { model.encryptExtraRecipientIDs.contains($0.id) }.map(\.recipient))
+            .deduplicated()
     }
 
     var body: some View {
@@ -38,7 +39,8 @@ struct EncryptView: View {
                     RecipientSelector(
                         identities: model.identities,
                         selectedIdentityIDs: $model.encryptRecipientIDs,
-                        extraRecipients: $model.encryptExtraRecipients
+                        extraRecipients: $model.encryptExtraRecipients,
+                        selectedExtraIDs: $model.encryptExtraRecipientIDs
                     )
                 case .passphrase:
                     GroupBox("Passphrase") {

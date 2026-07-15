@@ -9,11 +9,13 @@ struct RecipientSelector: View {
     let identities: [AgeIdentity]
     @Binding var selectedIdentityIDs: Set<UUID>
     @Binding var extraRecipients: [NamedRecipient]
+    @Binding var selectedExtraIDs: Set<String>
 
     @State private var field = ""
     @State private var parseError: String?
     @State private var showURLSheet = false
     @State private var showFileImporter = false
+    @State private var showContactPicker = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -28,7 +30,7 @@ struct RecipientSelector: View {
             }
 
             if !extraRecipients.isEmpty {
-                RecipientTable(recipients: $extraRecipients, title: "Extra recipients")
+                RecipientTable(recipients: $extraRecipients, selection: $selectedExtraIDs, title: "Extra recipients")
             }
 
             HStack {
@@ -38,6 +40,7 @@ struct RecipientSelector: View {
                 Button("Add", action: add)
                     .disabled(field.trimmingCharacters(in: .whitespaces).isEmpty)
                 Menu {
+                    Button("Contact…", systemImage: "person.crop.circle") { showContactPicker = true }
                     Button("From File…", systemImage: "doc.badge.plus") { showFileImporter = true }
                     Button("Code Forge URL…", systemImage: "link") { showURLSheet = true }
                 } label: {
@@ -45,7 +48,7 @@ struct RecipientSelector: View {
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()
-                .help("Add recipients from a file or a code-forge URL")
+                .help("Add recipients from a contact, a file, or a code-forge URL")
             }
 
             if let parseError {
@@ -56,6 +59,9 @@ struct RecipientSelector: View {
         }
         .sheet(isPresented: $showURLSheet) {
             RecipientURLSheet { _, recipients in addUnique(recipients) }
+        }
+        .sheet(isPresented: $showContactPicker) {
+            ContactPickerSheet { addUnique($0, includingOwned: true) }
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.text, .plainText, .data], allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first {
@@ -93,13 +99,15 @@ struct RecipientSelector: View {
         }
     }
 
-    /// Append recipients not already present — skipping the user's own keys (shown
-    /// in the table above) and duplicates already in the list.
-    private func addUnique(_ recipients: [NamedRecipient]) {
-        let owned = Set(identities.map(\.recipient))
+    /// Append recipients not already in the list. When adding from a paste or a forge
+    /// URL we also skip the user's own keys (already offered in the table above); when
+    /// they explicitly pick a contact we add every key that contact publishes, own or not.
+    private func addUnique(_ recipients: [NamedRecipient], includingOwned: Bool = false) {
+        let owned = includingOwned ? Set<AgeRecipient>() : Set(identities.map(\.recipient))
         for item in recipients
         where !owned.contains(item.recipient) && !extraRecipients.contains(where: { $0.recipient == item.recipient }) {
             extraRecipients.append(item)
+            selectedExtraIDs.insert(item.id)
         }
     }
 }
