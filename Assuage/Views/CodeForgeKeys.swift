@@ -35,6 +35,19 @@ enum CodeForgeKeys {
         return s
     }
 
+    /// Fetch a key list from an *exact* URL (no `.keys` transform) and parse each line
+    /// as an age / SSH recipient or a note verifier key. Used for a contact's revoked-
+    /// key list, whose URL is whatever the contact published. Unparseable lines skipped.
+    static func fetchKeyList(from url: URL) async throws -> [ContactKeyField.Decoded] {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            throw FetchError.httpStatus(http.statusCode)
+        }
+        return String(decoding: data, as: UTF8.self)
+            .split(whereSeparator: \.isNewline)
+            .compactMap { ContactKeyField.parse(String($0)) }
+    }
+
     /// Fetch the `.keys` page and parse each line as an age or SSH recipient,
     /// naming them "key N from <account>". Unparseable lines are skipped.
     static func fetch(fromProfile input: String) async throws -> [NamedRecipient] {

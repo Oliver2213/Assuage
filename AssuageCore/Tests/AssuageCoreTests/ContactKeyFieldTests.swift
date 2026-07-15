@@ -80,4 +80,16 @@ struct ContactKeyFieldTests {
         #expect(!ContactKeyField.isKeyLabel("home"))
         #expect(!ContactKeyField.isKeyLabel("_$!<HomePage>!$_"))
     }
+
+    @Test("Revocation-list labels map to their kind, others don't")
+    func revocationLabels() {
+        #expect(ContactRevocationField(label: "revoked-age-keys-url") == .age)
+        #expect(ContactRevocationField(label: "revoked-ssh-keys-url") == .ssh)
+        #expect(ContactRevocationField(label: "revoked-verifier-keys-url") == .verifier)
+        #expect(ContactRevocationField(label: "home") == nil)
+        // A revocation label is never one of our key-field labels, and vice versa.
+        for field in ContactRevocationField.allCases {
+            #expect(!ContactKeyField.isKeyLabel(field.label))
+        }
+    }
 }

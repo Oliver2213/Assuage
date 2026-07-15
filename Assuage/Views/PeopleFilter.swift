@@ -10,7 +10,7 @@ enum PeopleFilter: String, CaseIterable, Identifiable {
         case .all: "All contacts"
         case .age: "Age keys"
         case .ssh: "SSH keys"
-        case .postQuantum: "Post-quantum"
+        case .postQuantum: "Post-quantum keys"
         case .verifier: "Verifier keys"
         case .forge: "Forge links"
         }
@@ -18,7 +18,7 @@ enum PeopleFilter: String, CaseIterable, Identifiable {
 
     func matches(_ person: Person) -> Bool {
         switch self {
-        case .withKeys: person.hasEncryptionKey
+        case .withKeys: person.canEncrypt
         case .all: true
         case .age: !person.ageRecipients.isEmpty
         case .ssh: !person.sshRecipients.isEmpty

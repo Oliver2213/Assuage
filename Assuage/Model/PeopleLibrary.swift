@@ -73,16 +73,20 @@ final class PeopleLibrary {
         }
     }
 
-    /// Write the given public keys onto a contact, replacing whatever key fields we'd
-    /// previously stored while leaving every other field — and the contact itself —
-    /// untouched. Only our own URL entries are rewritten; the update is tagged with a
-    /// transaction author and never deletes anything.
-    func updateKeys(for person: Person, recipients: [AgeRecipient], verifierKeys: [VerifierKey]) async throws {
+    /// Write the given public keys onto a contact, replacing whatever key and
+    /// revocation-list fields we'd previously stored while leaving every other field —
+    /// and the contact itself — untouched. Any `forgeLinks` not already on the card are
+    /// added as plain URLs (the re-fetch anchors); existing URLs are never removed.
+    /// Only our own URL entries are rewritten; the update is tagged with a transaction
+    /// author and never deletes anything.
+    func updateKeys(for person: Person, recipients: [AgeRecipient], verifierKeys: [VerifierKey],
+                    revocationLists: [Person.RevocationList], forgeLinks: [URL]) async throws {
         guard case .contact(let identifier) = person.source else { throw WriteError.notAContact }
         let recipientCount = recipients.count
         let verifierCount = verifierKeys.count
+        let revocationCount = revocationLists.count
         let author = AppInfo.name   // read on the main actor; capture the string for the write
-        Log.contacts.notice("Saving keys to contact \(identifier, privacy: .private): \(recipientCount) recipient(s), \(verifierCount) verifier key(s)")
+        Log.contacts.notice("Saving keys to contact \(identifier, privacy: .private): \(recipientCount) recipient(s), \(verifierCount) verifier key(s), \(revocationCount) revocation list(s)")
         do {
             try await Task.detached {
                 let store = CNContactStore()
@@ -94,16 +98,30 @@ final class PeopleLibrary {
                     keysToFetch: [CNContactUrlAddressesKey as CNKeyDescriptor])
                 guard let mutable = existing.mutableCopy() as? CNMutableContact else { return }
 
-                // Keep every URL that isn't one of ours (by label or by decodable value),
-                // then append the desired key set. Replacing wholesale keeps it idempotent.
+                // Keep every URL that isn't one of ours: not a key field (by value scheme
+                // or label) and not a revocation-list field (by label). Forge links, being
+                // plain unlabeled URLs, stay in `others` and are preserved.
                 let others = mutable.urlAddresses.filter { labeled in
-                    !ContactKeyField.isKeyLabel(labeled.label ?? "")
+                    let label = labeled.label ?? ""
+                    return !ContactKeyField.isKeyLabel(label)
+                        && ContactRevocationField(label: label) == nil
                         && ContactKeyField.decode(value: labeled.value as String) == nil
                 }
-                let entries = recipients.map(ContactKeyField.entry(for:))
+                // Add any forge links we don't already have, so a re-fetch has an anchor
+                // even after a forge stops serving keys. We only ever add URLs, never remove.
+                let existingURLs = Set(others.map { $0.value as String })
+                let newLinks = forgeLinks.map(\.absoluteString)
+                    .filter { !existingURLs.contains($0) }
+                    .map { CNLabeledValue(label: CNLabelURLAddressHomePage, value: $0 as NSString) }
+                // Then append the desired key set (scheme-tagged values) and revocation
+                // lists (plain URLs under a custom label). Replacing ours wholesale is idempotent.
+                let keyEntries = recipients.map(ContactKeyField.entry(for:))
                     + verifierKeys.map(ContactKeyField.entry(for:))
-                let ours = entries.map { CNLabeledValue(label: $0.label, value: $0.value as NSString) }
-                mutable.urlAddresses = others + ours
+                let ours = keyEntries.map { CNLabeledValue(label: $0.label, value: $0.value as NSString) }
+                let revocations = revocationLists.map {
+                    CNLabeledValue(label: $0.kind.label, value: $0.url.absoluteString as NSString)
+                }
+                mutable.urlAddresses = others + newLinks + ours + revocations
 
                 let request = CNSaveRequest()
                 request.transactionAuthor = author

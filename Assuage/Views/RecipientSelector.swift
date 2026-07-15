@@ -55,7 +55,7 @@ struct RecipientSelector: View {
             }
         }
         .sheet(isPresented: $showURLSheet) {
-            RecipientURLSheet { addUnique($0) }
+            RecipientURLSheet { _, recipients in addUnique(recipients) }
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.text, .plainText, .data], allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first {

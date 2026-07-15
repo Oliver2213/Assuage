@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// Add recipients by fetching a code-forge account's public keys from its `.keys`
-/// page. Hands the parsed recipients back to the caller via `onAdd`.
+/// page. Hands the profile it fetched from, plus the parsed recipients, back to the
+/// caller via `onAdd` (the profile lets the caller record where the keys came from).
 struct RecipientURLSheet: View {
-    let onAdd: ([NamedRecipient]) -> Void
+    let onAdd: (_ profile: String, _ recipients: [NamedRecipient]) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var input = ""
@@ -60,7 +61,7 @@ struct RecipientURLSheet: View {
                     isFetching = false
                     return
                 }
-                onAdd(recipients)
+                onAdd(query, recipients)
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription

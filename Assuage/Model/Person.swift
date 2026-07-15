@@ -16,9 +16,11 @@ nonisolated struct Person: Identifiable, Hashable, Sendable {
     let id: String
     var name: String
     var emails: [Email]
-    /// The contact's plain URLs that aren't our key fields — candidate code-forge
-    /// profiles we can fetch `.keys` from on demand.
+    /// The contact's plain URLs that aren't our key or revocation fields — candidate
+    /// code-forge profiles we can fetch `.keys` from on demand.
     var forgeURLs: [URL]
+    /// Published revoked-key lists we can check to drop retired keys.
+    var revocationLists: [RevocationList]
     /// Age and SSH recipients parsed from the card.
     var recipients: [AgeRecipient]
     /// Note verifier keys parsed from the card.
@@ -31,12 +33,27 @@ nonisolated struct Person: Identifiable, Hashable, Sendable {
         var address: String
     }
 
+    /// A URL the contact publishes listing keys of one kind they've revoked. Checking
+    /// it removes any matching key we hold — fetched or hand-added. This is the only
+    /// thing that removes a key on sync; a forge fetch only ever adds.
+    struct RevocationList: Identifiable, Hashable, Sendable {
+        var kind: ContactRevocationField
+        var url: URL
+        var id: String { "\(kind.rawValue)\(url.absoluteString)" }
+    }
+
     var ageRecipients: [AgeRecipient] { recipients.filter { $0.kind != .sshEd25519 } }
     var sshRecipients: [AgeRecipient] { recipients.filter { $0.kind == .sshEd25519 } }
     var postQuantumRecipients: [AgeRecipient] { recipients.filter(\.isPostQuantum) }
 
-    /// Whether we hold anything we could encrypt to.
-    var hasEncryptionKey: Bool { !recipients.isEmpty }
+    /// Whether we hold any key we could encrypt to (an age or SSH recipient).
+    var canEncrypt: Bool { !recipients.isEmpty }
+
+    /// Whether we could encrypt to this contact post-quantum (a PQ age recipient).
+    var canEncryptPostQuantum: Bool { !postQuantumRecipients.isEmpty }
+
+    /// Whether we could verify this contact's signed notes (a note verifier key).
+    var canVerifyNotes: Bool { !verifierKeys.isEmpty }
 }
 
 extension Person {
@@ -46,16 +63,22 @@ extension Person {
     nonisolated init(contact: CNContact) {
         var recipients: [AgeRecipient] = []
         var verifierKeys: [VerifierKey] = []
+        var revocationLists: [RevocationList] = []
         var forgeURLs: [URL] = []
 
         for labeled in contact.urlAddresses {
             let value = labeled.value as String
+            // Keys are identified by their value's scheme; revocation lists by their
+            // label (their value is a plain URL). Everything else is a forge candidate.
             switch ContactKeyField.decode(value: value) {
             case .recipient(let recipient): recipients.append(recipient)
             case .verifier(let verifier): verifierKeys.append(verifier)
             case nil:
-                // Not one of ours — a normal URL, a possible code-forge profile.
-                if let url = URL(string: value) { forgeURLs.append(url) }
+                if let kind = ContactRevocationField(label: labeled.label ?? ""), let url = URL(string: value) {
+                    revocationLists.append(RevocationList(kind: kind, url: url))
+                } else if let url = URL(string: value) {
+                    forgeURLs.append(url)
+                }
             }
         }
 
@@ -67,6 +90,7 @@ extension Person {
                       address: $0.value as String)
             },
             forgeURLs: forgeURLs,
+            revocationLists: revocationLists,
             recipients: recipients,
             verifierKeys: verifierKeys,
             source: .contact(identifier: contact.identifier)
