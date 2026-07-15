@@ -17,10 +17,26 @@ struct EditPersonSheet: View {
     @State private var verifierKeys: [VerifierKey]
     @State private var parseError: String?
     @State private var showFileImporter = false
-    @State private var adding: AddKeySheet.Kind?
+    @State private var activeSheet: ActiveSheet?
     @State private var isSaving = false
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
+
+    /// The one sheet the editor can present: paste a key of a given kind, or fetch a
+    /// code-forge account's keys. Modeled as one value so a single `.sheet(item:)`
+    /// drives both.
+    private enum ActiveSheet: Identifiable {
+        case add(AddKeySheet.Kind)
+        case forge
+        var id: String {
+            switch self {
+            case .add(.age): "add-age"
+            case .add(.ssh): "add-ssh"
+            case .add(.verifier): "add-verifier"
+            case .forge: "forge"
+            }
+        }
+    }
 
     init(person: Person) {
         self.person = person
@@ -70,10 +86,11 @@ struct EditPersonSheet: View {
                     }
                     Menu {
                         ForEach(AddKeySheet.Kind.allCases) { kind in
-                            Button(kind.menuTitle) { adding = kind }
+                            Button(kind.menuTitle) { activeSheet = .add(kind) }
                         }
                         Divider()
                         Button("From File…", systemImage: "doc.badge.plus") { showFileImporter = true }
+                        Button("Code Forge URL…", systemImage: "link") { activeSheet = .forge }
                     } label: {
                         Label("Add Key", systemImage: "plus")
                     }
@@ -113,8 +130,13 @@ struct EditPersonSheet: View {
                       allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first { loadFile(url) }
         }
-        .sheet(item: $adding) { kind in
-            AddKeySheet(kind: kind) { append($0) }
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .add(let kind):
+                AddKeySheet(kind: kind) { append($0) }
+            case .forge:
+                RecipientURLSheet { addForgeRecipients($0) }
+            }
         }
     }
 
@@ -162,13 +184,17 @@ struct EditPersonSheet: View {
     private func remove(_ recipient: AgeRecipient) { recipients.removeAll { $0.id == recipient.id } }
     private func remove(_ verifier: VerifierKey) { verifierKeys.removeAll { $0 == verifier } }
 
+    /// Add the recipients fetched from a code-forge `.keys` page. The sheet only
+    /// returns age / SSH recipients (a forge has no verifier keys); `append` dedupes.
+    private func addForgeRecipients(_ fetched: [NamedRecipient]) {
+        for named in fetched { append(.recipient(named.recipient)) }
+    }
+
     /// Add every age / SSH recipient and verifier key found in a file (e.g. a
     /// recipients file or a `.pub`), skipping comments and duplicates.
     private func loadFile(_ url: URL) {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)
+            let text = try url.readingSecurityScopedText()
             var added = 0
             for line in text.split(whereSeparator: \.isNewline) {
                 let entry = line.trimmingCharacters(in: .whitespaces)

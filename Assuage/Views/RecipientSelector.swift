@@ -38,7 +38,7 @@ struct RecipientSelector: View {
                 Button("Add", action: add)
                     .disabled(field.trimmingCharacters(in: .whitespaces).isEmpty)
                 Menu {
-                    Button("Recipients File…", systemImage: "doc.text") { showFileImporter = true }
+                    Button("From File…", systemImage: "doc.badge.plus") { showFileImporter = true }
                     Button("Code Forge URL…", systemImage: "link") { showURLSheet = true }
                 } label: {
                     Label("Add from…", systemImage: "plus")
@@ -79,10 +79,8 @@ struct RecipientSelector: View {
     }
 
     private func loadRecipientsFile(_ url: URL) {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            let text = try String(contentsOf: url, encoding: .utf8)
+            let text = try url.readingSecurityScopedText()
             let loaded = NamedRecipient.parse(recipientsFile: text)
             guard !loaded.isEmpty else {
                 parseError = String(localized: "No recipients found in that file.")
