@@ -18,6 +18,7 @@ struct AssuageApp: App {
 
         Settings {
             SettingsView()
+                .environment(people)
         }
     }
 }

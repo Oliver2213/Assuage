@@ -34,6 +34,12 @@ final class PeopleLibrary {
         return false
     }
 
+    /// Re-read the current Contacts authorization, so a change made in System Settings
+    /// while the app is running is reflected without a full reload.
+    func refreshAuthorization() {
+        authorization = CNContactStore.authorizationStatus(for: .contacts)
+    }
+
     /// Prompt for access if undetermined, then load. Safe to call when already
     /// authorized (it just loads). The system remembers the decision, so a second
     /// call after a denial won't prompt again.
