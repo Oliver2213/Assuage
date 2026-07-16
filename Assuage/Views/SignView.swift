@@ -6,6 +6,7 @@ import AssuageCore
 /// text (which would invalidate them).
 struct SignView: View {
     @Environment(AppModel.self) private var model
+    @Environment(PeopleLibrary.self) private var people
     @State private var isSigning = false
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
@@ -22,7 +23,7 @@ struct SignView: View {
                 if !model.signKeptSignatures.isEmpty {
                     SignatureList(
                         note: SignedNote(text: model.signPastedText ?? model.signInput, signatures: model.signKeptSignatures),
-                        verifierKeys: model.verifierKeys,
+                        trustedKeys: TrustedKey.all(own: model.verifierKeys, contacts: people.people),
                         title: "Existing signatures"
                     )
                     Toggle("Keep other signatures when signing", isOn: $model.keepOtherSignatures)

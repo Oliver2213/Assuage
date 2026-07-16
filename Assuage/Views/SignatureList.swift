@@ -2,17 +2,24 @@ import SwiftUI
 import AssuageCore
 
 /// A titled table of a note's signatures — who signed, whether it verifies against
-/// the trusted keys, and its key ID. Shared by Sign and Verify.
+/// the trusted keys, which trusted key it matched, and its key ID. Shared by Sign and
+/// Verify.
 ///
-/// Trust today comes only from the user's own signing keys, so a note you signed
-/// shows as verified and everyone else shows as an unknown signer.
+/// Trust comes from your own signing keys and the note signing keys saved on your
+/// contacts. Since a signature's name is self-asserted, the "From" column names the
+/// actual source of the matching key — the contact whose card carries it, or you.
 struct SignatureList: View {
     let note: SignedNote
-    let verifierKeys: [VerifierKey]
+    let trustedKeys: [TrustedKey]
     let title: LocalizedStringKey
 
+    private var verifierKeys: [VerifierKey] { trustedKeys.map(\.key) }
+
     private var rows: [Row] {
-        note.verify(with: verifierKeys).map { Row(signature: $0.signature, status: $0.status) }
+        note.verify(with: verifierKeys).map { result in
+            Row(signature: result.signature, status: result.status,
+                source: trustedKeys.first { $0.key.keyIDBytes == result.signature.keyIDBytes })
+        }
     }
 
     var body: some View {
@@ -39,11 +46,23 @@ struct SignatureList: View {
                     Button("Copy Key ID", systemImage: "doc.on.doc") {
                         Pasteboard.copy(row.signature.keyIDHex, sensitive: false)
                     }
-                    if let key = matchedKey(for: row.signature) {
+                    if let key = row.source?.key {
                         Button("Copy Verifier Key", systemImage: "doc.on.doc") {
                             Pasteboard.copy(key.encoded, sensitive: false)
                         }
                     }
+                }
+            }
+            TableColumn("From") { row in
+                if let attribution = row.source?.attribution {
+                    Label(attribution, systemImage: row.source?.isFromContact == true ? "person.crop.circle" : "person")
+                        .labelStyle(.titleAndIcon)
+                        .lineLimit(1)
+                        .help("The matching note signing key is saved on this contact’s card.")
+                } else {
+                    Text("—")
+                        .foregroundStyle(.tertiary)
+                        .accessibilityLabel("No matching key")
                 }
             }
             TableColumn("Status") { row in
@@ -52,11 +71,6 @@ struct SignatureList: View {
         }
         .frame(minHeight: 80, maxHeight: 200)
         .accessibilityLabel(title)
-    }
-
-    /// The trusted key that signed this, if any — for the Copy Verifier Key action.
-    private func matchedKey(for signature: SignedNote.Signature) -> VerifierKey? {
-        verifierKeys.first { $0.keyIDBytes == signature.keyIDBytes }
     }
 
     /// Count the rows by outcome, for the summary line.
@@ -75,6 +89,9 @@ struct SignatureList: View {
     struct Row: Identifiable {
         let signature: SignedNote.Signature
         let status: SignedNote.VerificationStatus
+        /// The trusted key whose ID matches this signature, if any — the source shown
+        /// in the "From" column and used by the Copy Verifier Key action.
+        let source: TrustedKey?
         var id: String { signature.id }
     }
 

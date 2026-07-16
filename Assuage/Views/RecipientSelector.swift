@@ -61,7 +61,10 @@ struct RecipientSelector: View {
             RecipientURLSheet { _, recipients in addUnique(recipients) }
         }
         .sheet(isPresented: $showContactPicker) {
-            ContactPickerSheet { addUnique($0, includingOwned: true) }
+            ContactPickerSheet(purpose: .recipients) { person in
+                addUnique(person.recipients.map { NamedRecipient(recipient: $0, name: person.name, contactID: person.id) },
+                          includingOwned: true)
+            }
         }
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.text, .plainText, .data], allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first {
