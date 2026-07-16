@@ -69,13 +69,32 @@ Assuage work with the wider age ecosystem and vice versa.
   presence-protected key prompts for Touch ID / passcode at decrypt time.
 - **Import** age identities and **SSH Ed25519** private keys (including
   passphrase-protected OpenSSH keys); SSH keys become recipients and identities like
-  any other. Export the full identity or **public key only**, formatted the way age
-  formats generated keys (a comment header with the app name, creation date, access
-  control, and public key, then the private key line); SSH keys export as OpenSSH.
+  any other. **Export** the full identity or **public key only**, in age's own format
+  (a comment header with app name, creation date, access control, and public key, then
+  the private key line); SSH keys export as OpenSSH.
 - **Keychain persistence** with a **storage choice per key**: synced across your
   devices via iCloud Keychain, this Mac only, or **Touch ID–protected** (wrapped by
   the Secure Enclave, so it isn't decryptable at rest even while the keychain is
   unlocked). Enclave keys never sync.
+
+**Signed notes** ([C2SP signed-note format](https://c2sp.org/signed-note))
+- Sign text with an Ed25519 **note signing key** — a separate key type that only signs
+  and verifies, never encrypts. Multiple signers on one note; each signs the text only,
+  so adding a signature never disturbs the others.
+- **Verify** a pasted note against the keys you hold and the note signing keys saved on
+  your contacts; each signature shows as verified, an unknown signer, or invalid (a
+  matching key, but the text changed since signing).
+- Because a signature carries only a self-asserted name and a 4-byte key ID — never the
+  public key — the "From" column names the **contact card that actually vouches** for a
+  verified signature, not the name typed into it.
+
+**Contacts** (a filtered, key-aware view onto your address book)
+- A **Contacts** panel surfacing address-book entries that carry public keys, with
+  capability chips (Age / SSH / PQ / Verifier / forge link) and search.
+- Store others' public keys **on the contact card** (custom-labeled URL fields), so they
+  ride iCloud sync and travel with an AirDropped card; edits apply only on explicit Save.
+- **Encrypt to a contact** (all their keys, or post-quantum only), and **fetch keys from a
+  code-forge profile** (GitHub / Codeberg `.keys`) straight onto the card.
 
 **System integration** (all via first-party app extensions — see Trust model)
 - **Services** for **Encrypt**, **Decrypt**, and **Check** that accept selected
@@ -98,8 +117,6 @@ Assuage work with the wider age ecosystem and vice versa.
 
 ### Planned / deferred
 
-- **Contacts association**: attach an age public key to a system contact and pick a
-  person (filtered to those with keys) as a recipient.
 - **Shamir Secret Sharing** (`age-plugin-sss`): threshold identities (need *k* of *n*
   keys to decrypt), with nested/subkey policies. Requires a subprocess, so it's gated
   on a decision about bundling.
@@ -177,6 +194,11 @@ progress to the main actor via an `AsyncStream`; domain types are `Sendable`.
   key (only the 32-byte seed is retained after import). RSA / ssh-agent are out of scope.
 - **Passphrase (scrypt)**: a passphrase stanza (age's default work factor) as the sole
   recipient, per the age spec.
+- **Signed notes** ([`c2sp.org/signed-note`](https://c2sp.org/signed-note)): Ed25519
+  signatures over the note text, each line `— <name> <base64(keyID ‖ signature)>`. The
+  4-byte key ID is a hash binding the name *into* the key, so the same key under a
+  different name is a different verifier. Signing keys are Ed25519 via CryptoKit,
+  persisted as the 32-byte seed like an SSH key.
 - **Armor**: `-----BEGIN AGE ENCRYPTED FILE-----` … base64 wrapped at 64 columns.
 - **Header inspection**: `Cipher.canDecrypt` runs the unwrap + header-MAC check but
   never reads plaintext, so it reveals recipient membership without decrypting.
