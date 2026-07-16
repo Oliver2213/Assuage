@@ -223,9 +223,20 @@ absent. Secure Enclave tests use `none` access control to run headless.
 
 - **AgeKit** — the age implementation. We use our fork,
   [Oliver2213/AgeKit](https://github.com/Oliver2213/AgeKit) (local checkout at
-  `~/src/AgeKit`, branch `assuagefixes`). One minimal patch: `Age.Stanza`
-  was made publicly constructible/readable (its fields and `init(type:args:body:)`
-  were `internal`), which its public `Recipient`/`Identity` protocols require to be
-  usable by external conformers such as the Secure Enclave recipient.
+  `~/src/AgeKit`, branch `assuagefixes`), which extends upstream with the pieces
+  Assuage needs, each verified wire-compatible with `rage` in both directions:
+  - `Age.Stanza` made publicly constructible/readable, so external `Recipient`/
+    `Identity` conformers (like the Secure Enclave recipient) can be written without
+    forking further.
+  - A header-MAC fix: stanza bodies are now wrapped at 64 columns per the age spec,
+    so decrypting real age/rage output whose random "grease" stanza exceeds 48 bytes
+    no longer fails with a `.badHeaderMAC`.
+  - **ssh-ed25519** recipient and identity — a port of age's `agessh`, plus seed /
+    authorized-key / OpenSSH serialization.
+  - **Post-quantum** recipients and identities: software `mlkem768x25519` (X-Wing)
+    and tagged `mlkem768p256tag`, on an added HPKE key schedule.
+  - `ScryptIdentity` made public (a wrong passphrase now surfaces as
+    `incorrectIdentity`), enabling passphrase encrypt/decrypt.
+  - The `swift-nio` dependency dropped in favor of a small Foundation byte reader.
 - **Reference (not linked)**: `age-plugin-se` (Secure Enclave wire format, Bech32) and
   `age-plugin-sss` (future Shamir support).
