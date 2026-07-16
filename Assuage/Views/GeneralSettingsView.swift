@@ -15,6 +15,8 @@ struct GeneralSettingsView: View {
     private var defaultKeyType: DefaultKeyType = .standard
     @AppStorage(PreferenceKeys.publicKeyDisplay)
     private var publicKeyDisplay: PublicKeyDisplay = .abbreviated
+    @AppStorage(PreferenceKeys.defaultSigningIdentities)
+    private var defaultSigningIdentities: DefaultSigningIdentities = .all
 
     var body: some View {
         Form {
@@ -60,6 +62,19 @@ struct GeneralSettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            Section {
+                Picker("Sign notes with", selection: $defaultSigningIdentities) {
+                    ForEach(DefaultSigningIdentities.allCases) { Text($0.title).tag($0) }
+                }
+                .help("Which note signing keys to sign with by default.")
+            } header: {
+                Text("Signing")
+            } footer: {
+                Text("Which of your note signing keys sign a note by default — used by the **Sign Note with \(AppInfo.name)** service and as the starting selection when signing notes in the app. You can still adjust the keys per note.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

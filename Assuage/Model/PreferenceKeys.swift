@@ -33,4 +33,9 @@ enum PreferenceKeys {
     /// How public keys are shown in the UI (abbreviated vs full). Display only —
     /// copy and export always use the full key.
     static let publicKeyDisplay = "publicKeyDisplay"
+
+    /// Which note signing keys sign by default (see `DefaultSigningIdentities`):
+    /// first, last, or all. Drives both the "Sign Note" Service and the in-app Sign
+    /// view's default selection. Defaults to all.
+    static let defaultSigningIdentities = "defaultSigningIdentities"
 }

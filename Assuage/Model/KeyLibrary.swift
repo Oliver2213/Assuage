@@ -24,9 +24,19 @@ final class KeyLibrary {
     private let store = KeychainStore<AgeIdentity>(
         metaService: "dev.smoll.Assuage.identities.meta",
         secretService: "dev.smoll.Assuage.identities.secret")
-    private let signerStore = KeychainStore<SigningKey>(
-        metaService: "dev.smoll.Assuage.signers.meta",
-        secretService: "dev.smoll.Assuage.signers.secret")
+    /// The one shared library, used by every window and by the note-signing /
+    /// verification Services (which run without a specific window).
+    static let shared = KeyLibrary()
+
+    private let signerStore = KeyLibrary.makeSignerStore()
+
+    /// The signing-key keychain store, shared with the note-signing Service so the
+    /// two read the exact same items (see `NoteSigningService`).
+    static func makeSignerStore() -> KeychainStore<SigningKey> {
+        KeychainStore<SigningKey>(
+            metaService: "dev.smoll.Assuage.signers.meta",
+            secretService: "dev.smoll.Assuage.signers.secret")
+    }
 
     init() {
         identities = store.loadAll()

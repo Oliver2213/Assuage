@@ -72,9 +72,11 @@ struct SignView: View {
             Text(errorMessage)
         }
         .onAppear {
-            // Default to the first key so a single-key user can just sign.
-            if model.signIdentityIDs.isEmpty, let first = model.signingKeys.first {
-                model.signIdentityIDs = [first.id]
+            // Pre-select the keys the "Default note signing identities" setting picks
+            // (first / last / all) — the same choice the Sign Note Service signs with.
+            if model.signIdentityIDs.isEmpty {
+                let defaults = DefaultSigningIdentities.current.select(from: model.signingKeys)
+                model.signIdentityIDs = Set(defaults.map(\.id))
             }
         }
         .task { refreshTrustedKeys() }

@@ -3,10 +3,10 @@ import SwiftUI
 @main
 struct AssuageApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    /// The one key library, shared by every window.
-    @State private var library = KeyLibrary()
-    /// The one people/contacts library, shared by every window.
-    @State private var people = PeopleLibrary()
+    /// The one key library, shared by every window and by the note Services.
+    @State private var library = KeyLibrary.shared
+    /// The one people/contacts library, shared by every window and the verify panel.
+    @State private var people = PeopleLibrary.shared
 
     var body: some Scene {
         WindowGroup {

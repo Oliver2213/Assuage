@@ -2,8 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSContactsUsageDescription</key>
-	<string>Assuage reads the public keys and code-forge links saved on your contacts so you can encrypt to people by name, and verify signed notes from people you know. It adds a key to a contact only when you ask, and never deletes contacts.</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -19,8 +17,6 @@
 			</array>
 		</dict>
 		<dict>
-			<!-- age identity files (.age-identity / .age-identities): opening one
-			     brings the app forward with the Import Keys sheet loaded. -->
 			<key>CFBundleTypeName</key>
 			<string>Age identity file</string>
 			<key>CFBundleTypeRole</key>
@@ -34,9 +30,6 @@
 			</array>
 		</dict>
 		<dict>
-			<!-- Any file or folder, so dropping one on the Dock icon (or "Open
-			     With") reaches application(_:open:), which encrypts it. Alternate
-			     rank so we never become the default handler for other files. -->
 			<key>CFBundleTypeName</key>
 			<string>File or folder</string>
 			<key>CFBundleTypeRole</key>
@@ -50,6 +43,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSContactsUsageDescription</key>
+	<string>Assuage reads the public keys and code-forge links saved on your contacts so you can encrypt to people by name, and verify signed notes from people you know. It adds a key to a contact only when you ask, and never deletes contacts.</string>
 	<key>NSServices</key>
 	<array>
 		<dict>
@@ -98,6 +93,40 @@
 			<array>
 				<string>public.utf8-plain-text</string>
 				<string>public.file-url</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Sign Note with Assuage</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>signNoteService</string>
+			<key>NSPortName</key>
+			<string>Assuage</string>
+			<key>NSReturnTypes</key>
+			<array>
+				<string>public.utf8-plain-text</string>
+			</array>
+			<key>NSSendTypes</key>
+			<array>
+				<string>public.utf8-plain-text</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Verify Signed Note with Assuage</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>verifyNoteService</string>
+			<key>NSPortName</key>
+			<string>Assuage</string>
+			<key>NSSendTypes</key>
+			<array>
+				<string>public.utf8-plain-text</string>
 			</array>
 		</dict>
 	</array>

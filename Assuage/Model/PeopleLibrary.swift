@@ -20,6 +20,10 @@ final class PeopleLibrary {
     private(set) var isLoading = false
     private(set) var loadError: String?
 
+    /// The one shared library, used by every window and by the verification Service
+    /// panel (which runs without a specific window).
+    static let shared = PeopleLibrary()
+
     init() {
         authorization = CNContactStore.authorizationStatus(for: .contacts)
     }
