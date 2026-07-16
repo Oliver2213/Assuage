@@ -6,7 +6,7 @@ import AssuageCore
 /// algorithm is derived rather than chosen: the keychain rows are X25519 (or X-Wing
 /// when post-quantum), and the Secure Enclave row is a native P-256 key (or
 /// ML-KEM-768 + P-256 when post-quantum).
-enum KeyStorage: CaseIterable, Identifiable {
+enum KeyStorage: String, CaseIterable, Identifiable {
     case synced, thisDevice, touchID, secureEnclave
     var id: Self { self }
 

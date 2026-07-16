@@ -17,6 +17,8 @@ struct GeneralSettingsView: View {
     private var publicKeyDisplay: PublicKeyDisplay = .abbreviated
     @AppStorage(PreferenceKeys.defaultSigningIdentities)
     private var defaultSigningIdentities: DefaultSigningIdentities = .all
+    @AppStorage(PreferenceKeys.defaultKeyStorage)
+    private var defaultKeyStorage: KeyStorage = .touchID
 
     var body: some View {
         Form {
@@ -48,46 +50,33 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Post-quantum only exists on macOS 26+, so only offer the default there.
-            if #available(macOS 26, *) {
-                Section {
-                    Picker("Default new keys to", selection: $defaultKeyType) {
+            Section {
+                // Post-quantum types only exist on macOS 26+, so only offer the
+                // type default there.
+                if #available(macOS 26, *) {
+                    Picker("New keys", selection: $defaultKeyType) {
                         ForEach(DefaultKeyType.allCases) { Text($0.title).tag($0) }
                     }
                     .help("The type new keys start on. You can still switch per key when generating.")
-                } header: {
-                    Text("Key Type")
-                } footer: {
-                    Text("New keys start on this type; you can still switch per key when generating. Software post-quantum (X-Wing) is exportable and needs age 1.3 or later to use; Secure Enclave post-quantum (ML-KEM-768 + P-256) is hardware-bound to this Mac. Both require macOS 26 to create.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
                 }
-            }
-
-            Section {
+                Picker("Protection for new keys", selection: $defaultKeyStorage) {
+                    ForEach(KeyStorage.keychainCases) { Text($0.title).tag($0) }
+                }
+                .help("Where a new keychain-backed key (age, post-quantum, SSH) is stored and how it’s guarded.")
+                Picker("Protection for new Secure Enclave keys", selection: $defaultEnclaveAccessControl) {
+                    ForEach(SecureEnclaveAccessControl.allCases, id: \.self) { control in
+                        Text(control.displayName).tag(control)
+                    }
+                }
+                .help("The presence policy a new Secure Enclave key is created with.")
                 Picker("Sign notes with", selection: $defaultSigningIdentities) {
                     ForEach(DefaultSigningIdentities.allCases) { Text($0.title).tag($0) }
                 }
                 .help("Which note signing keys to sign with by default.")
             } header: {
-                Text("Signing")
+                Text("Defaults")
             } footer: {
-                Text("Which of your note signing keys sign a note by default — used by the **Sign Note with \(AppInfo.name)** service and as the starting selection when signing notes in the app. You can still adjust the keys per note.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
-                Picker("Default protection for new keys", selection: $defaultEnclaveAccessControl) {
-                    ForEach(SecureEnclaveAccessControl.allCases, id: \.self) { control in
-                        Text(control.displayName).tag(control)
-                    }
-                }
-                .help("The presence policy new Secure Enclave keys are created with.")
-            } header: {
-                Text("Secure Enclave")
-            } footer: {
-                Text("The presence policy a new Secure Enclave key is created with. You can still override it per key when generating.")
+                Text("Starting points for new keys and signing — you can still customize each per key when generating, or per note when signing. **Protection for new keys** covers keychain keys (age, post-quantum, SSH); Secure Enclave keys use their own presence policy. **Sign notes with** also sets which keys the **Sign Note with \(AppInfo.name)** service uses.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

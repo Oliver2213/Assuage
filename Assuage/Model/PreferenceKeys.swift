@@ -38,4 +38,10 @@ enum PreferenceKeys {
     /// first, last, or all. Drives both the "Sign Note" Service and the in-app Sign
     /// view's default selection. Defaults to all.
     static let defaultSigningIdentities = "defaultSigningIdentities"
+
+    /// The storage/protection a new *keychain-backed* key (age, post-quantum, SSH)
+    /// starts on in the generate sheet — one of the `KeyStorage` keychain rows
+    /// (synced / this device / Touch ID). Secure Enclave keys have their own default
+    /// (`defaultEnclaveAccessControl`). Defaults to Touch ID.
+    static let defaultKeyStorage = "defaultKeyStorage"
 }

@@ -9,6 +9,8 @@ struct GenerateKeySheet: View {
     private var defaultEnclaveAccessControl: SecureEnclaveAccessControl = .anyBiometryOrPasscode
     @AppStorage(PreferenceKeys.defaultKeyType)
     private var defaultKeyType: DefaultKeyType = .standard
+    @AppStorage(PreferenceKeys.defaultKeyStorage)
+    private var defaultKeyStorage: KeyStorage = .touchID
 
     @State private var isPostQuantum = false
     @State private var storage: KeyStorage = .touchID
@@ -90,6 +92,9 @@ struct GenerateKeySheet: View {
         .frame(minWidth: 460)
         .onAppear {
             accessControl = defaultEnclaveAccessControl
+            // Start on the preferred keychain storage; a post-quantum Secure Enclave
+            // default overrides it to the enclave row below.
+            storage = defaultKeyStorage
             // Post-quantum requires macOS 26; the picker is only shown there, but
             // guard anyway so a stale value can't select an unavailable type.
             if #available(macOS 26, *) {
