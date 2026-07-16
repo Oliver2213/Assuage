@@ -4,37 +4,11 @@
 > decrypt files and text from anywhere on your Mac, with keys you can keep in the
 > Secure Enclave.
 
-Assuage brings the power of modern cryptography to the macOS UI and to the system
-itself. It aims for secure, sensible defaults, native platform integration, and
-data-first design where invalid states can't be represented.
-
----
-
-## Trust model
-
-**All cryptography is pure in-process Swift** — there are **no third-party binaries
-and no subprocesses** anywhere in what ships. Crypto runs through Apple's CryptoKit
-and the [AgeKit](https://github.com/Oliver2213/AgeKit) Swift implementation of age.
-Secure Enclave support is a native re-implementation of `age-plugin-se`'s wire
-format, not a bundled copy of the plugin. There is nothing to trust for the crypto
-but the app, Apple's frameworks, and one small vendored, auditable Bech32 file.
-
-The `.app` **does** bundle additional binaries beyond the main executable, but they
-are all **our own first-party code** — macOS *app extensions* that push the app's
-reach into other parts of the system (Finder, Quick Look). They add no new trust
-surface: each either links the *same* audited Swift core the app does, or ships no
-crypto at all. Specifically:
-
-- **Finder Quick Actions** (`EncryptAction` / `DecryptAction`) — headless Action
-  Extensions with **no crypto and no keys**. They don't even link the core; they
-  just forward the selected files to the app via LaunchServices and quit. All
-  encryption/decryption still happens in the one app process.
-- **Quick Look preview** (`QLExtension`) — links the Swift core (`AssuageCore`) and
-  uses its header-only inspector to render an `.age` file's metadata as a preview.
-  It reads the age header; it never decrypts payloads.
-
-Interoperability is verified against real age implementations, so files produced by
-Assuage work with the wider age ecosystem and vice versa.
+Assuage brings modern cryptography to the macOS UI and to the system itself — with
+secure, sensible defaults, native platform integration, and data-first design where
+invalid states can't be represented. **All cryptography runs in-process in Swift — no
+third-party crypto binaries, no subprocesses** (the app does bundle its own first-party
+extensions; see [Trust model](#trust-model)).
 
 ---
 
@@ -77,6 +51,18 @@ Assuage work with the wider age ecosystem and vice versa.
   the Secure Enclave, so it isn't decryptable at rest even while the keychain is
   unlocked). Enclave keys never sync.
 
+**Contacts** — encrypt to people, not pasted keys
+- **Encrypt to a contact by name**: pick a person and encrypt to all their public keys
+  at once (or their post-quantum keys only), instead of pasting a key each time.
+- **Manage a contact's keys** on their contact card: keep the age / SSH / note-verifier
+  public keys you have for them as custom-labeled fields, so they sync over iCloud and
+  travel with an AirDropped card. Edits apply only on explicit Save.
+- **Link a code-forge profile** (GitHub / Codeberg): Assuage fetches the SSH keys the
+  profile publishes at `.keys` and encrypts to them — the age header names that SSH key
+  as the recipient, like any other.
+- The **Contacts panel** filters and searches your address book by capability
+  (Age / SSH / post-quantum / verifier / forge link).
+
 **Signed notes** ([C2SP signed-note format](https://c2sp.org/signed-note))
 - Sign text with an Ed25519 **note signing key** — a separate key type that only signs
   and verifies, never encrypts. Multiple signers on one note; each signs the text only,
@@ -84,25 +70,19 @@ Assuage work with the wider age ecosystem and vice versa.
 - **Verify** a pasted note against the keys you hold and the note signing keys saved on
   your contacts; each signature shows as verified, an unknown signer, or invalid (a
   matching key, but the text changed since signing).
-- Because a signature carries only a self-asserted name and a 4-byte key ID — never the
-  public key — the "From" column names the **contact card that actually vouches** for a
-  verified signature, not the name typed into it.
-
-**Contacts** (a filtered, key-aware view onto your address book)
-- A **Contacts** panel surfacing address-book entries that carry public keys, with
-  capability chips (Age / SSH / PQ / Verifier / forge link) and search.
-- Store others' public keys **on the contact card** (custom-labeled URL fields), so they
-  ride iCloud sync and travel with an AirDropped card; edits apply only on explicit Save.
-- **Encrypt to a contact** (all their keys, or post-quantum only), and **fetch keys from a
-  code-forge profile** (GitHub / Codeberg `.keys`) straight onto the card.
+- A signature carries only a self-asserted name and a 4-byte key ID — never the public
+  key — so a verified signature is attributed to the **contact card that vouches** for
+  it, not the name typed in.
 
 **System integration** (all via first-party app extensions — see Trust model)
-- **Services** for **Encrypt**, **Decrypt**, and **Check** that accept selected
-  **text or files**, so they appear in the system-wide *Services* menu and in
-  **Finder's** right-click menu. A crypto tool shouldn't silently rewrite other
-  apps' data, so each service brings the app forward with the content loaded into
-  the right panel (choose recipients, then encrypt) rather than transforming the
-  pasteboard in place.
+- **Services** for **Encrypt**, **Decrypt**, and **Check** on selected **text or files**,
+  in the system *Services* menu and **Finder's** right-click menu. A crypto tool
+  shouldn't silently rewrite other apps' data, so each brings the app forward with the
+  content loaded rather than transforming the selection in place.
+- **Sign Note** and **Verify Signed Note** Services on selected text: *Sign Note* signs
+  it and replaces the selection with the signed note; *Verify Signed Note* opens a small
+  panel with each signature's status and the contact that vouches for it. Both work
+  without opening the main app.
 - **Finder Quick Actions** — *Encrypt with Assuage* / *Decrypt with Assuage* on the
   right-click menu for files and folders. The action forwards the selection to the
   app (no crypto in the extension); the app infers encrypt vs. decrypt from the
@@ -207,15 +187,35 @@ progress to the main actor via an `AsyncStream`; domain types are `Sendable`.
 
 ## Testing
 
-`swift test` in `AssuageCore` — round trips (binary / armored / multi-chunk /
-multi-recipient), identity import/export, Codable persistence, Secure Enclave round
-trips on real hardware, and **interop both directions** with:
+`swift test` in `AssuageCore` covers round trips (binary / armored / multi-chunk /
+multi-recipient), identity import/export, Codable persistence, post-quantum (software
+and Secure Enclave), signed-note signing and verification (including a published
+`sumdb/note` vector), and Secure Enclave round trips on real hardware. It also checks
+**interop both directions** with:
 
 - the real **`rage`** CLI, and
 - the real **`age-plugin-se`** binary (via `rage` with the plugin on `PATH`).
 
 Interop and Secure Enclave suites skip automatically when the tools / hardware are
-absent. Secure Enclave tests use `none` access control to run headless.
+absent; Secure Enclave tests use `none` access control to run headless.
+
+---
+
+## Trust model
+
+**All cryptography is in-process Swift — no third-party binaries and no subprocesses**
+in what ships. Crypto runs through Apple's CryptoKit and the
+[AgeKit](https://github.com/Oliver2213/AgeKit) Swift implementation of age; Secure
+Enclave support is a native re-implementation of
+[`age-plugin-se`](https://github.com/remko/age-plugin-se)'s wire format, not a bundled
+copy. There's nothing to trust for the crypto but the app, Apple's frameworks, and one
+small vendored, auditable Bech32 file.
+
+The bundled app extensions are all first-party and add no trust surface: the **Finder
+Quick Actions** (`EncryptAction` / `DecryptAction`) carry no crypto and no keys — they
+just forward files to the app — and the **Quick Look preview** (`QLExtension`) only reads
+an `.age` header to render a preview, never decrypting. Interop is verified against real
+age implementations, so files round-trip with the wider age ecosystem.
 
 ---
 
@@ -238,5 +238,5 @@ absent. Secure Enclave tests use `none` access control to run headless.
   - `ScryptIdentity` made public (a wrong passphrase now surfaces as
     `incorrectIdentity`), enabling passphrase encrypt/decrypt.
   - The `swift-nio` dependency dropped in favor of a small Foundation byte reader.
-- **Reference (not linked)**: `age-plugin-se` (Secure Enclave wire format, Bech32) and
-  `age-plugin-sss` (future Shamir support).
+- **Reference (not linked)**: [`age-plugin-se`](https://github.com/remko/age-plugin-se)
+  (Secure Enclave wire format, Bech32) and `age-plugin-sss` (future Shamir support).
