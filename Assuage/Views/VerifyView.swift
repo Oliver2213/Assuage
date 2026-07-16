@@ -15,17 +15,17 @@ struct VerifyView: View {
     /// The contact whose key editor is open.
     @State private var editingContact: Person?
 
+    /// Everyone we'll verify against: the user's own verifier keys plus every note
+    /// signing key saved on a contact, each tagged with where it came from. Cached
+    /// rather than recomputed per body pass, since it changes only when your keys or
+    /// contacts do — not on every keystroke in the note field — and rebuilding it walks
+    /// every contact. Refreshed when either source changes, so a key saved through the
+    /// editor takes effect right away.
+    @State private var trustedKeys: [TrustedKey] = []
+
     private var note: SignedNote { SignedNote(parsing: model.verifyInput) }
     private var hasInput: Bool {
         !model.verifyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    /// Everyone we'll verify against: the user's own verifier keys plus every note
-    /// signing key saved on a contact, each tagged with where it came from. Reading
-    /// straight from the loaded contacts means a key saved through the editor takes
-    /// effect as soon as it's saved.
-    private var trustedKeys: [TrustedKey] {
-        TrustedKey.all(own: model.verifierKeys, contacts: people.people)
     }
 
     var body: some View {
@@ -64,13 +64,18 @@ struct VerifyView: View {
         }
         // Pick a contact, then — once that sheet has closed — open its key editor, where
         // the note signing key is pasted or fetched like any other. Saving writes it to
-        // the card, and `trustedKeys` picks it up on the next load.
+        // the card, and `refreshTrustedKeys` picks it up when `people.people` changes.
         .sheet(isPresented: $showContactPicker, onDismiss: openPendingEditor) {
             ContactPickerSheet(purpose: .noteSigner) { pendingContact = $0 }
         }
-        .sheet(item: $editingContact) { contact in
-            EditPersonSheet(person: contact)
-        }
+        .sheet(item: $editingContact, content: EditPersonSheet.init)
+        .task { refreshTrustedKeys() }
+        .onChange(of: people.people) { refreshTrustedKeys() }
+        .onChange(of: model.verifierKeys) { refreshTrustedKeys() }
+    }
+
+    private func refreshTrustedKeys() {
+        trustedKeys = TrustedKey.all(own: model.verifierKeys, contacts: people.people)
     }
 
     private func openPendingEditor() {

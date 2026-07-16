@@ -58,7 +58,9 @@ struct SignatureList: View {
                     Label(attribution, systemImage: row.source?.isFromContact == true ? "person.crop.circle" : "person")
                         .labelStyle(.titleAndIcon)
                         .lineLimit(1)
-                        .help("The matching note signing key is saved on this contact’s card.")
+                        .help(row.source?.isFromContact == true
+                              ? "The matching note signing key is saved on \(attribution)’s card."
+                              : "Signed by one of your own keys.")
                 } else {
                     Text("—")
                         .foregroundStyle(.tertiary)

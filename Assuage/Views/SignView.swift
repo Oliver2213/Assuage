@@ -10,6 +10,10 @@ struct SignView: View {
     @State private var isSigning = false
     @State private var errorMessage = ""
     @State private var isErrorPresented = false
+    /// The keys pasted signatures are checked against, tagged with their source. Cached
+    /// rather than rebuilt per keystroke — it depends only on your keys and contacts,
+    /// not the text being signed.
+    @State private var trustedKeys: [TrustedKey] = []
 
     var body: some View {
         @Bindable var model = model
@@ -23,7 +27,7 @@ struct SignView: View {
                 if !model.signKeptSignatures.isEmpty {
                     SignatureList(
                         note: SignedNote(text: model.signPastedText ?? model.signInput, signatures: model.signKeptSignatures),
-                        trustedKeys: TrustedKey.all(own: model.verifierKeys, contacts: people.people),
+                        trustedKeys: trustedKeys,
                         title: "Existing signatures"
                     )
                     Toggle("Keep other signatures when signing", isOn: $model.keepOtherSignatures)
@@ -73,11 +77,18 @@ struct SignView: View {
                 model.signIdentityIDs = [first.id]
             }
         }
+        .task { refreshTrustedKeys() }
+        .onChange(of: people.people) { refreshTrustedKeys() }
+        .onChange(of: model.verifierKeys) { refreshTrustedKeys() }
         .onChange(of: model.runComposeAction) { _, run in
             guard run, model.selection == .notes, model.noteOperation == .sign else { return }
             model.runComposeAction = false
             sign()
         }
+    }
+
+    private func refreshTrustedKeys() {
+        trustedKeys = TrustedKey.all(own: model.verifierKeys, contacts: people.people)
     }
 
     /// The signing-key chooser, or a prompt to make one when there are none.
