@@ -1,4 +1,6 @@
 import SwiftUI
+import AppKit
+import os
 import AssuageCore
 
 /// Decrypt one kind of input, chosen by `scope`: pasted age text (Text panel) or a
@@ -6,6 +8,7 @@ import AssuageCore
 struct DecryptView: View {
     let scope: ComposeScope
     @Environment(AppModel.self) private var model
+    @Environment(PeopleLibrary.self) private var people
     @State private var viewModel = DecryptViewModel()
     /// Header info for the queued files, refreshed when the queue changes.
     @State private var fileInfos: [URL: AgeFileInfo] = [:]
@@ -35,7 +38,9 @@ struct DecryptView: View {
                         font: .caption.monospaced()
                     )
                     if let inputInfo {
-                        AgeFileInfoView(info: inputInfo, decryptability: decryptability(of: inputInfo))
+                        AgeFileInfoView(info: inputInfo,
+                                        decryptability: decryptability(of: inputInfo),
+                                        identifiedRecipients: identifiedRecipients(of: inputInfo))
                     }
                 }
 
@@ -112,7 +117,9 @@ struct DecryptView: View {
                                     .font(.caption.weight(.medium))
                                     .lineLimit(1)
                                     .truncationMode(.middle)
-                                AgeFileInfoView(info: info, decryptability: decryptability(of: info))
+                                AgeFileInfoView(info: info,
+                                                decryptability: decryptability(of: info),
+                                                identifiedRecipients: identifiedRecipients(of: info))
                             }
                         }
                     }
@@ -124,6 +131,11 @@ struct DecryptView: View {
             if model.decryptIdentityIDs.isEmpty { selectAllIdentities() }
             runAutoCheckIfNeeded()
             refreshFileInfos()
+        }
+        .task {
+            // Best-effort: if Contacts access is already granted, make sure people are
+            // loaded so recipients can be named. Never prompts — naming is a bonus.
+            if people.hasAccess, people.people.isEmpty { await people.load() }
         }
         .onChange(of: model.queuedDecryptFiles) { refreshFileInfos() }
         .onChange(of: model.autoCheckRequested) { _, requested in
@@ -159,6 +171,58 @@ struct DecryptView: View {
     /// fresh install). Uses only public key material — nothing is unlocked.
     private func decryptability(of info: AgeFileInfo) -> DecryptionCapability? {
         model.identities.isEmpty ? nil : info.decryptability(with: model.identities)
+    }
+
+    /// Put names to the file's recipients from public data only: a contact whose
+    /// published key provably addresses the header (clickable — reveals the card),
+    /// and any of your own keys that match (labeled "You"). Only the recipient types
+    /// carrying a public tag can be named; anonymous X25519 recipients never appear
+    /// here. A held key that's *also* on a contact card is shown as the contact, so
+    /// the "You" rows are the keys you hold that aren't published to anyone.
+    private func identifiedRecipients(of info: AgeFileInfo) -> [IdentifiedRecipient] {
+        var results: [IdentifiedRecipient] = []
+        var contactKeyIDs: Set<AgeRecipient.ID> = []
+
+        // Contacts first (best-effort; only if access is already granted).
+        if people.hasAccess {
+            for person in people.people {
+                guard case .contact(let contactID) = person.source else { continue }
+                for recipient in person.recipients where info.addresses(recipient) {
+                    contactKeyIDs.insert(recipient.id)
+                    results.append(IdentifiedRecipient(
+                        id: "contact:\(person.id):\(recipient.id)",
+                        name: person.name,
+                        detail: recipient.kind.recipientLabel,
+                        systemImage: "person.crop.circle",
+                        onSelect: { revealContact(contactID) }
+                    ))
+                }
+            }
+        }
+
+        // Then your own matching keys that aren't already published on a card.
+        for identity in model.identities where info.addresses(identity.recipient) {
+            guard !contactKeyIDs.contains(identity.recipient.id) else { continue }
+            let name = identity.label.isEmpty ? "You" : "You · \(identity.label)"
+            results.append(IdentifiedRecipient(
+                id: "you:\(identity.id)",
+                name: name,
+                detail: identity.recipient.kind.recipientLabel,
+                systemImage: "person.crop.circle.badge.checkmark",
+                onSelect: nil
+            ))
+        }
+
+        if !results.isEmpty {
+            Log.inspector.info("Named \(results.count) of the file's recipients from held keys/contacts")
+        }
+        return results
+    }
+
+    /// Open the given contact in the Contacts app — the same reveal used elsewhere.
+    private func revealContact(_ identifier: String) {
+        guard let url = URL(string: "addressbook://\(identifier)") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     /// Whether the current mode has what it needs to decrypt.

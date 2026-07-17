@@ -8,4 +8,6 @@ import os
 enum Log {
     /// Reading and (especially) writing the user's Contacts.
     static let contacts = Logger(subsystem: AppInfo.bundleIdentifier, category: "contacts")
+    /// Inspecting an age header — recipient parsing and naming from held keys/contacts.
+    static let inspector = Logger(subsystem: AppInfo.bundleIdentifier, category: "inspector")
 }

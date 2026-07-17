@@ -102,4 +102,45 @@ struct DecryptionCapabilityTests {
         let file = try Cipher.encrypt(Data("hi".utf8), to: [otherRecipient])
         #expect(try capability(file, [identity]) == .noMatchingKey)
     }
+
+    // MARK: Recipient naming — `addresses(_ recipient:)`
+    //
+    // The same public-tag match that judges a held identity also names a file's
+    // recipients from a *public* recipient (e.g. one published on a contact card).
+
+    private func addresses(_ file: Data, _ recipient: AgeRecipient) throws -> Bool {
+        try AgeFileInspector.inspect(file).addresses(recipient)
+    }
+
+    @Test("A public SSH recipient is recognized as a file's recipient")
+    func addressesSSH() throws {
+        let id = try AgeIdentity(importingSSHEd25519: SSHIdentityTests.plainPEM, label: "contact")
+        let file = try Cipher.encrypt(Data("hi".utf8), to: [id.recipient])
+        #expect(try addresses(file, id.recipient))
+    }
+
+    @Test("A different SSH recipient is not recognized")
+    func addressesSSHNoMatch() throws {
+        let theirs = try AgeIdentity(importingSSHEd25519: SSHIdentityTests.plainPEM)
+        let other = try AgeIdentity(importingSSHEd25519: SSHIdentityTests.encPEM, passphrase: SSHIdentityTests.encPassphrase)
+        let file = try Cipher.encrypt(Data("hi".utf8), to: [theirs.recipient])
+        #expect(try addresses(file, other.recipient) == false)
+    }
+
+    @Test("A public SE recipient is recognized via piv-p256 and p256tag")
+    func addressesSecureEnclave() throws {
+        for hrp in ["age1se", "age1p256tag"] {
+            let (_, recipient) = secureEnclaveIdentity(hrp: hrp)
+            let file = try Cipher.encrypt(Data("hi".utf8), to: [recipient])
+            #expect(try addresses(file, recipient))
+        }
+    }
+
+    @Test("An anonymous X25519 recipient is never recognized, even for its own file")
+    func addressesX25519Anonymous() throws {
+        let id = AgeIdentity.generateX25519()
+        let file = try Cipher.encrypt(Data("hi".utf8), to: [id.recipient])
+        // No public tag in the header to match a bare X25519 key against.
+        #expect(try addresses(file, id.recipient) == false)
+    }
 }

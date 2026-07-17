@@ -29,6 +29,22 @@ extension AgeFileInfo.Kind {
     }
 }
 
+extension AgeRecipient.Kind {
+    /// A short human label for a *recipient* scheme (as opposed to a parsed header
+    /// stanza, `AgeFileInfo.Kind.label`). Used when naming a file's recipients from
+    /// a held key or a contact's published key. The anonymous kinds are labelled for
+    /// completeness even though they never carry a matchable tag.
+    var recipientLabel: String {
+        switch self {
+        case .x25519: return "age recipient"
+        case .secureEnclave: return "Secure Enclave (P-256)"
+        case .sshEd25519: return "SSH key (Ed25519)"
+        case .postQuantum: return "Post-quantum (X-Wing)"
+        case .postQuantumHardware: return "Post-quantum (ML-KEM)"
+        }
+    }
+}
+
 extension AgeFileInfo {
     /// Recipient kinds collapsed to `(kind, count)` in first-appearance order —
     /// so "3 × age recipient" reads as one line instead of three.

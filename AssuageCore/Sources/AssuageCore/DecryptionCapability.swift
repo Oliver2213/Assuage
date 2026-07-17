@@ -47,7 +47,7 @@ extension AgeFileInfo {
     public func decryptability(with identities: [AgeIdentity]) -> DecryptionCapability {
         if isPassphrase { return .passphraseRequired }
 
-        let matching = identities.filter { addresses($0) }
+        let matching = identities.filter { addresses($0.recipient) }
         if !matching.isEmpty { return .decryptable(matching: matching) }
 
         // No provable match. An anonymous recipient (X25519 or mlkem768x25519) might
@@ -61,22 +61,30 @@ extension AgeFileInfo {
         return .noMatchingKey
     }
 
-    /// Whether any recipient stanza is provably addressed to `identity`, using
-    /// only public information: the identity's public recipient plus the in-header
+    /// Whether any recipient stanza is provably addressed to `recipient`, using
+    /// only public information: the recipient's public key plus the in-header
     /// ephemeral share. Never touches a secret or the Secure Enclave.
-    private func addresses(_ identity: AgeIdentity) -> Bool {
-        switch identity.recipient.kind {
+    ///
+    /// The match works for the recipient types that carry a short tag derived from
+    /// the *public* key — `ssh-ed25519`, Secure Enclave (`piv-p256` / `p256tag`),
+    /// and tagged post-quantum (`mlkem768p256tag`). Anonymous types (X25519 and
+    /// software X-Wing) carry no such tag, so this always returns `false` for them:
+    /// the header has nothing to check a public key against. Used both to judge a
+    /// held identity (see `decryptability(with:)`) and to name a file's recipients
+    /// from a contact's published keys.
+    public func addresses(_ recipient: AgeRecipient) -> Bool {
+        switch recipient.kind {
         case .sshEd25519:
-            guard let recipient = try? Age.SSHEd25519Recipient(authorizedKey: identity.recipient.encoding) else {
+            guard let ssh = try? Age.SSHEd25519Recipient(authorizedKey: recipient.encoding) else {
                 return false
             }
-            let fingerprint = recipient.fingerprint
+            let fingerprint = ssh.fingerprint
             return recipients.contains { $0.kind == .sshEd25519 && $0.args.first == fingerprint }
 
         case .secureEnclave:
             // The same P256 public key can be addressed as either piv-p256 or
             // p256tag; match whichever stanza type is present.
-            guard let publicKey = try? P256.KeyAgreement.PublicKey(ageSecureEnclaveRecipient: identity.recipient.encoding) else {
+            guard let publicKey = try? P256.KeyAgreement.PublicKey(ageSecureEnclaveRecipient: recipient.encoding) else {
                 return false
             }
             return recipients.contains { stanza in
@@ -101,7 +109,7 @@ extension AgeFileInfo {
         case .postQuantumHardware:
             // mlkem768p256tag carries a 4-byte tag derived from the recipient's
             // P-256 point — checkable from public data, no enclave access.
-            guard let recipientBytes = try? Bech32().decode(identity.recipient.encoding).data,
+            guard let recipientBytes = try? Bech32().decode(recipient.encoding).data,
                   recipientBytes.count == 1184 + 65 else {
                 return false
             }

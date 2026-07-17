@@ -76,3 +76,12 @@ extension.
 - `import Quartz` provides `QLPreviewingController`; `import QuickLookUI` is
   equivalent if your SDK prefers it.
 - Sandboxed, read-only — header info only, no keychain or decryption.
+- **No "Known recipients" in Quick Look, by design.** `AgeFileInfoView` can name a
+  file's recipients from your keys and contacts, but that resolution runs in the
+  *app* (it needs the keychain and Contacts access). The extension is sandboxed
+  with only `files.user-selected.read-only`, holds no keys, and — a preview can't
+  and shouldn't prompt for Contacts (TCC) — has no address-book access. So the app
+  passes the resolved names into the shared view; the extension passes none and the
+  section simply doesn't render. Giving it names would mean an App Group cache the
+  app populates for the extension to read; we deliberately don't, to keep the
+  preview keyless and permission-free.
