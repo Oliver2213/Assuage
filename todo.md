@@ -35,7 +35,3 @@
   * `.7z` / `.tar.xz` *format* (Windows 7-Zip / Linux interop): needs libarchive — ships and reads+writes 7z, but it's unsupported to link (no SDK headers, App-Store-risky) and we can't shell out to `bsdtar`/`aa` under the sandbox — so this means vendoring a third-party lib. Bigger call.
   Would offer the user a format preference (Zip = compatible default, Apple Archive = smaller). Pairs with a future auto-unpack-on-decrypt (use the same framework to expand back to a folder instead of leaving the archive).
   **Justification note:** a good final touch, but the tighter options are macOS-centric formats — they mostly benefit Mac users. Our goal is interop / UI convenience / deep system integration, and this doesn't quite fit that, so it's harder to justify. Still nice to have.
-
-* Post-quantum hardware keys — done. Generate/encrypt/decrypt shipped for both software X-Wing
-  `mlkem768x25519` (`age1pq…`) and hardware `mlkem768p256tag` (`age1tagpq…`), the latter
-  wire-compatible with age-plugin-se v0.2.0 and identity-portable both directions.

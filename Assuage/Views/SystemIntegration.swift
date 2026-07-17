@@ -13,7 +13,7 @@ struct SystemIntegration: Identifiable {
     static let all: [SystemIntegration] = [
         SystemIntegration(
             name: "Services menu",
-            detail: "Encrypt or decrypt the current selection from the Services menu in any app — or check whether you can decrypt a file or text.",
+            detail: "Encrypt, decrypt, or check the current selection from the Services menu in any app. You can also sign selected text as a signed note — it replaces the selection — or verify a signed note.",
             systemImage: "filemenu.and.selection"
         ),
         SystemIntegration(
